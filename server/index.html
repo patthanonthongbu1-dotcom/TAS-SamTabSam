@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TAS Mod Panel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f5f5f5; display: flex; justify-content: center; padding: 2rem 1rem; }
+    .container { width: 100%; max-width: 520px; }
+    h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+    p.sub { font-size: 14px; color: #888; margin-bottom: 1.5rem; }
+    .card { background: white; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+    .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #aaa; margin-bottom: 12px; }
+    .field { margin-bottom: 1rem; }
+    label { display: block; font-size: 13px; color: #666; margin-bottom: 5px; }
+    input, textarea { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; font-family: sans-serif; }
+    textarea { min-height: 120px; resize: vertical; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    button { width: 100%; padding: 11px; font-size: 15px; font-weight: 500; background: #1D9E75; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    button:hover { background: #0F6E56; }
+    .status { margin-top: 1rem; padding: 12px; border-radius: 8px; font-size: 14px; text-align: center; display: none; }
+    .success { background: #e6f7f1; color: #0F6E56; display: block; }
+    .error { background: #fdecea; color: #c0392b; display: block; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>3/3 Academic System</h1>
+  <p class="sub">Mod panel — daily report sender</p>
+
+  <div class="card">
+    <div class="section-label">Report details</div>
+    <div class="row">
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="date" />
+      </div>
+      <div class="field">
+        <label>Reported by</label>
+        <input type="text" id="reporter" placeholder="Your name" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Today's work</label>
+      <textarea id="work" placeholder="What did the class work on today?"></textarea>
+    </div>
+    <div class="field">
+      <label>Additional notes (optional)</label>
+      <input type="text" id="notes" placeholder="Homework, reminders, etc." />
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Server config</div>
+    <div class="field">
+      <label>Server URL</label>
+      <input type="text" id="serverUrl" value="http://localhost:3000" />
+    </div>
+    <div class="field">
+      <label>LINE Group ID</label>
+      <input type="text" id="groupId" placeholder="C... or your User ID for testing" />
+    </div>
+  </div>
+
+  <button onclick="sendReport()">Send report to LINE</button>
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+  document.getElementById('date').value = new Date().toISOString().split('T')[0]
+
+  async function sendReport() {
+    const date = document.getElementById('date').value
+    const reporter = document.getElementById('reporter').value.trim()
+    const work = document.getElementById('work').value.trim()
+    const notes = document.getElementById('notes').value.trim()
+    const serverUrl = document.getElementById('serverUrl').value.trim()
+    const groupId = document.getElementById('groupId').value.trim()
+    const status = document.getElementById('status')
+
+    if (!reporter || !work || !groupId) {
+      status.className = 'status error'
+      status.textContent = 'Please fill in reporter, work, and group ID.'
+      return
+    }
+
+    const message = `📋 Daily Report — ${date}\n👤 ${reporter}\n\n📝 ${work}${notes ? '\n\n📌 ' + notes : ''}`
+
+    status.className = 'status'
+    status.style.display = 'block'
+    status.textContent = 'Sending...'
+
+    try {
+      const res = await fetch(`${serverUrl}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId, message })
+      })
+      const data = await res.json()
+      status.className = 'status success'
+      status.textContent = 'Report sent to LINE!'
+    } catch (e) {
+      status.className = 'status error'
+      status.textContent = 'Failed. Is the server running?'
+    }
+  }
+</script>
+</body>
+</html>
