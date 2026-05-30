@@ -26,5 +26,14 @@ app.post("/send", async (req, res) => {
   res.json({ ok: true })
 })
 
+app.post("/webhook", (req, res) => {
+  const events = req.body.events
+  if (events && events.length > 0) {
+    const source = events[0].source
+    console.log("Source:", JSON.stringify(source))
+  }
+  res.sendStatus(200)
+})
+
 const PORT = process.env.PORT || 3000
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
