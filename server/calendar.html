@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TAS Calendar</title>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --green:#1D9E75;--green-dark:#0F6E56;--green-light:#e6f7f1;--green-mid:#c3ead8;
+      --red:#e53e3e;--red-light:#fff5f5;--red-mid:#fed7d7;
+      --amber:#d97706;--amber-light:#fffbeb;--amber-mid:#fde68a;
+      --blue:#2563eb;--blue-light:#eff6ff;--blue-mid:#bfdbfe;
+      --bg:#f4f6f4;--card:#fff;--border:#e8ebe8;--text:#1a1a1a;--muted:#6b7b6b;--label:#9aaa9a;--surface:#f8faf8;
+    }
+    body{font-family:'Prompt',sans-serif;background:var(--bg);min-height:100vh;color:var(--text)}
+
+    .topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+    .topbar-left{display:flex;align-items:center;gap:12px}
+    .topbar h1{font-size:18px;font-weight:600;color:var(--text)}
+    .topbar p{font-size:12px;color:var(--muted);font-weight:300}
+    .mod-btn{padding:7px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-family:'Prompt',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;transition:all 0.15s}
+    .mod-btn:hover{border-color:var(--green);color:var(--green)}
+    .mod-btn.active{background:var(--green);color:white;border-color:var(--green)}
+    .add-task-btn{padding:8px 16px;background:var(--green);color:white;border:none;border-radius:8px;font-family:'Prompt',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:none;transition:background 0.15s}
+    .add-task-btn:hover{background:var(--green-dark)}
+    .add-task-btn.visible{display:block}
+
+    .legend{display:flex;align-items:center;gap:16px;padding:12px 1.5rem;background:var(--card);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);flex-wrap:wrap}
+    .legend-item{display:flex;align-items:center;gap:6px}
+    .legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+    .dot-normal{background:var(--green)}
+    .dot-deadline{background:var(--red)}
+    .dot-prediction{background:var(--amber)}
+
+    /* range info pill */
+    .range-pill{margin-left:auto;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 10px;color:var(--muted)}
+
+    .cal-wrap{overflow-x:auto;padding:1.5rem}
+    .cal-inner{min-width:900px}
+
+    .cal-header{display:flex;margin-bottom:4px}
+    .cal-label-col{width:160px;flex-shrink:0}
+    .cal-dates{flex:1;display:flex;position:relative;height:36px}
+    .date-tick{position:absolute;top:0;display:flex;flex-direction:column;align-items:center;pointer-events:none}
+    .date-tick-line{width:1px;height:8px;background:var(--border)}
+    .date-tick-label{font-size:10px;color:var(--label);margin-top:2px;white-space:nowrap;transform:translateX(-50%)}
+
+    .cal-row{display:flex;align-items:center;margin-bottom:6px;min-height:40px}
+    .cal-row-label{width:160px;flex-shrink:0;padding-right:12px;font-size:13px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}
+    .cal-row-label .row-subject{font-size:11px;color:var(--muted);font-weight:300;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .cal-track{flex:1;position:relative;height:40px;border-radius:6px;background:var(--surface);border:1px solid var(--border)}
+
+    /* today line */
+    .today-line{position:absolute;top:0;bottom:0;width:2px;background:rgba(229,62,62,0.7);z-index:5;pointer-events:none;border-radius:1px}
+    /* today line in header */
+    .today-tick-line{width:2px!important;background:var(--red)!important;height:14px!important}
+    .today-tick-label{color:var(--red)!important;font-weight:600!important}
+
+    .gantt-bar{position:absolute;top:6px;bottom:6px;border-radius:6px;cursor:pointer;display:flex;align-items:center;padding:0 8px;overflow:hidden;transition:opacity 0.2s,filter 0.2s;z-index:3}
+    .gantt-bar:hover{filter:brightness(0.9)}
+    .gantt-bar.done{opacity:0.2;pointer-events:none}
+    .gantt-bar-normal{background:var(--green)}
+    .gantt-bar-deadline{background:var(--red)}
+    .gantt-bar-prediction{background:var(--amber)}
+    .gantt-bar-text{font-size:10px;font-weight:500;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    /* overdue pulse on deadline bars */
+    .gantt-bar-deadline.overdue{animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.65}}
+
+    .done-check{position:absolute;right:4px;top:50%;transform:translateY(-50%);z-index:4}
+    .done-check input{width:14px;height:14px;accent-color:var(--green);cursor:pointer}
+
+    .empty-state{text-align:center;padding:4rem 2rem;color:var(--muted)}
+    .empty-state p{font-size:15px;margin-bottom:8px}
+    .empty-state small{font-size:13px;font-weight:300}
+
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem}
+    .modal-overlay.open{display:flex}
+    .modal{background:var(--card);border-radius:16px;padding:1.5rem;width:100%;max-width:440px;max-height:90vh;overflow-y:auto}
+    .modal h2{font-size:17px;font-weight:600;margin-bottom:1.25rem;color:var(--text)}
+    .modal-field{margin-bottom:1rem}
+    .modal-field label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:5px}
+    .modal-field input,.modal-field select,.modal-field textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:'Prompt',sans-serif;color:var(--text);background:white;outline:none;transition:border-color 0.15s}
+    .modal-field input:focus,.modal-field select:focus,.modal-field textarea:focus{border-color:var(--green)}
+    .modal-field textarea{resize:vertical;min-height:70px}
+    .modal-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .modal-actions{display:flex;gap:8px;margin-top:1.25rem;flex-wrap:wrap}
+    .modal-save{flex:1;padding:10px;background:var(--green);color:white;border:none;border-radius:10px;font-family:'Prompt',sans-serif;font-size:14px;font-weight:500;cursor:pointer}
+    .modal-save:hover{background:var(--green-dark)}
+    .modal-cancel{flex:1;padding:10px;background:var(--surface);color:var(--muted);border:1px solid var(--border);border-radius:10px;font-family:'Prompt',sans-serif;font-size:14px;cursor:pointer}
+    .modal-delete{padding:10px 14px;background:var(--red-light);color:var(--red);border:1px solid var(--red-mid);border-radius:10px;font-family:'Prompt',sans-serif;font-size:14px;cursor:pointer}
+
+    .type-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+    .badge-normal{background:var(--green-light);color:var(--green-dark)}
+    .badge-deadline{background:var(--red-light);color:var(--red)}
+    .badge-prediction{background:var(--amber-light);color:var(--amber)}
+
+    .pw-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;display:flex;align-items:center;justify-content:center;padding:1rem}
+    .pw-box{background:var(--card);border-radius:16px;padding:1.5rem;width:100%;max-width:320px;text-align:center}
+    .pw-box h2{font-size:17px;font-weight:600;margin-bottom:8px}
+    .pw-box p{font-size:13px;color:var(--muted);margin-bottom:1rem;font-weight:300}
+    .pw-box input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:15px;font-family:'Prompt',sans-serif;text-align:center;outline:none;margin-bottom:10px;letter-spacing:2px}
+    .pw-box input:focus{border-color:var(--green)}
+    .pw-submit{width:100%;padding:10px;background:var(--green);color:white;border:none;border-radius:10px;font-family:'Prompt',sans-serif;font-size:14px;font-weight:500;cursor:pointer}
+    .pw-submit:hover{background:var(--green-dark)}
+    .pw-cancel{width:100%;padding:8px;background:transparent;color:var(--muted);border:none;font-family:'Prompt',sans-serif;font-size:13px;cursor:pointer;margin-top:6px}
+    .pw-error{color:var(--red);font-size:12px;margin-top:6px;display:none}
+
+    .detail-popup{position:fixed;z-index:150;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;min-width:200px;max-width:280px;box-shadow:0 4px 20px rgba(0,0,0,0.12);display:none}
+    .detail-popup.open{display:block}
+    .detail-popup h3{font-size:14px;font-weight:600;margin-bottom:4px}
+    .detail-popup .detail-subject{font-size:12px;color:var(--muted);margin-bottom:8px}
+    .detail-popup .detail-dates{font-size:12px;color:var(--text);margin-bottom:8px;display:flex;flex-direction:column;gap:3px}
+    .detail-popup .detail-note{font-size:12px;color:var(--muted);font-weight:300;padding-top:8px;border-top:1px solid var(--border)}
+    .detail-edit-btn{margin-top:10px;width:100%;padding:7px;background:var(--green-light);color:var(--green-dark);border:none;border-radius:8px;font-family:'Prompt',sans-serif;font-size:12px;font-weight:500;cursor:pointer;display:none}
+    .detail-edit-btn.visible{display:block}
+    .detail-close{position:absolute;top:8px;right:10px;background:none;border:none;font-size:16px;cursor:pointer;color:var(--muted)}
+
+    /* days-left chip in detail */
+    .days-chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;margin-top:4px}
+    .days-chip.soon{background:var(--amber-light);color:var(--amber)}
+    .days-chip.overdue{background:var(--red-light);color:var(--red)}
+    .days-chip.ok{background:var(--green-light);color:var(--green-dark)}
+
+    .loading{text-align:center;padding:4rem;color:var(--muted);font-size:14px}
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div>
+      <h1>📅 TAS Calendar</h1>
+      <p>3/3 Academic System — work timeline</p>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="add-task-btn" id="addTaskBtn" onclick="openAddModal()">➕ Add task</button>
+    <button class="mod-btn" id="modBtn" onclick="toggleModMode()">🔒 Mod mode</button>
+  </div>
+</div>
+
+<div class="legend">
+  <span style="font-weight:500;color:var(--text)">Legend:</span>
+  <div class="legend-item"><div class="legend-dot dot-normal"></div> Normal</div>
+  <div class="legend-item"><div class="legend-dot dot-deadline"></div> Deadline</div>
+  <div class="legend-item"><div class="legend-dot dot-prediction"></div> Prediction</div>
+  <span class="range-pill" id="rangePill">loading...</span>
+</div>
+
+<div class="cal-wrap" id="calWrap">
+  <div class="loading">Loading tasks...</div>
+</div>
+
+<div class="detail-popup" id="detailPopup">
+  <button class="detail-close" onclick="closeDetail()">✕</button>
+  <h3 id="dp-name"></h3>
+  <div class="detail-subject" id="dp-subject"></div>
+  <div id="dp-days"></div>
+  <div class="detail-dates" id="dp-dates" style="margin-top:6px"></div>
+  <div class="detail-note" id="dp-note" style="display:none"></div>
+  <button class="detail-edit-btn" id="dp-edit-btn">✏️ Edit task</button>
+</div>
+
+<div class="modal-overlay" id="taskModal">
+  <div class="modal">
+    <h2 id="modal-title">Add task</h2>
+    <div class="modal-field">
+      <label>Task name</label>
+      <input type="text" id="t-name" placeholder="e.g. MindMap งานการงาน" />
+    </div>
+    <div class="modal-field">
+      <label>Subject</label>
+      <input type="text" id="t-subject" placeholder="e.g. การงาน, ภาษาไทย" />
+    </div>
+    <div class="modal-field">
+      <label>Type</label>
+      <select id="t-type">
+        <option value="normal">🟢 Normal</option>
+        <option value="deadline">🔴 Send before (hard deadline)</option>
+        <option value="prediction">🟡 Prediction (estimated)</option>
+      </select>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Start date</label>
+        <input type="date" id="t-start" />
+      </div>
+      <div class="modal-field">
+        <label>End / Due date</label>
+        <input type="date" id="t-end" />
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>Note (optional)</label>
+      <textarea id="t-note" placeholder="Extra info, submission link, etc."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-delete" id="modal-delete-btn" style="display:none" onclick="deleteTask()">🗑️ Delete</button>
+      <button class="modal-save" onclick="saveTask()">💾 Save task</button>
+    </div>
+  </div>
+</div>
+
+<div class="pw-overlay" id="pwOverlay" style="display:none">
+  <div class="pw-box">
+    <h2>🔒 Mod mode</h2>
+    <p>Enter the mod password to enable editing</p>
+    <input type="password" id="pwInput" placeholder="Password" onkeydown="if(event.key==='Enter')checkPw()" />
+    <div class="pw-error" id="pwError">Incorrect password</div>
+    <button class="pw-submit" onclick="checkPw()">Unlock</button>
+    <button class="pw-cancel" onclick="closePw()">Cancel</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js"
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18",
+  authDomain: "tas-samtabsam.firebaseapp.com",
+  projectId: "tas-samtabsam",
+  storageBucket: "tas-samtabsam.firebasestorage.app",
+  messagingSenderId: "645483732924",
+  appId: "1:645483732924:web:5a1ec2b9f7c58a18c655b9"
+}
+
+const app = initializeApp(firebaseConfig)
+const db = getFirestore(app)
+const MOD_PASSWORD = "tas33"
+
+const TODAY = new Date(); TODAY.setHours(0,0,0,0)
+const thaiMonths = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."]
+function shortDate(d){ return `${d.getDate()} ${thaiMonths[d.getMonth()]} ${d.getFullYear()+543}` }
+function parseDate(s){ return new Date(s+"T00:00:00") }
+function getDone(){ try{ return JSON.parse(localStorage.getItem("tas_done")||"{}") }catch(e){return {}} }
+function setDone(obj){ localStorage.setItem("tas_done",JSON.stringify(obj)) }
+
+let tasks = []
+let isMod = false
+let editingId = null
+
+// ── DYNAMIC RANGE ──────────────────────────────────────────────
+// Range is computed from actual task dates every render.
+// Always starts from whichever is earlier: today or earliest task start.
+// Always ends at whichever is later: 2 weeks from today or latest task end.
+// Adds a small padding (3 days each side) so bars don't sit flush against the edge.
+function computeRange(taskList) {
+  const PAD = 3 * 24*60*60*1000
+  let rangeStart = new Date(TODAY)
+  let rangeEnd = new Date(TODAY.getTime() + 14*24*60*60*1000)
+
+  taskList.forEach(t => {
+    const s = parseDate(t.start)
+    const e = parseDate(t.end)
+    if (s < rangeStart) rangeStart = s
+    if (e > rangeEnd) rangeEnd = e
+  })
+
+  return {
+    start: new Date(rangeStart.getTime() - PAD),
+    end:   new Date(rangeEnd.getTime()   + PAD)
+  }
+}
+
+function pct(d, rangeStart, totalMs) {
+  return Math.max(0, Math.min(100, (d - rangeStart) / totalMs * 100))
+}
+
+function barColor(type){ 
+  if(type==="deadline") return "gantt-bar-deadline"
+  if(type==="prediction") return "gantt-bar-prediction"
+  return "gantt-bar-normal"
+}
+
+function daysLeft(endDate) {
+  return Math.round((endDate - TODAY) / (24*60*60*1000))
+}
+
+function renderCalendar() {
+  const wrap = document.getElementById("calWrap")
+  const rangePill = document.getElementById("rangePill")
+
+  if (tasks.length === 0) {
+    wrap.innerHTML = `<div class="empty-state"><p>No tasks yet 📭</p><small>${isMod?"Click ➕ Add task to get started":"Check back later!"}</small></div>`
+    rangePill.textContent = "no tasks"
+    return
+  }
+
+  const done = getDone()
+  const sorted = [...tasks].sort((a,b) => new Date(a.end) - new Date(b.end))
+  const { start: rangeStart, end: rangeEnd } = computeRange(tasks)
+  const totalMs = rangeEnd - rangeStart
+
+  // Update range pill
+  rangePill.textContent = `${shortDate(rangeStart)} → ${shortDate(rangeEnd)}`
+
+  // Today position
+  const todayPct = pct(TODAY, rangeStart, totalMs)
+
+  // Build weekly ticks
+  let ticks = ""
+  const step = 7
+  let cur = new Date(rangeStart)
+  // Snap to nearest Monday-ish
+  while (cur <= rangeEnd) {
+    const p = pct(cur, rangeStart, totalMs)
+    const isToday = cur.getTime() === TODAY.getTime()
+    ticks += `<div class="date-tick" style="left:${p}%">
+      <div class="date-tick-line ${isToday?"today-tick-line":""}"></div>
+      <div class="date-tick-label ${isToday?"today-tick-label":""}">${isToday?"วันนี้":shortDate(cur)}</div>
+    </div>`
+    cur = new Date(cur); cur.setDate(cur.getDate() + step)
+  }
+
+  let rows = sorted.map(t => {
+    const start = parseDate(t.start)
+    const end   = parseDate(t.end)
+    const isDone = !!done[t.id]
+    const left  = pct(start, rangeStart, totalMs)
+    const right = pct(end,   rangeStart, totalMs)
+    const width = Math.max(right - left, 1.2)
+    const dl    = daysLeft(end)
+    const isOverdue = dl < 0 && !isDone
+    const barClass = barColor(t.type)
+    const overdueClass = isOverdue && t.type === "deadline" ? " overdue" : ""
+    const label = t.name + " · " + shortDate(end)
+
+    return `
+      <div class="cal-row">
+        <div class="cal-row-label">
+          <div title="${t.name}">${t.name}</div>
+          <div class="row-subject" title="${t.subject}">${t.subject}</div>
+        </div>
+        <div class="cal-track">
+          <div class="today-line" style="left:${todayPct}%"></div>
+          <div class="gantt-bar ${barClass}${overdueClass} ${isDone?"done":""}"
+            style="left:${left}%;width:${width}%"
+            onclick="showDetail(event,'${t.id}')">
+            <span class="gantt-bar-text">${label}</span>
+          </div>
+          <div class="done-check">
+            <input type="checkbox" title="Mark as done"
+              ${isDone?"checked":""}
+              onchange="toggleDone('${t.id}',this.checked)" />
+          </div>
+        </div>
+      </div>`
+  }).join("")
+
+  wrap.innerHTML = `
+    <div class="cal-inner">
+      <div class="cal-header">
+        <div class="cal-label-col"></div>
+        <div class="cal-dates">${ticks}</div>
+      </div>
+      ${rows}
+    </div>`
+}
+
+window.toggleDone = function(id, checked) {
+  const done = getDone()
+  if (checked) done[id] = true; else delete done[id]
+  setDone(done)
+  renderCalendar()
+}
+
+window.showDetail = function(e, id) {
+  e.stopPropagation()
+  const t = tasks.find(x => x.id === id)
+  if (!t) return
+
+  const end = parseDate(t.end)
+  const dl = daysLeft(end)
+  let chipClass = "ok", chipText = `${dl}d left`
+  if (dl < 0) { chipClass = "overdue"; chipText = `${Math.abs(dl)}d overdue` }
+  else if (dl <= 3) { chipClass = "soon"; chipText = `⚠️ ${dl}d left` }
+
+  document.getElementById("dp-name").textContent = t.name
+  document.getElementById("dp-subject").innerHTML =
+    `<span class="type-badge badge-${t.type}">${t.type==="normal"?"🟢 Normal":t.type==="deadline"?"🔴 Deadline":"🟡 Prediction"}</span> · ${t.subject}`
+  document.getElementById("dp-days").innerHTML =
+    `<span class="days-chip ${chipClass}">${chipText}</span>`
+  document.getElementById("dp-dates").innerHTML =
+    `<span>📅 Start: ${shortDate(parseDate(t.start))}</span><span>🏁 Due: ${shortDate(end)}</span>`
+
+  const noteEl = document.getElementById("dp-note")
+  if (t.note) { noteEl.textContent = "📌 " + t.note; noteEl.style.display = "block" }
+  else { noteEl.style.display = "none" }
+
+  const editBtn = document.getElementById("dp-edit-btn")
+  editBtn.className = "detail-edit-btn" + (isMod ? " visible" : "")
+  editBtn.onclick = () => { closeDetail(); openEditModal(t) }
+
+  const popup = document.getElementById("detailPopup")
+  popup.style.display = "block"
+  const rect = e.target.closest(".gantt-bar").getBoundingClientRect()
+  let top  = rect.bottom + 8 + window.scrollY
+  let left = Math.min(rect.left + window.scrollX, window.innerWidth - 300)
+  popup.style.top = top + "px"; popup.style.left = left + "px"
+  popup.classList.add("open")
+  setTimeout(() => document.addEventListener("click", closeDetailOutside), 0)
+}
+
+function closeDetailOutside(e) {
+  if (!document.getElementById("detailPopup").contains(e.target)) closeDetail()
+}
+window.closeDetail = function() {
+  document.getElementById("detailPopup").classList.remove("open")
+  document.getElementById("detailPopup").style.display = "none"
+  document.removeEventListener("click", closeDetailOutside)
+}
+
+// MOD MODE
+window.toggleModMode = function() {
+  if (isMod) { isMod = false; updateModUI(); return }
+  document.getElementById("pwOverlay").style.display = "flex"
+  setTimeout(() => document.getElementById("pwInput").focus(), 100)
+}
+window.checkPw = function() {
+  if (document.getElementById("pwInput").value === MOD_PASSWORD) {
+    isMod = true; closePw(); updateModUI()
+  } else {
+    document.getElementById("pwError").style.display = "block"
+    document.getElementById("pwInput").value = ""
+    document.getElementById("pwInput").focus()
+  }
+}
+window.closePw = function() {
+  document.getElementById("pwOverlay").style.display = "none"
+  document.getElementById("pwInput").value = ""
+  document.getElementById("pwError").style.display = "none"
+}
+function updateModUI() {
+  const btn = document.getElementById("modBtn")
+  const addBtn = document.getElementById("addTaskBtn")
+  if (isMod) { btn.textContent = "🔓 Mod mode"; btn.classList.add("active"); addBtn.classList.add("visible") }
+  else { btn.textContent = "🔒 Mod mode"; btn.classList.remove("active"); addBtn.classList.remove("visible") }
+  renderCalendar()
+}
+
+// MODAL
+window.openAddModal = function() {
+  editingId = null
+  document.getElementById("modal-title").textContent = "Add task"
+  document.getElementById("t-name").value = ""
+  document.getElementById("t-subject").value = ""
+  document.getElementById("t-type").value = "normal"
+  document.getElementById("t-start").value = new Date().toISOString().split("T")[0]
+  document.getElementById("t-end").value = ""
+  document.getElementById("t-note").value = ""
+  document.getElementById("modal-delete-btn").style.display = "none"
+  document.getElementById("taskModal").classList.add("open")
+}
+function openEditModal(t) {
+  editingId = t.id
+  document.getElementById("modal-title").textContent = "Edit task"
+  document.getElementById("t-name").value = t.name
+  document.getElementById("t-subject").value = t.subject
+  document.getElementById("t-type").value = t.type
+  document.getElementById("t-start").value = t.start
+  document.getElementById("t-end").value = t.end
+  document.getElementById("t-note").value = t.note || ""
+  document.getElementById("modal-delete-btn").style.display = "block"
+  document.getElementById("taskModal").classList.add("open")
+}
+window.closeModal = function() { document.getElementById("taskModal").classList.remove("open") }
+
+window.saveTask = async function() {
+  const name    = document.getElementById("t-name").value.trim()
+  const subject = document.getElementById("t-subject").value.trim()
+  const type    = document.getElementById("t-type").value
+  const start   = document.getElementById("t-start").value
+  const end     = document.getElementById("t-end").value
+  const note    = document.getElementById("t-note").value.trim()
+  if (!name || !subject || !start || !end) { alert("Please fill in name, subject, and dates."); return }
+  if (new Date(start) > new Date(end)) { alert("Start date must be before end date."); return }
+  const data = { name, subject, type, start, end, note }
+  if (editingId) {
+    await updateDoc(doc(db, "tasks", editingId), data)
+  } else {
+    await addDoc(collection(db, "tasks"), data)
+  }
+  closeModal()
+}
+
+window.deleteTask = async function() {
+  if (!editingId) return
+  if (!confirm("Delete this task?")) return
+  await deleteDoc(doc(db, "tasks", editingId))
+  closeModal()
+}
+
+// REALTIME
+onSnapshot(collection(db, "tasks"), snap => {
+  tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+  renderCalendar()
+})
+
+document.getElementById("taskModal").addEventListener("click", function(e) {
+  if (e.target === this) closeModal()
+})
+</script>
+</body>
+</html>

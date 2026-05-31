@@ -8,105 +8,55 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --green: #1D9E75;
-      --green-dark: #0F6E56;
-      --green-light: #e6f7f1;
-      --green-mid: #c3ead8;
-      --red-light: #fdecea;
-      --red: #c0392b;
-      --red-mid: #f5c6c6;
-      --amber-light: #fefce8;
-      --amber-border: #e8d98a;
-      --amber-text: #7a6a10;
-      --blue-light: #eff6ff;
-      --blue: #2563eb;
-      --bg: #f4f6f4;
-      --card: #ffffff;
-      --border: #e8ebe8;
-      --text: #1a1a1a;
-      --muted: #6b7b6b;
-      --label: #9aaa9a;
-      --surface: #f8faf8;
+      --green: #1D9E75; --green-dark: #0F6E56; --green-light: #e6f7f1; --green-mid: #c3ead8;
+      --red-light: #fdecea; --red: #c0392b; --red-mid: #f5c6c6;
+      --amber-light: #fefce8; --amber-border: #e8d98a; --amber-text: #7a6a10;
+      --blue-light: #eff6ff; --blue: #2563eb;
+      --purple-light: #f3f0ff; --purple: #7c3aed; --purple-border: #c4b5fd;
+      --bg: #f4f6f4; --card: #ffffff; --border: #e8ebe8;
+      --text: #1a1a1a; --muted: #6b7b6b; --label: #9aaa9a; --surface: #f8faf8;
     }
-
-    body {
-      font-family: 'Prompt', sans-serif;
-      background: var(--bg);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      padding: 2.5rem 1rem 4rem;
-    }
-
+    body { font-family: 'Prompt', sans-serif; background: var(--bg); min-height: 100vh; display: flex; justify-content: center; padding: 2.5rem 1rem 4rem; }
     .container { width: 100%; max-width: 540px; }
-
     .header { margin-bottom: 2rem; padding: 0 0.25rem; }
     .header h1 { font-size: 24px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
     .header p { font-size: 13px; color: var(--muted); margin-top: 3px; font-weight: 300; }
-
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; margin-bottom: 1rem; }
-
     .section-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--label); margin-bottom: 14px; }
-
     .field { margin-bottom: 1.1rem; }
     .field:last-child { margin-bottom: 0; }
     .field > label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
-
     input[type="text"], input[type="date"], textarea, select {
       width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px;
-      font-size: 14px; font-family: 'Prompt', sans-serif; font-weight: 400; color: var(--text);
-      background: white; outline: none; transition: border-color 0.15s;
-      /* prevent zoom on mobile */
-      font-size: max(16px, 14px);
+      font-family: 'Prompt', sans-serif; font-weight: 400; color: var(--text);
+      background: white; outline: none; transition: border-color 0.15s; font-size: max(16px, 14px);
     }
     input:focus, textarea:focus, select:focus { border-color: var(--green); }
     textarea { resize: vertical; min-height: 110px; line-height: 1.6; }
-
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-    /* Stack row on very small screens */
-    @media (max-width: 360px) {
-      .row { grid-template-columns: 1fr; }
-    }
-
+    @media (max-width: 360px) { .row { grid-template-columns: 1fr; } }
     .mode-toggle { display: flex; background: var(--bg); border-radius: 12px; padding: 4px; margin-bottom: 1.5rem; border: 1px solid var(--border); }
     .mode-btn { flex: 1; padding: 9px 12px; border: none; background: transparent; border-radius: 9px; font-size: 13px; font-weight: 400; font-family: 'Prompt', sans-serif; cursor: pointer; color: var(--muted); transition: all 0.2s; touch-action: manipulation; }
     .mode-btn.active { background: white; color: var(--green); font-weight: 500; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
-
-    /* Buttons */
-    .btn { width: 100%; padding: 14px; font-size: 15px; font-weight: 500; font-family: 'Prompt', sans-serif; background: var(--green); color: white; border: none; border-radius: 12px; cursor: pointer; transition: background 0.15s, transform 0.1s; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+    .btn { width: 100%; padding: 14px; font-size: 15px; font-weight: 500; font-family: 'Prompt', sans-serif; background: var(--green); color: white; border: none; border-radius: 12px; cursor: pointer; transition: background 0.15s, transform 0.1s; touch-action: manipulation; }
     .btn:hover { background: var(--green-dark); }
-    .btn:active { transform: scale(0.99); background: var(--green-dark); }
-
-    .action-btn {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 8px 12px; /* slightly larger tap target */
-      font-size: 12px; font-weight: 500; font-family: 'Prompt', sans-serif;
-      border-radius: 8px; border: none; cursor: pointer;
-      transition: background 0.15s; white-space: nowrap;
-      touch-action: manipulation; -webkit-tap-highlight-color: transparent;
-      min-height: 36px; /* ensures comfortable tap target */
-    }
+    .btn:active { transform: scale(0.99); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .action-btn { display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px; font-size: 12px; font-weight: 500; font-family: 'Prompt', sans-serif; border-radius: 8px; border: none; cursor: pointer; transition: background 0.15s; white-space: nowrap; touch-action: manipulation; min-height: 36px; }
     .btn-add-green { background: var(--green-light); color: var(--green-dark); }
     .btn-add-green:hover { background: var(--green-mid); }
-    .btn-add-green:active { background: var(--green-mid); }
     .btn-add-blue { background: var(--blue-light); color: var(--blue); }
     .btn-add-blue:hover { background: #dbeafe; }
-    .btn-add-blue:active { background: #dbeafe; }
     .btn-delete { background: var(--red-light); color: var(--red); }
     .btn-delete:hover { background: var(--red-mid); }
-    .btn-delete:active { background: var(--red-mid); }
     .btn-toggle-note { background: var(--amber-light); color: var(--amber-text); border: 1px solid var(--amber-border); }
     .btn-toggle-note:hover { background: #fef9c3; }
-    .btn-toggle-note:active { background: #fef9c3; }
-
     .status { margin-top: 1rem; padding: 12px 16px; border-radius: 10px; font-size: 13px; text-align: center; display: none; font-weight: 400; }
     .s-success { background: var(--green-light); color: var(--green-dark); display: block; }
     .s-error { background: var(--red-light); color: var(--red); display: block; }
-
-    /* Targets */
+    .s-info { background: var(--blue-light); color: var(--blue); display: block; }
     .target-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-    .target-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .target-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); transition: border-color 0.15s, background 0.15s; }
     .target-item.checked { border-color: var(--green); background: var(--green-light); }
     .target-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--green); flex-shrink: 0; cursor: pointer; }
     .target-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--green); color: white; font-size: 12px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -115,16 +65,12 @@
     .target-id { font-size: 10px; color: var(--label); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .add-target-form { display: none; flex-direction: column; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
     .add-target-form.open { display: flex; }
-    .add-target-form input { font-size: 13px; padding: 8px 11px; }
-
-    /* Sections */
     .section-block { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; background: var(--surface); overflow: hidden; }
     .section-header { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: white; border-bottom: 1px solid var(--border); }
     .icon-select { width: 52px !important; flex-shrink: 0; padding: 6px 2px !important; font-size: 17px !important; text-align: center; border-radius: 8px !important; }
     .section-title-input { flex: 1; font-size: 14px !important; font-weight: 500 !important; min-width: 0; }
     .section-body { padding: 12px 14px; }
-
-    .subject-block { padding: 7px 0; border-top: 1px dashed var(--border); margin-top: 2px; }
+    .subject-block { padding: 10px 0; border-top: 1px dashed var(--border); margin-top: 2px; }
     .subject-block:first-child { border-top: none; padding-top: 0; margin-top: 0; }
     .subject-row { display: flex; align-items: flex-start; gap: 8px; }
     .subject-num { font-size: 12px; font-weight: 500; color: var(--label); min-width: 18px; padding-top: 10px; text-align: right; flex-shrink: 0; }
@@ -132,42 +78,38 @@
     .subject-top { display: flex; align-items: center; gap: 6px; }
     .work-icon-select { width: 48px !important; flex-shrink: 0; padding: 6px 2px !important; font-size: 15px !important; text-align: center; border-radius: 8px !important; }
     .subject-title-input { flex: 1; font-size: 13px !important; min-width: 0; }
-
+    .task-fields { background: var(--purple-light); border: 1px solid var(--purple-border); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .task-fields-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--purple); margin-bottom: 2px; }
+    .task-fields input, .task-fields select { font-size: 13px !important; padding: 6px 10px !important; border-color: var(--purple-border) !important; background: white !important; }
+    .task-fields input:focus, .task-fields select:focus { border-color: var(--purple) !important; }
+    .task-fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .task-fields .field { margin-bottom: 0; }
+    .task-fields .field > label { font-size: 11px; color: var(--purple); }
     .bullet-list { display: flex; flex-direction: column; gap: 5px; }
     .bullet-row { display: flex; align-items: center; gap: 6px; }
     .bullet-dash { color: var(--label); font-size: 13px; flex-shrink: 0; padding-left: 2px; }
     .bullet-row input { flex: 1; font-size: 13px !important; padding: 6px 10px !important; min-width: 0; }
-
     .note-field { display: none; }
     .note-field.visible { display: block; }
     .note-input { font-size: 13px !important; padding: 7px 11px !important; border-color: var(--amber-border) !important; background: var(--amber-light) !important; color: var(--amber-text) !important; }
-
     .subject-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-
-    /* On small screens, stack delete buttons below subject top row */
-    @media (max-width: 420px) {
-      .section-header { flex-wrap: wrap; gap: 6px; }
-      .subject-top { flex-wrap: wrap; }
-      .bullet-row { flex-wrap: wrap; }
-      .bullet-row input { min-width: 120px; }
-
-      /* Make delete buttons smaller on mobile */
-      .btn-delete { padding: 6px 8px; font-size: 11px; }
-
-      /* Card padding reduction */
-      .card { padding: 1rem; }
-      .section-body { padding: 10px 10px; }
-    }
-
     .preview-box { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem; font-size: 13px; line-height: 1.9; white-space: pre-wrap; color: var(--text); font-family: 'Prompt', sans-serif; font-weight: 300; min-height: 80px; word-break: break-word; }
     .divider { height: 1px; background: var(--border); margin: 1.25rem 0; }
-
-    /* Mobile-specific layout tweaks */
+    .sync-banner { background: var(--purple-light); border: 1px solid var(--purple-border); border-radius: 10px; padding: 10px 14px; font-size: 12px; color: var(--purple); margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+    .sync-banner b { font-weight: 600; }
+    /* Firebase status indicator */
+    .fb-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); margin-left: auto; }
+    .fb-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--label); flex-shrink: 0; transition: background 0.3s; }
+    .fb-dot.ready { background: var(--green); }
+    .fb-dot.error { background: var(--red); }
     @media (max-width: 480px) {
       body { padding: 1.25rem 0.75rem 3rem; }
       .header { margin-bottom: 1.25rem; }
       .header h1 { font-size: 20px; }
       .mode-btn { font-size: 12px; padding: 8px 8px; }
+      .card { padding: 1rem; }
+      .section-body { padding: 10px 10px; }
+      .task-fields-row { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -180,8 +122,8 @@
 
   <div class="card">
     <div class="mode-toggle">
-      <button class="mode-btn active" onclick="setMode('free')">✏️ Free writing</button>
-      <button class="mode-btn" onclick="setMode('formatted')">📋 Formatted</button>
+      <button class="mode-btn active" id="modeBtn0">✏️ Free writing</button>
+      <button class="mode-btn" id="modeBtn1">📋 Formatted</button>
     </div>
 
     <div id="freeMode">
@@ -194,12 +136,17 @@
 
     <div id="formattedMode" style="display:none;">
       <div class="row" style="margin-bottom:1.1rem;">
-        <div class="field"><label>Date</label><input type="date" id="fmtDate" oninput="updatePreview()" /></div>
-        <div class="field"><label>Reported by</label><input type="text" id="fmtReporter" placeholder="Your name" oninput="updatePreview()" /></div>
+        <div class="field"><label>Date</label><input type="date" id="fmtDate" /></div>
+        <div class="field"><label>Reported by</label><input type="text" id="fmtReporter" placeholder="Your name" /></div>
+      </div>
+      <div class="sync-banner">
+        <span>📅</span>
+        <div>Subjects with <b>Add to calendar</b> toggled on will be saved to Firestore on send.</div>
+        <div class="fb-status"><div class="fb-dot" id="fbDot"></div><span id="fbStatusText">connecting...</span></div>
       </div>
       <div class="section-label">Sections</div>
       <div id="sectionList"></div>
-      <button class="action-btn btn-add-green" style="margin-bottom:1rem;" onclick="addSection()">➕ Add section</button>
+      <button class="action-btn btn-add-green" style="margin-bottom:1rem;" id="addSectionBtn">➕ Add section</button>
       <div class="divider"></div>
       <div class="section-label">Preview</div>
       <div class="preview-box" id="preview">Fill in the form to see preview...</div>
@@ -209,33 +156,66 @@
   <div class="card">
     <div class="section-label">Send to</div>
     <div class="target-list" id="targetList"></div>
-    <button class="action-btn btn-add-green" onclick="toggleAddForm()">➕ Add target</button>
+    <button class="action-btn btn-add-green" id="toggleAddFormBtn">➕ Add target</button>
     <div class="add-target-form" id="addForm">
       <div class="row">
         <input type="text" id="newName" placeholder="Group name" />
         <input type="text" id="newId" placeholder="Group ID (C...)" />
       </div>
-      <button class="action-btn btn-add-green" onclick="addTarget()">💾 Save target</button>
+      <button class="action-btn btn-add-green" id="saveTargetBtn">💾 Save target</button>
     </div>
   </div>
 
-  <button class="btn" onclick="sendReport()">📤 Send report to LINE</button>
+  <button class="btn" id="sendBtn">📤 Send report to LINE</button>
   <div class="status" id="status"></div>
 </div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js"
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
+
+// ── Firebase init ──────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18",
+  authDomain: "tas-samtabsam.firebaseapp.com",
+  projectId: "tas-samtabsam",
+  storageBucket: "tas-samtabsam.firebasestorage.app",
+  messagingSenderId: "645483732924",
+  appId: "1:645483732924:web:5a1ec2b9f7c58a18c655b9"
+}
+
+let db = null
+let fbReady = false
+
+try {
+  const app = initializeApp(firebaseConfig)
+  db = getFirestore(app)
+  fbReady = true
+  setFbStatus(true)
+} catch(e) {
+  console.error("Firebase init failed:", e)
+  setFbStatus(false)
+}
+
+function setFbStatus(ok) {
+  const dot = document.getElementById("fbDot")
+  const txt = document.getElementById("fbStatusText")
+  if (!dot) return
+  dot.className = "fb-dot " + (ok ? "ready" : "error")
+  txt.textContent = ok ? "Firebase ready" : "Firebase error"
+}
+
+// ── Constants ──────────────────────────────────────────────────
 const SERVER_URL = "https://tas-samtabsam.onrender.com"
 const SECTION_ICONS = ["📢","📚","💻","🎨","🔬","🏫","📌","🗓️"]
 const WORK_ICONS = ["📝","💻","🔬","🎨","📚","🏃","🎵","📐","✏️"]
+
 let currentMode = "free"
 let sections = []
 
-function setMode(mode) {
-  currentMode = mode
-  document.getElementById("freeMode").style.display = mode === "free" ? "block" : "none"
-  document.getElementById("formattedMode").style.display = mode === "formatted" ? "block" : "none"
-  document.querySelectorAll(".mode-btn").forEach((b,i) => b.classList.toggle("active",(i===0&&mode==="free")||(i===1&&mode==="formatted")))
-  if (mode === "formatted" && sections.length === 0) addSection()
+// ── Helpers ────────────────────────────────────────────────────
+function esc(str) {
+  return (str||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;")
 }
 
 function thaiDate(dateStr) {
@@ -249,6 +229,19 @@ function iconOpts(sel, icons) {
   return icons.map(ic => `<option value="${ic}"${ic===sel?" selected":""}>${ic}</option>`).join("")
 }
 
+// ── Mode toggle ────────────────────────────────────────────────
+function setMode(mode) {
+  currentMode = mode
+  document.getElementById("freeMode").style.display = mode === "free" ? "block" : "none"
+  document.getElementById("formattedMode").style.display = mode === "formatted" ? "block" : "none"
+  document.getElementById("modeBtn0").classList.toggle("active", mode === "free")
+  document.getElementById("modeBtn1").classList.toggle("active", mode === "formatted")
+  if (mode === "formatted" && sections.length === 0) addSection()
+}
+document.getElementById("modeBtn0").onclick = () => setMode("free")
+document.getElementById("modeBtn1").onclick = () => setMode("formatted")
+
+// ── Sections / subjects ────────────────────────────────────────
 function addSection() {
   sections.push({ icon: "📢", title: "", subjects: [] })
   addSubject(sections.length - 1, false)
@@ -258,18 +251,20 @@ function addSection() {
 function removeSection(si) {
   sections.splice(si, 1)
   renderSections()
-  updatePreview()
 }
 
-function addSubject(si, doRender=true) {
-  sections[si].subjects.push({ icon: "📝", title: "", bullets: [""], note: "", showNote: false })
+function addSubject(si, doRender = true) {
+  const today = new Date().toISOString().split("T")[0]
+  sections[si].subjects.push({
+    icon: "📝", title: "", bullets: [""], note: "", showNote: false,
+    syncToCalendar: false, taskSubject: "", taskStart: today, taskEnd: "", taskType: "normal"
+  })
   if (doRender) renderSections()
 }
 
 function removeSubject(si, sj) {
   sections[si].subjects.splice(sj, 1)
   renderSections()
-  updatePreview()
 }
 
 function addBullet(si, sj) {
@@ -281,7 +276,6 @@ function removeBullet(si, sj, bk) {
   if (sections[si].subjects[sj].bullets.length <= 1) return
   sections[si].subjects[sj].bullets.splice(bk, 1)
   renderSections()
-  updatePreview()
 }
 
 function toggleNote(si, sj) {
@@ -289,24 +283,57 @@ function toggleNote(si, sj) {
   renderSections()
 }
 
+function toggleSync(si, sj) {
+  sections[si].subjects[sj].syncToCalendar = !sections[si].subjects[sj].syncToCalendar
+  renderSections()
+}
+
+// ── Render ─────────────────────────────────────────────────────
 function renderSections() {
   const list = document.getElementById("sectionList")
   list.innerHTML = ""
+
   sections.forEach((sec, si) => {
     const div = document.createElement("div")
     div.className = "section-block"
 
-    let subjHTML = sec.subjects.map((subj, sj) => {
+    const subjHTML = sec.subjects.map((subj, sj) => {
       const bullets = subj.bullets.map((b, bk) => `
         <div class="bullet-row">
           <span class="bullet-dash">-</span>
           <input type="text" placeholder="Write bullet point..." value="${esc(b)}"
-            oninput="sections[${si}].subjects[${sj}].bullets[${bk}]=this.value;updatePreview()" />
-          <button class="action-btn btn-delete" onclick="removeBullet(${si},${sj},${bk})">🗑️</button>
+            data-si="${si}" data-sj="${sj}" data-bk="${bk}" class="bullet-inp" />
+          <button class="action-btn btn-delete rm-bullet" data-si="${si}" data-sj="${sj}" data-bk="${bk}">🗑️</button>
         </div>`).join("")
 
       const noteVisible = subj.showNote ? "visible" : ""
       const noteBtnLabel = subj.showNote ? "🟡 Hide note" : "📌 Add note"
+      const syncActive = subj.syncToCalendar
+
+      const calPanel = syncActive ? `
+        <div class="task-fields">
+          <div class="task-fields-label">📅 Calendar task</div>
+          <div class="field">
+            <label>Subject label (shown in calendar)</label>
+            <input type="text" placeholder="e.g. การงาน" value="${esc(subj.taskSubject)}"
+              class="cal-subject" data-si="${si}" data-sj="${sj}" />
+          </div>
+          <div class="task-fields-row">
+            <div class="field"><label>Start date</label>
+              <input type="date" value="${esc(subj.taskStart)}" class="cal-start" data-si="${si}" data-sj="${sj}" />
+            </div>
+            <div class="field"><label>End / Due date</label>
+              <input type="date" value="${esc(subj.taskEnd)}" class="cal-end" data-si="${si}" data-sj="${sj}" />
+            </div>
+          </div>
+          <div class="field"><label>Type</label>
+            <select class="cal-type" data-si="${si}" data-sj="${sj}">
+              <option value="normal"${subj.taskType==="normal"?" selected":""}>🟢 Normal</option>
+              <option value="deadline"${subj.taskType==="deadline"?" selected":""}>🔴 Send before (deadline)</option>
+              <option value="prediction"${subj.taskType==="prediction"?" selected":""}>🟡 Prediction</option>
+            </select>
+          </div>
+        </div>` : ""
 
       return `
         <div class="subject-block">
@@ -314,20 +341,25 @@ function renderSections() {
             <div class="subject-num">${sj+1}.</div>
             <div class="subject-body">
               <div class="subject-top">
-                <select class="work-icon-select" onchange="sections[${si}].subjects[${sj}].icon=this.value;updatePreview()">${iconOpts(subj.icon,WORK_ICONS)}</select>
-                <input class="subject-title-input" type="text" placeholder="Subject name" value="${esc(subj.title)}"
-                  oninput="sections[${si}].subjects[${sj}].title=this.value;updatePreview()" />
-                <button class="action-btn btn-delete" onclick="removeSubject(${si},${sj})">🗑️</button>
+                <select class="work-icon-select subj-icon" data-si="${si}" data-sj="${sj}">${iconOpts(subj.icon,WORK_ICONS)}</select>
+                <input class="subject-title-input subj-title" type="text" placeholder="Subject name" value="${esc(subj.title)}"
+                  data-si="${si}" data-sj="${sj}" />
+                <button class="action-btn btn-delete rm-subj" data-si="${si}" data-sj="${sj}">🗑️</button>
               </div>
               <div class="bullet-list">${bullets}</div>
               <div class="subject-actions">
-                <button class="action-btn btn-add-blue" onclick="addBullet(${si},${sj})">➕ Bullet</button>
-                <button class="action-btn btn-toggle-note" onclick="toggleNote(${si},${sj})">${noteBtnLabel}</button>
+                <button class="action-btn btn-add-blue add-bullet" data-si="${si}" data-sj="${sj}">➕ Bullet</button>
+                <button class="action-btn btn-toggle-note toggle-note" data-si="${si}" data-sj="${sj}">${noteBtnLabel}</button>
+                <button class="action-btn toggle-sync" data-si="${si}" data-sj="${sj}"
+                  style="background:${syncActive?"var(--purple-light)":"#f3f0ff"};color:var(--purple);border:1px solid var(--purple-border);">
+                  ${syncActive ? "📅 Syncing ✓" : "📅 Add to calendar"}
+                </button>
               </div>
               <div class="note-field ${noteVisible}">
-                <input class="note-input" type="text" placeholder="Write note here..." value="${esc(subj.note)}"
-                  oninput="sections[${si}].subjects[${sj}].note=this.value;updatePreview()" style="margin-top:6px;" />
+                <input class="note-input subj-note" type="text" placeholder="Write note here..." value="${esc(subj.note)}"
+                  data-si="${si}" data-sj="${sj}" style="margin-top:6px;" />
               </div>
+              ${calPanel}
             </div>
           </div>
         </div>`
@@ -335,24 +367,85 @@ function renderSections() {
 
     div.innerHTML = `
       <div class="section-header">
-        <select class="icon-select" onchange="sections[${si}].icon=this.value;updatePreview()">${iconOpts(sec.icon,SECTION_ICONS)}</select>
-        <input class="section-title-input" type="text" placeholder="Section title e.g. การบ้าน" value="${esc(sec.title)}"
-          oninput="sections[${si}].title=this.value;updatePreview()" />
-        <button class="action-btn btn-delete" onclick="removeSection(${si})">🗑️ Section</button>
+        <select class="icon-select sec-icon" data-si="${si}">${iconOpts(sec.icon,SECTION_ICONS)}</select>
+        <input class="section-title-input sec-title" type="text" placeholder="Section title e.g. การบ้าน"
+          value="${esc(sec.title)}" data-si="${si}" />
+        <button class="action-btn btn-delete rm-sec" data-si="${si}">🗑️ Section</button>
       </div>
       <div class="section-body">
         ${subjHTML}
-        <div style="margin-top:${sec.subjects.length>0?'10px':'0'};">
-          <button class="action-btn btn-add-green" onclick="addSubject(${si})">➕ Add subject</button>
+        <div style="margin-top:${sec.subjects.length>0?"10px":"0"};">
+          <button class="action-btn btn-add-green add-subj" data-si="${si}">➕ Add subject</button>
         </div>
       </div>`
     list.appendChild(div)
   })
+
   updatePreview()
+  bindSectionEvents()
 }
 
-function esc(str) { return (str||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;") }
+// Bind all events via delegation to avoid inline onclick (module scope issue)
+function bindSectionEvents() {
+  const list = document.getElementById("sectionList")
 
+  list.querySelectorAll(".sec-icon").forEach(el => {
+    el.onchange = () => { sections[+el.dataset.si].icon = el.value; updatePreview() }
+  })
+  list.querySelectorAll(".sec-title").forEach(el => {
+    el.oninput = () => { sections[+el.dataset.si].title = el.value; updatePreview() }
+  })
+  list.querySelectorAll(".rm-sec").forEach(el => {
+    el.onclick = () => removeSection(+el.dataset.si)
+  })
+  list.querySelectorAll(".subj-icon").forEach(el => {
+    el.onchange = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].icon = el.value; updatePreview() }
+  })
+  list.querySelectorAll(".subj-title").forEach(el => {
+    el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].title = el.value; updatePreview() }
+  })
+  list.querySelectorAll(".subj-note").forEach(el => {
+    el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].note = el.value; updatePreview() }
+  })
+  list.querySelectorAll(".rm-subj").forEach(el => {
+    el.onclick = () => removeSubject(+el.dataset.si, +el.dataset.sj)
+  })
+  list.querySelectorAll(".add-bullet").forEach(el => {
+    el.onclick = () => addBullet(+el.dataset.si, +el.dataset.sj)
+  })
+  list.querySelectorAll(".toggle-note").forEach(el => {
+    el.onclick = () => toggleNote(+el.dataset.si, +el.dataset.sj)
+  })
+  list.querySelectorAll(".toggle-sync").forEach(el => {
+    el.onclick = () => toggleSync(+el.dataset.si, +el.dataset.sj)
+  })
+  list.querySelectorAll(".rm-bullet").forEach(el => {
+    el.onclick = () => removeBullet(+el.dataset.si, +el.dataset.sj, +el.dataset.bk)
+  })
+  list.querySelectorAll(".bullet-inp").forEach(el => {
+    el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].bullets[+el.dataset.bk] = el.value; updatePreview() }
+  })
+  list.querySelectorAll(".add-subj").forEach(el => {
+    el.onclick = () => addSubject(+el.dataset.si)
+  })
+  // Calendar fields
+  list.querySelectorAll(".cal-subject").forEach(el => {
+    el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskSubject = el.value }
+  })
+  list.querySelectorAll(".cal-start").forEach(el => {
+    el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskStart = el.value }
+  })
+  list.querySelectorAll(".cal-end").forEach(el => {
+    el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskEnd = el.value }
+  })
+  list.querySelectorAll(".cal-type").forEach(el => {
+    el.onchange = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskType = el.value }
+  })
+}
+
+document.getElementById("addSectionBtn").onclick = addSection
+
+// ── Preview ────────────────────────────────────────────────────
 function buildFormattedMessage() {
   const date = thaiDate(document.getElementById("fmtDate").value)
   const reporter = document.getElementById("fmtReporter").value.trim()
@@ -375,9 +468,51 @@ function updatePreview() {
   if (el) el.textContent = buildFormattedMessage() || "Fill in the form to see preview..."
 }
 
+document.getElementById("fmtDate").oninput = updatePreview
+document.getElementById("fmtReporter").oninput = updatePreview
+
+// ── Firestore sync ─────────────────────────────────────────────
+function collectCalendarTasks() {
+  const tasks = []
+  sections.forEach(sec => {
+    sec.subjects.forEach(subj => {
+      if (!subj.syncToCalendar) return
+      const today = new Date().toISOString().split("T")[0]
+      const bulletNote = subj.bullets.filter(b => b.trim()).map(b => `- ${b}`).join("\n")
+      const note = subj.note.trim()
+      tasks.push({
+        name: subj.title.trim() || "(no name)",
+        subject: subj.taskSubject.trim() || sec.title.trim() || "ไม่ระบุ",
+        type: subj.taskType || "normal",
+        start: subj.taskStart || today,
+        end: subj.taskEnd || subj.taskStart || today,
+        note: note + (bulletNote ? (note ? "\n" : "") + bulletNote : "")
+      })
+    })
+  })
+  return tasks
+}
+
+async function syncToFirestore(tasks) {
+  if (!fbReady || !db) throw new Error("Firebase not initialized")
+  const results = []
+  for (const task of tasks) {
+    try {
+      const ref = await addDoc(collection(db, "tasks"), task)
+      console.log("✅ Saved to Firestore:", task.name, ref.id)
+      results.push({ ok: true, name: task.name })
+    } catch(e) {
+      console.error("❌ Firestore write failed:", task.name, e)
+      results.push({ ok: false, name: task.name, error: e.message })
+    }
+  }
+  return results
+}
+
+// ── Targets ────────────────────────────────────────────────────
 function loadTargets() {
-  const saved = localStorage.getItem("tas_targets")
-  return saved ? JSON.parse(saved) : [{ name: "Test Group", id: "C78b60ef77ecc8ba6beca7d431ef55d52" }]
+  try { return JSON.parse(localStorage.getItem("tas_targets") || "null") || [{ name: "Test Group", id: "C78b60ef77ecc8ba6beca7d431ef55d52" }] }
+  catch(e) { return [] }
 }
 function saveTargets(t) { localStorage.setItem("tas_targets", JSON.stringify(t)) }
 function getInitials(name) { return name.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2) }
@@ -390,20 +525,27 @@ function renderTargets() {
     const item = document.createElement("div")
     item.className = "target-item"
     item.innerHTML = `
-      <input type="checkbox" id="chk${i}" value="${t.id}" onchange="this.closest('.target-item').classList.toggle('checked',this.checked)" />
+      <input type="checkbox" data-id="${t.id}" />
       <div class="target-avatar">${getInitials(t.name)}</div>
       <div class="target-info">
         <div class="target-name">${t.name}</div>
         <div class="target-id">${t.id}</div>
       </div>
-      <button class="action-btn btn-delete" onclick="removeTarget(${i})">🗑️ Remove</button>`
+      <button class="action-btn btn-delete" data-idx="${i}">🗑️ Remove</button>`
+    item.querySelector("input[type='checkbox']").onchange = function() {
+      item.classList.toggle("checked", this.checked)
+    }
+    item.querySelector(".btn-delete").onclick = () => {
+      const tgts = loadTargets(); tgts.splice(i, 1); saveTargets(tgts); renderTargets()
+    }
     list.appendChild(item)
   })
 }
 
-function toggleAddForm() { document.getElementById("addForm").classList.toggle("open") }
+document.getElementById("toggleAddFormBtn").onclick = () =>
+  document.getElementById("addForm").classList.toggle("open")
 
-function addTarget() {
+document.getElementById("saveTargetBtn").onclick = () => {
   const name = document.getElementById("newName").value.trim()
   const id = document.getElementById("newId").value.trim()
   if (!name || !id) return alert("Please fill in both fields.")
@@ -416,21 +558,21 @@ function addTarget() {
   renderTargets()
 }
 
-function removeTarget(i) {
-  const targets = loadTargets()
-  targets.splice(i, 1)
-  saveTargets(targets)
-  renderTargets()
+// ── Send ───────────────────────────────────────────────────────
+function setStatus(cls, text) {
+  const el = document.getElementById("status")
+  el.className = "status " + cls
+  el.style.display = "block"
+  el.textContent = text
 }
 
-async function sendReport() {
-  const status = document.getElementById("status")
+document.getElementById("sendBtn").onclick = async function() {
+  const btn = this
   const checked = [...document.querySelectorAll("#targetList input[type='checkbox']:checked")]
-  const selectedIds = checked.map(c => c.value)
+  const selectedIds = checked.map(c => c.dataset.id)
 
   if (selectedIds.length === 0) {
-    status.className = "status s-error"; status.style.display="block"
-    status.textContent = "⚠️ Please select at least one target."; return
+    setStatus("s-error", "⚠️ Please select at least one target."); return
   }
 
   let message = ""
@@ -438,16 +580,18 @@ async function sendReport() {
     const date = thaiDate(document.getElementById("freeDate").value)
     const text = document.getElementById("freeText").value.trim()
     const reporter = document.getElementById("reporter").value.trim()
-    if (!text) { status.className="status s-error"; status.style.display="block"; status.textContent="⚠️ Please write a message."; return }
+    if (!text) { setStatus("s-error", "⚠️ Please write a message."); return }
     message = `${date}${reporter?"\n👤 "+reporter:""}\n\n${text}`
   } else {
     message = buildFormattedMessage()
-    if (!message || message.length < 5) { status.className="status s-error"; status.style.display="block"; status.textContent="⚠️ Please fill in the report."; return }
+    if (!message || message.length < 5) { setStatus("s-error", "⚠️ Please fill in the report."); return }
   }
 
-  status.className = "status"; status.style.display = "block"; status.textContent = "⏳ Sending..."
+  btn.disabled = true
+  setStatus("s-info", "⏳ Sending LINE message...")
 
   try {
+    // 1. Send LINE
     await Promise.all(selectedIds.map(groupId =>
       fetch(`${SERVER_URL}/send`, {
         method: "POST",
@@ -455,28 +599,34 @@ async function sendReport() {
         body: JSON.stringify({ groupId, message })
       })
     ))
-    status.className = "status s-success"
-    status.textContent = `✅ Report sent to ${selectedIds.length} target(s)!`
+
+    // 2. Firestore sync (formatted mode only)
+    let syncNote = ""
+    if (currentMode === "formatted") {
+      const calTasks = collectCalendarTasks()
+      if (calTasks.length > 0) {
+        setStatus("s-info", `⏳ Saving ${calTasks.length} task(s) to calendar...`)
+        const results = await syncToFirestore(calTasks)
+        const ok = results.filter(r => r.ok).length
+        const fail = results.filter(r => !r.ok).length
+        if (fail > 0) {
+          syncNote = ` · ⚠️ ${ok}/${calTasks.length} tasks saved (${fail} failed — check console)`
+        } else {
+          syncNote = ` · 📅 ${ok} task(s) added to calendar`
+        }
+      }
+    }
+
+    setStatus("s-success", `✅ Sent to ${selectedIds.length} group(s)!${syncNote}`)
   } catch(e) {
-    status.className = "status s-error"
-    status.textContent = "❌ Failed to send. Is the server running?"
+    console.error("Send error:", e)
+    setStatus("s-error", "❌ Failed: " + e.message)
+  } finally {
+    btn.disabled = false
   }
 }
 
-window.setMode = setMode
-window.addSection = addSection
-window.removeSection = removeSection
-window.addSubject = addSubject
-window.removeSubject = removeSubject
-window.addBullet = addBullet
-window.removeBullet = removeBullet
-window.toggleNote = toggleNote
-window.toggleAddForm = toggleAddForm
-window.addTarget = addTarget
-window.removeTarget = removeTarget
-window.sendReport = sendReport
-window.updatePreview = updatePreview
-
+// ── Init ───────────────────────────────────────────────────────
 const today = new Date().toISOString().split("T")[0]
 document.getElementById("freeDate").value = today
 document.getElementById("fmtDate").value = today
