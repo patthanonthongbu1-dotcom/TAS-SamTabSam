@@ -11,193 +11,592 @@
       --green:#1D9E75;--green-dark:#0F6E56;--green-light:#e6f7f1;--green-mid:#c3ead8;
       --red:#e53e3e;--red-light:#fff5f5;--red-mid:#fed7d7;
       --amber:#d97706;--amber-light:#fffbeb;--amber-mid:#fde68a;
-      --blue:#2563eb;--blue-light:#eff6ff;--blue-mid:#bfdbfe;
-      --bg:#f4f6f4;--card:#fff;--border:#e8ebe8;--text:#1a1a1a;--muted:#6b7b6b;--label:#9aaa9a;--surface:#f8faf8;
+      --bg:#f4f6f4;--card:#fff;--border:#dde3dd;--text:#1a1a1a;--muted:#6b7b6b;--label:#9aaa9a;--surface:#f8faf8;
+      --label-w:160px;
+      --check-w:40px;
+      --row-h:46px;
+      --font-row-name:13px;
+      --font-row-sub:11px;
+      --font-bar:10px;
+      --topbar-h:56px;
     }
-    body{font-family:'Prompt',sans-serif;background:var(--bg);min-height:100vh;color:var(--text)}
+    body{font-family:'Prompt',sans-serif;background:var(--bg);min-height:100vh;color:var(--text);overflow-x:hidden}
 
-    .topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
-    .topbar-left{display:flex;align-items:center;gap:12px}
-    .topbar h1{font-size:18px;font-weight:600;color:var(--text)}
-    .topbar p{font-size:12px;color:var(--muted);font-weight:300}
-    .mod-btn{padding:7px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-family:'Prompt',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;transition:all 0.15s}
+    /* TOPBAR */
+    .topbar{
+      background:white;border-bottom:1px solid var(--border);
+      padding:0 1.25rem;display:flex;align-items:center;justify-content:space-between;
+      height:var(--topbar-h);position:sticky;top:0;z-index:100;
+      animation:slideDown 0.4s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    @keyframes slideDown{from{transform:translateY(-56px);opacity:0}to{transform:translateY(0);opacity:1}}
+    .topbar h1{font-size:17px;font-weight:600;color:var(--text)}
+    .topbar p{font-size:11px;color:var(--muted);font-weight:300}
+    .mod-btn{padding:7px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-family:'Prompt',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;transition:border-color 0.2s,color 0.2s,background 0.2s}
     .mod-btn:hover{border-color:var(--green);color:var(--green)}
     .mod-btn.active{background:var(--green);color:white;border-color:var(--green)}
-    .add-task-btn{padding:8px 16px;background:var(--green);color:white;border:none;border-radius:8px;font-family:'Prompt',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:none;transition:background 0.15s}
+    .add-task-btn{padding:8px 14px;background:var(--green);color:white;border:none;border-radius:8px;font-family:'Prompt',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:none;transition:background 0.2s}
     .add-task-btn:hover{background:var(--green-dark)}
-    .add-task-btn.visible{display:block}
+    .add-task-btn.visible{display:block;animation:popIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both}
+    @keyframes popIn{from{transform:scale(0.6);opacity:0}to{transform:scale(1);opacity:1}}
 
-    .legend{display:flex;align-items:center;gap:16px;padding:12px 1.5rem;background:var(--card);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);flex-wrap:wrap}
-    .legend-item{display:flex;align-items:center;gap:6px}
-    .legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
-    .dot-normal{background:var(--green)}
-    .dot-deadline{background:var(--red)}
-    .dot-prediction{background:var(--amber)}
+    /* ── THREE-COLUMN LAYOUT ──────────────────────────────────────
+       [LEFT: label panel fixed] [CENTER: scroll area] [RIGHT: check panel fixed]
+       Header and every row must mirror this three-column structure.
+    ─────────────────────────────────────────────────────────────── */
 
-    /* range info pill */
-    .range-pill{margin-left:auto;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 10px;color:var(--muted)}
+    /* cal-wrap fills at least remaining viewport height after topbar */
+    .cal-wrap{
+      padding-bottom:7rem;
+      min-height:calc(100vh - var(--topbar-h));
+      display:flex;
+      flex-direction:column;
+    }
 
-    .cal-wrap{overflow-x:auto;padding:1.5rem}
-    .cal-inner{min-width:900px}
+    /* The outer wrapper that holds all three columns — stretches to fill cal-wrap */
+    .cal-layout{
+      display:flex;
+      flex-direction:row;
+      align-items:stretch;
+      flex:1; /* grow inside cal-wrap */
+      min-height:0;
+    }
 
-    .cal-header{display:flex;margin-bottom:4px}
-    .cal-label-col{width:160px;flex-shrink:0}
-    .cal-dates{flex:1;display:flex;position:relative;height:36px}
-    .date-tick{position:absolute;top:0;display:flex;flex-direction:column;align-items:center;pointer-events:none}
-    .date-tick-line{width:1px;height:8px;background:var(--border)}
-    .date-tick-label{font-size:10px;color:var(--label);margin-top:2px;white-space:nowrap;transform:translateX(-50%)}
+    /* ── LEFT PANEL — solid white, shadow separates from scroll ── */
+    .cal-left{
+      width:var(--label-w);
+      flex-shrink:0;
+      background:white;
+      border-right:2px solid var(--border);
+      box-shadow:4px 0 14px -4px rgba(0,0,0,0.10);
+      position:relative;
+      z-index:30;
+      /* Extend full height with a pseudo after-element so white fills to bottom */
+      align-self:stretch;
+    }
 
-    .cal-row{display:flex;align-items:center;margin-bottom:6px;min-height:40px}
-    .cal-row-label{width:160px;flex-shrink:0;padding-right:12px;font-size:13px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}
-    .cal-row-label .row-subject{font-size:11px;color:var(--muted);font-weight:300;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .cal-track{flex:1;position:relative;height:40px;border-radius:6px;background:var(--surface);border:1px solid var(--border)}
+    /* ── RIGHT CHECK PANEL — solid white ── */
+    .cal-right{
+      width:var(--check-w);
+      flex-shrink:0;
+      background:white;
+      border-left:2px solid var(--border);
+      box-shadow:-4px 0 14px -4px rgba(0,0,0,0.10);
+      position:relative;
+      z-index:30;
+      align-self:stretch;
+    }
 
-    /* today line */
-    .today-line{position:absolute;top:0;bottom:0;width:2px;background:rgba(229,62,62,0.7);z-index:5;pointer-events:none;border-radius:1px}
-    /* today line in header */
-    .today-tick-line{width:2px!important;background:var(--red)!important;height:14px!important}
-    .today-tick-label{color:var(--red)!important;font-weight:600!important}
+    /* ── CENTER SCROLL AREA ── */
+    .cal-scroll-outer{
+      flex:1;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:thin;
+      scrollbar-color:var(--border) transparent;
+    }
+    .cal-scroll-outer::-webkit-scrollbar{height:4px}
+    .cal-scroll-outer::-webkit-scrollbar-track{background:transparent}
+    .cal-scroll-outer::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
-    .gantt-bar{position:absolute;top:6px;bottom:6px;border-radius:6px;cursor:pointer;display:flex;align-items:center;padding:0 8px;overflow:hidden;transition:opacity 0.2s,filter 0.2s;z-index:3}
-    .gantt-bar:hover{filter:brightness(0.9)}
-    .gantt-bar.done{opacity:0.2;pointer-events:none}
-    .gantt-bar-normal{background:var(--green)}
-    .gantt-bar-deadline{background:var(--red)}
-    .gantt-bar-prediction{background:var(--amber)}
-    .gantt-bar-text{font-size:10px;font-weight:500;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    /* Min-width ensures date ticks never overlap */
+    .cal-inner{ min-width:500px }
 
-    /* overdue pulse on deadline bars */
-    .gantt-bar-deadline.overdue{animation:pulse 2s infinite}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.65}}
+    /* ── STICKY HEADER ROW (mirrors three columns) ── */
+    .cal-header-row{
+      display:flex;
+      flex-direction:row;
+      position:sticky;
+      top:var(--topbar-h);
+      z-index:50;
+    }
+    .cal-header-left{
+      width:var(--label-w);flex-shrink:0;
+      background:white;
+      border-right:2px solid var(--border);
+      box-shadow:4px 0 14px -4px rgba(0,0,0,0.10);
+      position:relative;z-index:52;
+      padding:6px 8px 4px 12px;
+      font-size:10px;font-weight:500;color:var(--label);letter-spacing:.04em;
+      display:flex;align-items:flex-end;
+    }
+    .cal-header-right{
+      width:var(--check-w);flex-shrink:0;
+      background:white;
+      border-left:2px solid var(--border);
+      box-shadow:-4px 0 14px -4px rgba(0,0,0,0.10);
+      position:relative;z-index:52;
+    }
+    .cal-header-scroll{
+      flex:1;overflow:hidden;
+      background:var(--bg);
+      padding:6px 0 4px;
+    }
+    /* Must match cal-inner min-width exactly so positions align */
+    .cal-dates-header{ position:relative;height:36px;min-width:500px }
 
-    .done-check{position:absolute;right:4px;top:50%;transform:translateY(-50%);z-index:4}
-    .done-check input{width:14px;height:14px;accent-color:var(--green);cursor:pointer}
+    /* Date ticks — translateX(-50%) centers the whole tick (line + label) on the exact date position */
+    .date-tick{
+      position:absolute;top:0;
+      display:flex;flex-direction:column;align-items:center;
+      cursor:pointer;user-select:none;
+      transform:translateX(-50%);
+      z-index:1;
+    }
+    .date-tick-line{
+      width:1px;height:8px;background:var(--label);border-radius:1px;
+      transition:background 0.18s,height 0.18s,width 0.18s;
+    }
+    .date-tick-label{
+      font-size:10px;color:var(--label);white-space:nowrap;
+      padding-top:2px;
+      transition:color 0.18s,font-weight 0.18s;
+    }
+    .date-tick.today-tick{ z-index:10 }
+    .date-tick.today-tick .date-tick-label{color:var(--red)!important;font-weight:600!important}
+    .date-tick.today-tick .date-tick-line{background:var(--red);height:11px}
+    .date-tick.hl-tick{ z-index:9 }
+    .date-tick.hl-tick .date-tick-line{background:var(--green-dark)!important;height:13px;width:2px}
+    .date-tick.hl-tick .date-tick-label{color:var(--green-dark)!important;font-weight:600!important}
+
+    /* ── BASELINE — inside scroll container so % positions always match tracks ── */
+    .baseline-track-row{ padding:4px 0 6px }
+    .baseline-track{ position:relative;height:2px;background:var(--border);border-radius:1px }
+    .baseline-dot{
+      position:absolute;top:-5px;width:12px;height:12px;border-radius:50%;
+      background:var(--red);transform:translateX(-50%);
+      box-shadow:0 0 0 3px rgba(229,62,62,0.18);
+      animation:todayPulse 3s ease-in-out infinite;z-index:4;
+    }
+    @keyframes todayPulse{
+      0%,100%{box-shadow:0 0 0 3px rgba(229,62,62,0.18)}
+      50%{box-shadow:0 0 0 8px rgba(229,62,62,0.04)}
+    }
+
+    /* ── ROWS
+       Each data row = a label-row in .cal-left + a cal-row in .cal-inner + a check-row in .cal-right
+       All three are siblings rendered in their respective column, aligned by equal margin-bottom + min-height
+    ── */
+
+    /* Label rows (inside .cal-left) */
+    .label-row{
+      display:flex;align-items:center;
+      min-height:var(--row-h);
+      margin-bottom:5px;
+      padding:0 10px 0 16px;
+      line-height:1.35;
+      overflow:hidden;
+      opacity:0;
+      animation:rowIn 0.42s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    @keyframes rowIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+    .row-name{font-size:var(--font-row-name);font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .row-subject{font-size:var(--font-row-sub);color:var(--muted);font-weight:300;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    /* Check rows (inside .cal-right) */
+    .check-row{
+      display:flex;align-items:center;justify-content:center;
+      min-height:var(--row-h);
+      margin-bottom:5px;
+    }
+    .check-row input{
+      width:16px;height:16px;
+      accent-color:var(--green);cursor:pointer;
+      display:block;flex-shrink:0;
+    }
+
+    /* Track rows (inside .cal-inner) */
+    .cal-row{
+      min-height:var(--row-h);
+      margin-bottom:5px;
+      opacity:0;
+      animation:rowIn 0.42s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .cal-track{ position:relative;height:var(--row-h) }
+
+    /* Grid lines */
+    .grid-col{ position:absolute;top:0;bottom:0;width:1px;background:var(--border);pointer-events:none }
+    .grid-col-today{ background:rgba(229,62,62,0.28);width:2px }
+
+    /* Today vline — darker & more visible */
+    .today-vline{
+      position:absolute;top:0;bottom:0;
+      width:2px;background:rgba(229,62,62,0.60);
+      z-index:5;pointer-events:none;border-radius:1px;
+    }
+    /* Highlighted vline when date tick clicked */
+    .hl-vline{
+      position:absolute;top:0;bottom:0;
+      width:1.5px;background:transparent;
+      z-index:4;pointer-events:none;border-radius:1px;
+      transition:background 0.2s;
+    }
+    .hl-vline.active{ background:rgba(15,110,86,0.55);width:2px }
+
+    /* Bars */
+    .gantt-bar{
+      position:absolute;top:7px;bottom:7px;border-radius:7px;cursor:pointer;
+      display:flex;align-items:center;padding:0 8px;overflow:hidden;
+      z-index:3;min-width:6px;
+      transition:filter 0.15s,transform 0.15s;
+      animation:barIn 0.38s ease both;
+    }
+    @keyframes barIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+    .gantt-bar:hover{filter:brightness(0.84);transform:scaleY(1.07)}
+    .gantt-bar.done{opacity:0.14!important;pointer-events:none}
+    .gantt-bar-text{font-size:var(--font-bar);font-weight:500;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .gantt-bar.overdue-pulse{animation:barIn 0.38s ease both,overdueGlow 2s ease-in-out 0.38s infinite}
+    @keyframes overdueGlow{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}50%{box-shadow:0 0 0 5px rgba(220,38,38,0.22)}}
+
+    .out-indicator{position:absolute;top:7px;bottom:7px;width:6px;border-radius:3px;z-index:4;cursor:pointer;opacity:0.7;transition:opacity 0.15s}
+    .out-indicator:hover{opacity:1}
+    .out-left{left:0;border-radius:0 4px 4px 0}
+    .out-right{right:0;border-radius:4px 0 0 4px}
 
     .empty-state{text-align:center;padding:4rem 2rem;color:var(--muted)}
     .empty-state p{font-size:15px;margin-bottom:8px}
     .empty-state small{font-size:13px;font-weight:300}
+    .loading{text-align:center;padding:4rem;color:var(--muted);font-size:14px}
 
-    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem}
-    .modal-overlay.open{display:flex}
-    .modal{background:var(--card);border-radius:16px;padding:1.5rem;width:100%;max-width:440px;max-height:90vh;overflow-y:auto}
-    .modal h2{font-size:17px;font-weight:600;margin-bottom:1.25rem;color:var(--text)}
+    /* ── FLOATING CONTROLS ── */
+    .fab-container{
+      position:fixed;bottom:1.5rem;left:1.5rem;right:1.5rem;
+      display:flex;justify-content:space-between;align-items:flex-end;
+      z-index:500; /* above everything */
+      pointer-events:none;
+    }
+    .legend-fab{pointer-events:all;position:relative}
+    .legend-toggle{
+      width:46px;height:46px;border-radius:50%;background:white;border:1px solid var(--border);
+      box-shadow:0 4px 18px rgba(0,0,0,0.13);
+      display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;
+      transition:background 0.22s,border-color 0.22s;
+      animation:fabIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.25s both;
+    }
+    @keyframes fabIn{from{transform:scale(0.4) translateY(16px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+    .legend-toggle.open{background:var(--green);border-color:var(--green)}
+    .legend-toggle svg{transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1)}
+    .legend-toggle.open svg{transform:rotate(180deg)}
+    .legend-panel{
+      position:absolute;bottom:56px;left:0;
+      background:white;border:1px solid var(--border);border-radius:14px;padding:12px 14px;
+      box-shadow:0 8px 28px rgba(0,0,0,0.12);min-width:196px;
+      transform-origin:bottom left;transform:scale(0.88) translateY(8px);opacity:0;pointer-events:none;
+      transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1),opacity 0.18s;will-change:transform,opacity;
+    }
+    .legend-panel.open{transform:scale(1) translateY(0);opacity:1;pointer-events:all}
+    .legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:4px 0}
+    .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+    .dot-sendon{background:var(--green)}.dot-deadline{background:var(--red)}.dot-prediction{background:#8b5cf6}
+    .legend-hint{font-size:10px;color:var(--label);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);line-height:1.6}
+
+    .range-fab{pointer-events:all;position:relative}
+    .range-toggle{
+      height:46px;padding:0 18px;border-radius:23px;
+      background:white;border:1px solid var(--border);box-shadow:0 4px 18px rgba(0,0,0,0.13);
+      display:flex;align-items:center;gap:7px;
+      font-family:'Prompt',sans-serif;font-size:13px;font-weight:500;color:var(--green);
+      cursor:pointer;white-space:nowrap;
+      transition:background 0.22s,color 0.22s,border-color 0.22s;
+      animation:fabIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.35s both;
+    }
+    .range-toggle.open{background:var(--green);color:white;border-color:var(--green)}
+    .range-chevron{font-size:10px;opacity:0.65;transition:transform 0.25s}
+    .range-toggle.open .range-chevron{transform:rotate(180deg)}
+    .range-panel{
+      position:absolute;bottom:56px;right:0;
+      background:white;border:1px solid var(--border);border-radius:14px;padding:6px;
+      box-shadow:0 8px 28px rgba(0,0,0,0.12);min-width:156px;
+      transform-origin:bottom right;transform:scale(0.88) translateY(8px);opacity:0;pointer-events:none;
+      transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1),opacity 0.18s;will-change:transform,opacity;
+    }
+    .range-panel.open{transform:scale(1) translateY(0);opacity:1;pointer-events:all}
+    .range-label-hd{display:block;font-size:10px;font-weight:500;letter-spacing:.05em;color:var(--label);padding:4px 8px 6px;text-transform:uppercase}
+    .range-option{display:block;width:100%;padding:9px 12px;border:none;background:transparent;font-family:'Prompt',sans-serif;font-size:13px;color:var(--text);cursor:pointer;border-radius:8px;text-align:left;transition:background 0.13s,color 0.13s}
+    .range-option:hover{background:var(--green-light);color:var(--green-dark)}
+    .range-option.active{background:var(--green);color:white;font-weight:500}
+
+    /* ── MODAL ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.38);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem}
+    .modal-overlay.open{display:flex;animation:fadeIn 0.2s ease both}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    .modal{background:white;border-radius:16px;padding:1.5rem;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;animation:modalSlide 0.3s cubic-bezier(0.34,1.56,0.64,1) both}
+    @keyframes modalSlide{from{transform:translateY(16px) scale(0.97);opacity:0}to{transform:none;opacity:1}}
+    .modal h2{font-size:17px;font-weight:600;margin-bottom:1.25rem}
     .modal-field{margin-bottom:1rem}
     .modal-field label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:5px}
-    .modal-field input,.modal-field select,.modal-field textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:'Prompt',sans-serif;color:var(--text);background:white;outline:none;transition:border-color 0.15s}
-    .modal-field input:focus,.modal-field select:focus,.modal-field textarea:focus{border-color:var(--green)}
+    .modal-field input,.modal-field select,.modal-field textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:'Prompt',sans-serif;color:var(--text);background:white;outline:none;transition:border-color 0.15s,box-shadow 0.15s}
+    .modal-field input:focus,.modal-field select:focus,.modal-field textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(29,158,117,0.1)}
     .modal-field textarea{resize:vertical;min-height:70px}
     .modal-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .modal-actions{display:flex;gap:8px;margin-top:1.25rem;flex-wrap:wrap}
-    .modal-save{flex:1;padding:10px;background:var(--green);color:white;border:none;border-radius:10px;font-family:'Prompt',sans-serif;font-size:14px;font-weight:500;cursor:pointer}
+    .modal-save{flex:1;padding:10px;background:var(--green);color:white;border:none;border-radius:10px;font-family:'Prompt',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:background 0.15s}
     .modal-save:hover{background:var(--green-dark)}
     .modal-cancel{flex:1;padding:10px;background:var(--surface);color:var(--muted);border:1px solid var(--border);border-radius:10px;font-family:'Prompt',sans-serif;font-size:14px;cursor:pointer}
     .modal-delete{padding:10px 14px;background:var(--red-light);color:var(--red);border:1px solid var(--red-mid);border-radius:10px;font-family:'Prompt',sans-serif;font-size:14px;cursor:pointer}
-
     .type-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
     .badge-normal{background:var(--green-light);color:var(--green-dark)}
     .badge-deadline{background:var(--red-light);color:var(--red)}
-    .badge-prediction{background:var(--amber-light);color:var(--amber)}
+    .badge-prediction{background:#ede9fe;color:#6d28d9}
 
-    .pw-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;display:flex;align-items:center;justify-content:center;padding:1rem}
-    .pw-box{background:var(--card);border-radius:16px;padding:1.5rem;width:100%;max-width:320px;text-align:center}
+    /* ── PASSWORD ── */
+    .pw-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;display:none;align-items:center;justify-content:center;padding:1rem}
+    .pw-overlay.active{display:flex}
+    .pw-box{background:white;border-radius:16px;padding:1.5rem;width:100%;max-width:320px;text-align:center;animation:modalSlide 0.3s cubic-bezier(0.34,1.56,0.64,1) both}
     .pw-box h2{font-size:17px;font-weight:600;margin-bottom:8px}
     .pw-box p{font-size:13px;color:var(--muted);margin-bottom:1rem;font-weight:300}
-    .pw-box input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:15px;font-family:'Prompt',sans-serif;text-align:center;outline:none;margin-bottom:10px;letter-spacing:2px}
+    .pw-box input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:15px;font-family:'Prompt',sans-serif;text-align:center;outline:none;margin-bottom:10px;letter-spacing:2px;transition:border-color 0.15s}
     .pw-box input:focus{border-color:var(--green)}
     .pw-submit{width:100%;padding:10px;background:var(--green);color:white;border:none;border-radius:10px;font-family:'Prompt',sans-serif;font-size:14px;font-weight:500;cursor:pointer}
-    .pw-submit:hover{background:var(--green-dark)}
     .pw-cancel{width:100%;padding:8px;background:transparent;color:var(--muted);border:none;font-family:'Prompt',sans-serif;font-size:13px;cursor:pointer;margin-top:6px}
     .pw-error{color:var(--red);font-size:12px;margin-top:6px;display:none}
 
-    .detail-popup{position:fixed;z-index:150;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;min-width:200px;max-width:280px;box-shadow:0 4px 20px rgba(0,0,0,0.12);display:none}
-    .detail-popup.open{display:block}
-    .detail-popup h3{font-size:14px;font-weight:600;margin-bottom:4px}
-    .detail-popup .detail-subject{font-size:12px;color:var(--muted);margin-bottom:8px}
-    .detail-popup .detail-dates{font-size:12px;color:var(--text);margin-bottom:8px;display:flex;flex-direction:column;gap:3px}
-    .detail-popup .detail-note{font-size:12px;color:var(--muted);font-weight:300;padding-top:8px;border-top:1px solid var(--border)}
-    .detail-edit-btn{margin-top:10px;width:100%;padding:7px;background:var(--green-light);color:var(--green-dark);border:none;border-radius:8px;font-family:'Prompt',sans-serif;font-size:12px;font-weight:500;cursor:pointer;display:none}
-    .detail-edit-btn.visible{display:block}
-    .detail-close{position:absolute;top:8px;right:10px;background:none;border:none;font-size:16px;cursor:pointer;color:var(--muted)}
-
-    /* days-left chip in detail */
-    .days-chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;margin-top:4px}
+    /* ── DETAIL POPUP ── */
+    .detail-popup{
+      position:fixed;z-index:600;background:white;
+      border:1px solid var(--border);border-radius:20px;
+      padding:0;min-width:262px;max-width:302px;
+      box-shadow:0 8px 32px rgba(0,0,0,0.13);
+      display:none;overflow:hidden;
+    }
+    .detail-popup.open{display:block;animation:popIn 0.25s cubic-bezier(0.34,1.56,0.64,1) both}
+    .detail-header{padding:1.1rem 1.25rem 0.75rem;border-bottom:1px solid var(--border)}
+    .detail-popup h3{font-size:16px;font-weight:600;margin-bottom:2px;color:var(--text);padding-right:24px}
+    .detail-subject{font-size:12px;color:var(--muted)}
+    .detail-body{padding:1rem 1.25rem}
+    .detail-note-section{margin-bottom:1rem}
+    .detail-note-label{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+    .detail-note{font-size:13px;color:var(--text);font-weight:300;line-height:1.6}
+    .detail-mark-done{background:none;border:none;font-size:13px;color:var(--green);cursor:pointer;font-family:'Prompt',sans-serif;font-weight:500;padding:0;text-decoration:underline;text-underline-offset:2px;display:block;margin-bottom:1rem}
+    .detail-footer{padding:0.75rem 1.25rem 1rem;display:flex;flex-direction:column;gap:6px}
+    .days-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:500;width:fit-content}
     .days-chip.soon{background:var(--amber-light);color:var(--amber)}
-    .days-chip.overdue{background:var(--red-light);color:var(--red)}
+    .days-chip.overdue-chip{background:var(--red-light);color:var(--red)}
     .days-chip.ok{background:var(--green-light);color:var(--green-dark)}
+    .detail-dates{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+    .detail-edit-btn{margin-top:6px;width:100%;padding:9px;background:var(--green);color:white;border:none;border-radius:10px;font-family:'Prompt',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:none;transition:background 0.15s}
+    .detail-edit-btn:hover{background:var(--green-dark)}
+    .detail-edit-btn.visible{display:block}
+    .detail-close{position:absolute;top:10px;right:12px;background:none;border:none;font-size:16px;cursor:pointer;color:var(--label);line-height:1;transition:color 0.15s}
+    .detail-close:hover{color:var(--text)}
+    .detail-delete-btn{
+      background:none;border:none;font-size:13px;color:var(--red);
+      cursor:pointer;font-family:'Prompt',sans-serif;font-weight:500;
+      padding:0;display:none;margin-bottom:1rem;
+      opacity:0.8;transition:opacity 0.15s;
+    }
+    .detail-delete-btn:hover{opacity:1}
+    .detail-delete-btn.visible{display:block}
 
-    .loading{text-align:center;padding:4rem;color:var(--muted);font-size:14px}
+    /* Latest task pill in topbar subtitle */
+    .latest-pill{
+      display:inline-flex;align-items:center;gap:4px;
+      background:var(--green-light);color:var(--green-dark);
+      font-size:10px;font-weight:500;
+      padding:2px 7px;border-radius:10px;
+      border:1px solid var(--green-mid);
+      white-space:nowrap;
+      animation:pillPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    @keyframes pillPop{from{transform:scale(0.7);opacity:0}to{transform:scale(1);opacity:1}}
+
+    /* ── VIEW TABS ── */
+    .view-tabs{
+      display:flex;gap:4px;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:3px;
+    }
+    .view-tab{
+      padding:5px 13px;border:none;border-radius:7px;
+      font-family:'Prompt',sans-serif;font-size:12px;font-weight:500;
+      cursor:pointer;color:var(--muted);background:transparent;
+      transition:background 0.18s,color 0.18s;
+      white-space:nowrap;
+    }
+    .view-tab.active{background:white;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+    .view-tab .tab-count{
+      display:inline-block;margin-left:5px;
+      background:var(--red-mid);color:var(--red);
+      font-size:10px;font-weight:600;
+      border-radius:10px;padding:0 5px;line-height:16px;
+      vertical-align:middle;
+    }
+    .view-tab.active .tab-count{background:var(--red);color:white}
+
+    /* ── ARCHIVE VIEW ── */
+    .archive-wrap{
+      padding:1.25rem 1.5rem 7rem;
+    }
+    .archive-header{
+      font-size:12px;font-weight:500;color:var(--label);
+      letter-spacing:.05em;text-transform:uppercase;
+      margin-bottom:12px;padding-bottom:8px;
+      border-bottom:1px solid var(--border);
+    }
+    .archive-card{
+      background:white;border-radius:12px;
+      border:1px solid var(--border);
+      padding:12px 14px;margin-bottom:8px;
+      display:flex;align-items:center;gap:12px;
+      opacity:0;animation:rowIn 0.38s cubic-bezier(0.16,1,0.3,1) forwards;
+      cursor:pointer;
+      transition:box-shadow 0.15s,border-color 0.15s;
+    }
+    .archive-card:hover{ box-shadow:0 2px 12px rgba(0,0,0,0.08);border-color:#c8d4c8 }
+    .archive-color-dot{
+      width:8px;height:8px;border-radius:50%;flex-shrink:0;
+    }
+    .archive-info{flex:1;min-width:0}
+    .archive-name{font-size:13px;font-weight:500;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:line-through;text-decoration-color:var(--border)}
+    .archive-subject{font-size:11px;color:var(--label);margin-top:1px}
+    .archive-due{font-size:11px;color:var(--red);font-weight:500;flex-shrink:0}
+    .archive-days{font-size:10px;color:var(--label);margin-top:1px;text-align:right}
+    .archive-empty{text-align:center;padding:3rem 2rem;color:var(--label);font-size:13px}
+
+    @media(max-width:600px){
+      .view-tab{padding:5px 10px;font-size:11px}
+      .archive-wrap{padding:1rem 1rem 7rem}
+    }
+    @media(max-width:600px){
+      :root{
+        --label-w:96px;
+        --check-w:38px;
+        --row-h:50px;
+        --font-row-name:13px;
+        --font-row-sub:11px;
+        --font-bar:10px;
+        --topbar-h:52px;
+      }
+      .topbar{padding:0 1rem;height:52px}
+      .topbar p{display:none}
+      .topbar h1{font-size:15px}
+      .mod-btn,.add-task-btn{padding:6px 10px;font-size:12px}
+      .date-tick-label{font-size:10px}
+      .gantt-bar{top:8px;bottom:8px}
+      .check-row input{width:17px;height:17px}
+      .modal{border-radius:16px 16px 0 0;max-height:85vh;margin-top:auto}
+      .modal-overlay{align-items:flex-end;padding:0}
+      .fab-container{bottom:1.25rem;left:0.875rem;right:0.875rem}
+      .detail-popup{
+        position:fixed!important;left:0!important;right:0!important;
+        bottom:0!important;top:auto!important;
+        max-width:100%!important;min-width:0!important;width:100%!important;
+        border-radius:20px 20px 0 0!important;
+        box-shadow:0 -4px 32px rgba(0,0,0,0.15)!important;
+        display:none;transform:translateY(100%);
+        transition:transform 0.28s cubic-bezier(0.32,0.72,0,1);
+        animation:none!important;
+      }
+      .detail-popup.open{display:block!important;transform:translateY(0)!important}
+      .detail-popup::before{content:'';display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0}
+      .detail-header{padding-top:0.75rem}
+    }
+    @media(max-width:380px){
+      :root{--label-w:76px;--font-row-name:12px}
+      .row-subject{display:none}
+      .label-row{ padding-left:10px }
+    }
+    @media(min-width:601px) and (max-width:1024px){
+      :root{--label-w:150px}
+      .label-row{ padding-left:18px }
+      .cal-header-left{ padding-left:18px }
+    }
   </style>
 </head>
 <body>
 
 <div class="topbar">
-  <div class="topbar-left">
-    <div>
-      <h1>📅 TAS Calendar</h1>
-      <p>3/3 Academic System — work timeline</p>
-    </div>
+  <div>
+    <h1>📅 TAS Calendar</h1>
+    <p>3/3 Academic System — work timeline &nbsp;<span class="latest-pill" id="latestPill" style="display:none"></span></p>
   </div>
   <div style="display:flex;gap:8px;align-items:center">
+    <div class="view-tabs">
+      <button class="view-tab active" id="tabCalendar" onclick="switchView('calendar')">📅 Calendar</button>
+      <button class="view-tab" id="tabArchive" onclick="switchView('archive')">🗂 Archive<span class="tab-count" id="archiveCount" style="display:none"></span></button>
+    </div>
     <button class="add-task-btn" id="addTaskBtn" onclick="openAddModal()">➕ Add task</button>
     <button class="mod-btn" id="modBtn" onclick="toggleModMode()">🔒 Mod mode</button>
   </div>
-</div>
-
-<div class="legend">
-  <span style="font-weight:500;color:var(--text)">Legend:</span>
-  <div class="legend-item"><div class="legend-dot dot-normal"></div> Normal</div>
-  <div class="legend-item"><div class="legend-dot dot-deadline"></div> Deadline</div>
-  <div class="legend-item"><div class="legend-dot dot-prediction"></div> Prediction</div>
-  <span class="range-pill" id="rangePill">loading...</span>
 </div>
 
 <div class="cal-wrap" id="calWrap">
   <div class="loading">Loading tasks...</div>
 </div>
 
-<div class="detail-popup" id="detailPopup">
-  <button class="detail-close" onclick="closeDetail()">✕</button>
-  <h3 id="dp-name"></h3>
-  <div class="detail-subject" id="dp-subject"></div>
-  <div id="dp-days"></div>
-  <div class="detail-dates" id="dp-dates" style="margin-top:6px"></div>
-  <div class="detail-note" id="dp-note" style="display:none"></div>
-  <button class="detail-edit-btn" id="dp-edit-btn">✏️ Edit task</button>
+<!-- FLOATING CONTROLS -->
+<div class="fab-container">
+  <div class="legend-fab">
+    <div class="legend-panel" id="legendPanel">
+      <div class="legend-item"><div class="legend-dot dot-sendon"></div>Send On</div>
+      <div class="legend-item"><div class="legend-dot dot-deadline"></div>Send Before</div>
+      <div class="legend-item"><div class="legend-dot dot-prediction"></div>Estimated</div>
+      <div class="legend-hint">✅ Check to hide completed<br>🟥 Colour = urgency level<br>📌 Tap date to highlight</div>
+    </div>
+    <button class="legend-toggle" id="legendToggle" onclick="toggleLegend()" title="Legend">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green);transition:color 0.22s">
+        <circle cx="12" cy="12" r="10"/>
+        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+      </svg>
+    </button>
+  </div>
+  <div class="range-fab">
+    <div class="range-panel" id="rangePanel">
+      <span class="range-label-hd">View range</span>
+      <button class="range-option" id="ro-week"     onclick="setRange('week')">Week</button>
+      <button class="range-option" id="ro-2weeks"   onclick="setRange('2weeks')">2 Weeks</button>
+      <button class="range-option active" id="ro-month"  onclick="setRange('month')">Month</button>
+      <button class="range-option" id="ro-semester" onclick="setRange('semester')">Semester</button>
+    </div>
+    <button class="range-toggle" id="rangeToggle" onclick="toggleRange()">
+      <span id="rangeLabel">📆 Month</span>
+      <span class="range-chevron">▲</span>
+    </button>
+  </div>
 </div>
 
+<!-- DETAIL POPUP -->
+<div class="detail-popup" id="detailPopup">
+  <button class="detail-close" onclick="closeDetail()">✕</button>
+  <div class="detail-header">
+    <h3 id="dp-name"></h3>
+    <div class="detail-subject" id="dp-subject"></div>
+  </div>
+  <div class="detail-body">
+    <div id="dp-note-section" style="display:none">
+      <div class="detail-note-label">📌 Description</div>
+      <div class="detail-note" id="dp-note"></div>
+    </div>
+    <button class="detail-mark-done" id="dp-mark-done" onclick="markDoneFromDetail()">Mark as Done</button>
+    <button class="detail-delete-btn" id="dp-delete-btn" onclick="deleteFromDetail()">🗑️ Delete task</button>
+  </div>
+  <div class="detail-footer">
+    <div id="dp-days"></div>
+    <div class="detail-dates" id="dp-dates"></div>
+    <button class="detail-edit-btn" id="dp-edit-btn">✏️ Edit task</button>
+  </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
 <div class="modal-overlay" id="taskModal">
   <div class="modal">
     <h2 id="modal-title">Add task</h2>
-    <div class="modal-field">
-      <label>Task name</label>
-      <input type="text" id="t-name" placeholder="e.g. MindMap งานการงาน" />
-    </div>
-    <div class="modal-field">
-      <label>Subject</label>
-      <input type="text" id="t-subject" placeholder="e.g. การงาน, ภาษาไทย" />
-    </div>
-    <div class="modal-field">
-      <label>Type</label>
+    <div class="modal-field"><label>Task name</label><input type="text" id="t-name" placeholder="e.g. MindMap งานการงาน" /></div>
+    <div class="modal-field"><label>Subject</label><input type="text" id="t-subject" placeholder="e.g. การงาน, ภาษาไทย" /></div>
+    <div class="modal-field"><label>Type</label>
       <select id="t-type">
-        <option value="normal">🟢 Normal</option>
-        <option value="deadline">🔴 Send before (hard deadline)</option>
-        <option value="prediction">🟡 Prediction (estimated)</option>
+        <option value="normal">🟢 Send On (fixed send date)</option>
+        <option value="deadline">🔴 Send Before (hard deadline)</option>
+        <option value="prediction">🟣 Estimated (no clear deadline)</option>
       </select>
     </div>
     <div class="modal-row">
-      <div class="modal-field">
-        <label>Start date</label>
-        <input type="date" id="t-start" />
-      </div>
-      <div class="modal-field">
-        <label>End / Due date</label>
-        <input type="date" id="t-end" />
-      </div>
+      <div class="modal-field"><label>Start date</label><input type="date" id="t-start" /></div>
+      <div class="modal-field"><label>End / Due date</label><input type="date" id="t-end" /></div>
     </div>
-    <div class="modal-field">
-      <label>Note (optional)</label>
-      <textarea id="t-note" placeholder="Extra info, submission link, etc."></textarea>
-    </div>
+    <div class="modal-field"><label>Note (optional)</label><textarea id="t-note" placeholder="Extra info, link, etc."></textarea></div>
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeModal()">Cancel</button>
       <button class="modal-delete" id="modal-delete-btn" style="display:none" onclick="deleteTask()">🗑️ Delete</button>
@@ -206,7 +605,8 @@
   </div>
 </div>
 
-<div class="pw-overlay" id="pwOverlay" style="display:none">
+<!-- PASSWORD -->
+<div class="pw-overlay" id="pwOverlay">
   <div class="pw-box">
     <h2>🔒 Mod mode</h2>
     <p>Enter the mod password to enable editing</p>
@@ -222,289 +622,511 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/fireba
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18",
-  authDomain: "tas-samtabsam.firebaseapp.com",
-  projectId: "tas-samtabsam",
-  storageBucket: "tas-samtabsam.firebasestorage.app",
-  messagingSenderId: "645483732924",
-  appId: "1:645483732924:web:5a1ec2b9f7c58a18c655b9"
+  apiKey:"AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18",
+  authDomain:"tas-samtabsam.firebaseapp.com",
+  projectId:"tas-samtabsam",
+  storageBucket:"tas-samtabsam.firebasestorage.app",
+  messagingSenderId:"645483732924",
+  appId:"1:645483732924:web:5a1ec2b9f7c58a18c655b9"
 }
-
 const app = initializeApp(firebaseConfig)
 const db = getFirestore(app)
-const MOD_PASSWORD = "tas33"
+const MOD_PASSWORD_HASH = "4710ce735963a78ed12d2348a6ddd4e45a0f75cce94d78b3d81d077274e8c8fa"
+
+async function hashInput(str){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str))
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("")
+}
 
 const TODAY = new Date(); TODAY.setHours(0,0,0,0)
 const thaiMonths = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."]
-function shortDate(d){ return `${d.getDate()} ${thaiMonths[d.getMonth()]} ${d.getFullYear()+543}` }
+// Short date WITHOUT year
+function shortDate(d){ return `${d.getDate()} ${thaiMonths[d.getMonth()]}` }
 function parseDate(s){ return new Date(s+"T00:00:00") }
-function getDone(){ try{ return JSON.parse(localStorage.getItem("tas_done")||"{}") }catch(e){return {}} }
+function getDone(){ try{return JSON.parse(localStorage.getItem("tas_done")||"{}")}catch(e){return{}} }
 function setDone(obj){ localStorage.setItem("tas_done",JSON.stringify(obj)) }
+function daysLeft(e){ return Math.round((e-TODAY)/(24*60*60*1000)) }
+function getOrder(){ try{return JSON.parse(localStorage.getItem("tas_order")||"null")}catch(e){return null} }
+function saveOrder(arr){ localStorage.setItem("tas_order",JSON.stringify(arr)) }
 
-let tasks = []
-let isMod = false
-let editingId = null
+let tasks=[], isMod=false, editingId=null, currentRange="month", hlPct=null, currentView="calendar"
 
-// ── DYNAMIC RANGE ──────────────────────────────────────────────
-// Range is computed from actual task dates every render.
-// Always starts from whichever is earlier: today or earliest task start.
-// Always ends at whichever is later: 2 weeks from today or latest task end.
-// Adds a small padding (3 days each side) so bars don't sit flush against the edge.
-function computeRange(taskList) {
-  const PAD = 3 * 24*60*60*1000
-  let rangeStart = new Date(TODAY)
-  let rangeEnd = new Date(TODAY.getTime() + 14*24*60*60*1000)
+const TYPE_LABEL={normal:"Send On",deadline:"Send Before",prediction:"Estimated"}
+const RANGE_NAMES={week:"Week","2weeks":"2 Weeks",month:"Month",semester:"Semester"}
 
-  taskList.forEach(t => {
-    const s = parseDate(t.start)
-    const e = parseDate(t.end)
-    if (s < rangeStart) rangeStart = s
-    if (e > rangeEnd) rangeEnd = e
+window.switchView=function(view){
+  currentView=view
+  document.getElementById("tabCalendar").classList.toggle("active", view==="calendar")
+  document.getElementById("tabArchive").classList.toggle("active", view==="archive")
+  // Show/hide FABs (only relevant on calendar view)
+  document.querySelector(".fab-container").style.display = view==="calendar" ? "" : "none"
+  if(view==="calendar") renderCalendar()
+  else renderArchive()
+}
+
+function renderArchive(){
+  const wrap=document.getElementById("calWrap")
+  const sorted=getOrderedTasks()
+  const archivedTasks=sorted.filter(t=>{
+    const dl=daysLeft(parseDate(t.end))
+    return dl<0 && t.type!=="prediction"
   })
+  // Sort by most recently overdue first
+  archivedTasks.sort((a,b)=>new Date(b.end)-new Date(a.end))
 
-  return {
-    start: new Date(rangeStart.getTime() - PAD),
-    end:   new Date(rangeEnd.getTime()   + PAD)
-  }
-}
-
-function pct(d, rangeStart, totalMs) {
-  return Math.max(0, Math.min(100, (d - rangeStart) / totalMs * 100))
-}
-
-function barColor(type){ 
-  if(type==="deadline") return "gantt-bar-deadline"
-  if(type==="prediction") return "gantt-bar-prediction"
-  return "gantt-bar-normal"
-}
-
-function daysLeft(endDate) {
-  return Math.round((endDate - TODAY) / (24*60*60*1000))
-}
-
-function renderCalendar() {
-  const wrap = document.getElementById("calWrap")
-  const rangePill = document.getElementById("rangePill")
-
-  if (tasks.length === 0) {
-    wrap.innerHTML = `<div class="empty-state"><p>No tasks yet 📭</p><small>${isMod?"Click ➕ Add task to get started":"Check back later!"}</small></div>`
-    rangePill.textContent = "no tasks"
+  if(archivedTasks.length===0){
+    wrap.innerHTML=`<div class="archive-wrap"><div class="archive-empty">📭 No archived tasks yet<br><span style="font-size:11px;color:var(--label)">Tasks past their due date will appear here</span></div></div>`
     return
   }
 
-  const done = getDone()
-  const sorted = [...tasks].sort((a,b) => new Date(a.end) - new Date(b.end))
-  const { start: rangeStart, end: rangeEnd } = computeRange(tasks)
-  const totalMs = rangeEnd - rangeStart
-
-  // Update range pill
-  rangePill.textContent = `${shortDate(rangeStart)} → ${shortDate(rangeEnd)}`
-
-  // Today position
-  const todayPct = pct(TODAY, rangeStart, totalMs)
-
-  // Build weekly ticks
-  let ticks = ""
-  const step = 7
-  let cur = new Date(rangeStart)
-  // Snap to nearest Monday-ish
-  while (cur <= rangeEnd) {
-    const p = pct(cur, rangeStart, totalMs)
-    const isToday = cur.getTime() === TODAY.getTime()
-    ticks += `<div class="date-tick" style="left:${p}%">
-      <div class="date-tick-line ${isToday?"today-tick-line":""}"></div>
-      <div class="date-tick-label ${isToday?"today-tick-label":""}">${isToday?"วันนี้":shortDate(cur)}</div>
+  const rows=archivedTasks.map((t,idx)=>{
+    const end=parseDate(t.end)
+    const dl=daysLeft(end) // negative
+    const overdueDays=Math.abs(dl)
+    const delay=(0.04+idx*0.035).toFixed(3)
+    return `<div class="archive-card" style="animation-delay:${delay}s" onclick="showDetail(event,'${t.id}')">
+      <div class="archive-color-dot" style="background:#dc2626"></div>
+      <div class="archive-info">
+        <div class="archive-name">${t.name}</div>
+        <div class="archive-subject">${t.subject} · ${TYPE_LABEL[t.type]||t.type}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="archive-due">📅 ${shortDate(end)}</div>
+        <div class="archive-days">${overdueDays}d ago</div>
+      </div>
     </div>`
-    cur = new Date(cur); cur.setDate(cur.getDate() + step)
-  }
-
-  let rows = sorted.map(t => {
-    const start = parseDate(t.start)
-    const end   = parseDate(t.end)
-    const isDone = !!done[t.id]
-    const left  = pct(start, rangeStart, totalMs)
-    const right = pct(end,   rangeStart, totalMs)
-    const width = Math.max(right - left, 1.2)
-    const dl    = daysLeft(end)
-    const isOverdue = dl < 0 && !isDone
-    const barClass = barColor(t.type)
-    const overdueClass = isOverdue && t.type === "deadline" ? " overdue" : ""
-    const label = t.name + " · " + shortDate(end)
-
-    return `
-      <div class="cal-row">
-        <div class="cal-row-label">
-          <div title="${t.name}">${t.name}</div>
-          <div class="row-subject" title="${t.subject}">${t.subject}</div>
-        </div>
-        <div class="cal-track">
-          <div class="today-line" style="left:${todayPct}%"></div>
-          <div class="gantt-bar ${barClass}${overdueClass} ${isDone?"done":""}"
-            style="left:${left}%;width:${width}%"
-            onclick="showDetail(event,'${t.id}')">
-            <span class="gantt-bar-text">${label}</span>
-          </div>
-          <div class="done-check">
-            <input type="checkbox" title="Mark as done"
-              ${isDone?"checked":""}
-              onchange="toggleDone('${t.id}',this.checked)" />
-          </div>
-        </div>
-      </div>`
   }).join("")
 
-  wrap.innerHTML = `
-    <div class="cal-inner">
-      <div class="cal-header">
-        <div class="cal-label-col"></div>
-        <div class="cal-dates">${ticks}</div>
-      </div>
-      ${rows}
+  wrap.innerHTML=`<div class="archive-wrap">
+    <div class="archive-header">🗂 Archived Tasks — ${archivedTasks.length} past due</div>
+    ${rows}
+  </div>`
+}
+
+
+function urgencyColor(type,dl){
+  if(type==="prediction") return "#8b5cf6"
+  if(dl<0)  return "#dc2626"
+  if(dl<=3) return "#ef4444"
+  if(dl<=7) return "#f97316"
+  if(dl<=14)return "#f59e0b"
+  if(dl<=30)return "#84cc16"
+  return "#1D9E75"
+}
+
+function getRange(key){
+  const d=n=>{const x=new Date(TODAY);x.setDate(x.getDate()+n);return x}
+  if(key==="semester"){
+    let s=new Date(TODAY),e=d(120)
+    tasks.forEach(t=>{const ts=parseDate(t.start),te=parseDate(t.end);if(ts<s)s=ts;if(te>e)e=te})
+    const P=3*864e5;return{start:new Date(s-P),end:new Date(+e+P)}
+  }
+  if(key==="week")  return{start:new Date(TODAY),end:d(7)}
+  if(key==="2weeks")return{start:new Date(TODAY),end:d(14)}
+  return{start:new Date(TODAY),end:d(30)}
+}
+function tickStep(key){return key==="week"?1:key==="2weeks"?2:key==="month"?5:14}
+
+window.setRange=function(key){
+  currentRange=key;hlPct=null
+  document.querySelectorAll(".range-option").forEach(b=>b.classList.toggle("active",b.id==="ro-"+key))
+  document.getElementById("rangeLabel").textContent="📆 "+RANGE_NAMES[key]
+  closeFabs();renderCalendar()
+}
+function closeFabs(){
+  ["legendPanel","legendToggle","rangePanel","rangeToggle"].forEach(id=>document.getElementById(id).classList.remove("open"))
+}
+window.toggleLegend=function(e){
+  e&&e.stopPropagation()
+  const open=document.getElementById("legendPanel").classList.contains("open")
+  closeFabs()
+  if(!open){
+    document.getElementById("legendPanel").classList.add("open")
+    document.getElementById("legendToggle").classList.add("open")
+    document.querySelector(".legend-toggle svg").style.color="white"
+  } else {
+    document.querySelector(".legend-toggle svg").style.color="var(--green)"
+  }
+}
+window.toggleRange=function(e){
+  e&&e.stopPropagation()
+  const open=document.getElementById("rangePanel").classList.contains("open")
+  closeFabs()
+  if(!open){document.getElementById("rangePanel").classList.add("open");document.getElementById("rangeToggle").classList.add("open")}
+}
+document.addEventListener("click",e=>{
+  const lf=document.querySelector(".legend-fab"),rf=document.querySelector(".range-fab")
+  const lo=document.getElementById("legendPanel").classList.contains("open")
+  const ro=document.getElementById("rangePanel").classList.contains("open")
+  if((lo||ro)&&!lf.contains(e.target)&&!rf.contains(e.target)){
+    closeFabs();document.querySelector(".legend-toggle svg").style.color="var(--green)"
+  }
+})
+
+function pct(d,start,total){return Math.max(0,Math.min(100,(d-start)/total*100))}
+
+function getOrderedTasks(){
+  const order=getOrder();let list=[...tasks]
+  if(order&&order.length){const idx=id=>{const i=order.indexOf(id);return i===-1?9999:i};list.sort((a,b)=>idx(a.id)-idx(b.id))}
+  else list.sort((a,b)=>new Date(a.end)-new Date(b.end))
+  return list
+}
+
+// Highlight line toggle
+window.handleTickClick=function(p,isToday){
+  hlPct = (hlPct!==null&&Math.abs(hlPct-p)<0.01) ? null : p
+  // Update ticks
+  document.querySelectorAll(".date-tick").forEach(el=>{
+    const ep=parseFloat(el.dataset.pct)
+    el.classList.toggle("hl-tick", hlPct!==null&&Math.abs(ep-hlPct)<0.01&&!el.classList.contains("today-tick"))
+  })
+  // Update vlines
+  document.querySelectorAll(".hl-vline").forEach(el=>{
+    const ep=parseFloat(el.dataset.pct)
+    el.classList.toggle("active", hlPct!==null&&Math.abs(ep-hlPct)<0.01)
+  })
+  // Update today-vline style
+  document.querySelectorAll(".today-vline").forEach(el=>{
+    el.style.background = (hlPct!==null) ? "rgba(229,62,62,0.35)" : "rgba(229,62,62,0.60)"
+  })
+}
+
+// Sync header-scroll with track scroll
+function syncHeaderScroll(scrollOuter){
+  const hs = document.getElementById("calHeaderScroll")
+  if(!hs) return
+  scrollOuter.addEventListener("scroll",()=>{ hs.scrollLeft = scrollOuter.scrollLeft })
+}
+// Also sync baseline
+function syncBaselineScroll(scrollOuter){
+  const bs = document.getElementById("calBaselineScroll")
+  if(!bs) return
+  scrollOuter.addEventListener("scroll",()=>{ bs.scrollLeft = scrollOuter.scrollLeft })
+}
+
+function renderCalendar(){
+  const wrap=document.getElementById("calWrap")
+
+  if(tasks.length===0){
+    wrap.innerHTML=`<div class="empty-state"><p>No tasks yet 📭</p><small>${isMod?"Click ➕ Add task to get started":"Check back later!"}</small></div>`
+    return
+  }
+
+  const done=getDone()
+  const sorted=getOrderedTasks()
+
+  // Split: overdue (past due, not prediction) go to archive — active stay
+  const activeTasks = sorted.filter(t => {
+    const dl = daysLeft(parseDate(t.end))
+    return dl >= 0 || t.type === "prediction"
+  })
+  const archivedTasks = sorted.filter(t => {
+    const dl = daysLeft(parseDate(t.end))
+    return dl < 0 && t.type !== "prediction"
+  })
+
+  // Update archive badge count
+  const badge = document.getElementById("archiveCount")
+  if(badge){
+    if(archivedTasks.length > 0){
+      badge.textContent = archivedTasks.length
+      badge.style.display = "inline-block"
+    } else {
+      badge.style.display = "none"
+    }
+  }
+
+  if(activeTasks.length===0){
+    wrap.innerHTML=`<div class="empty-state"><p>No active tasks 🎉</p><small>All tasks are done or archived!</small></div>`
+    return
+  }
+
+  const {start:rangeStart,end:rangeEnd}=getRange(currentRange)
+  const totalMs=rangeEnd-rangeStart
+  const todayPct=pct(TODAY,rangeStart,totalMs)
+  const step=tickStep(currentRange)
+
+  // Build tick positions
+  const tickPositions=[]
+  let cur=new Date(rangeStart)
+  while(cur<=rangeEnd){
+    const p=pct(cur,rangeStart,totalMs)
+    const isToday=cur.getTime()===TODAY.getTime()
+    const isHL=hlPct!==null&&Math.abs(p-hlPct)<0.01
+    tickPositions.push({p,isToday,isHL,label:isToday?"วันนี้":shortDate(cur)})
+    cur=new Date(cur);cur.setDate(cur.getDate()+step)
+  }
+
+  // Ticks HTML
+  const ticksHTML=tickPositions.map(({p,isToday,isHL,label})=>
+    `<div class="date-tick${isToday?" today-tick":""}${isHL&&!isToday?" hl-tick":""}"
+      style="left:${p}%" data-pct="${p}"
+      onclick="handleTickClick(${p},${isToday})">
+      <div class="date-tick-line"></div>
+      <div class="date-tick-label">${label}</div>
     </div>`
+  ).join("")
+
+  // Grid + hl-vline HTML per row (reused in every track)
+  const gridHTML=tickPositions.map(({p,isToday,isHL})=>
+    `<div class="grid-col${isToday?" grid-col-today":""}" style="left:${p}%"></div>` +
+    `<div class="hl-vline${isHL?" active":""}" style="left:${p}%" data-pct="${p}"></div>`
+  ).join("")
+
+  // Build three separate column contents
+  let leftHTML="", trackHTML="", rightHTML=""
+
+  activeTasks.forEach((t,idx)=>{
+    const start=parseDate(t.start),end=parseDate(t.end)
+    const isDone=!!done[t.id]
+    const left=pct(start,rangeStart,totalMs)
+    const right=pct(end,rangeStart,totalMs)
+    const width=Math.max(right-left,0.8)
+    const dl=daysLeft(end)
+    const color=urgencyColor(t.type,dl)
+    const isOverdue=dl<0&&!isDone&&t.type!=="prediction"
+    const delay=(0.06+idx*0.045).toFixed(3)
+
+    let outLeft="",outRight=""
+    if(start<rangeStart) outLeft=`<div class="out-indicator out-left" style="background:${color}" onclick="showDetail(event,'${t.id}')"></div>`
+    if(end>rangeEnd)     outRight=`<div class="out-indicator out-right" style="background:${color}" onclick="showDetail(event,'${t.id}')"></div>`
+
+    leftHTML+=`<div class="label-row" style="animation-delay:${delay}s">
+      <div style="overflow:hidden;width:100%">
+        <div class="row-name" title="${t.name}">${t.name}</div>
+        <div class="row-subject" title="${t.subject}">${t.subject}</div>
+      </div>
+    </div>`
+
+    trackHTML+=`<div class="cal-row" data-id="${t.id}" style="animation-delay:${delay}s">
+      <div class="cal-track">
+        ${gridHTML}
+        <div class="today-vline" style="left:${todayPct}%"></div>
+        ${outLeft}
+        <div class="gantt-bar${isOverdue?" overdue-pulse":""}${isDone?" done":""}"
+          style="left:${left}%;width:${width}%;background:${color};animation-delay:${delay}s"
+          onclick="showDetail(event,'${t.id}')">
+          <span class="gantt-bar-text">${t.name} · ${shortDate(end)}</span>
+        </div>
+        ${outRight}
+      </div>
+    </div>`
+
+    rightHTML+=`<div class="check-row">
+      <input type="checkbox" title="Mark as done" ${isDone?"checked":""} onchange="toggleDone('${t.id}',this.checked)" />
+    </div>`
+  })
+
+  wrap.innerHTML=`
+    <!-- STICKY HEADER (outside scroll — synced via JS) -->
+    <div class="cal-header-row">
+      <div class="cal-header-left">TASK</div>
+      <div class="cal-header-scroll" id="calHeaderScroll">
+        <div class="cal-dates-header" id="calDatesHeader">${ticksHTML}</div>
+      </div>
+      <div class="cal-header-right"></div>
+    </div>
+
+    <!-- THREE-COLUMN LAYOUT: left panel | single scroll container | right panel -->
+    <div class="cal-layout">
+      <div class="cal-left" id="calLeft">${leftHTML}</div>
+
+      <!-- ONE scroll container holds baseline + all tracks — perfect alignment -->
+      <div class="cal-scroll-outer" id="calScrollOuter">
+        <div class="cal-inner" id="calInner">
+
+          <!-- Baseline lives INSIDE the scroll so dot position matches tracks exactly -->
+          <div class="baseline-track-row">
+            <div class="baseline-track">
+              <div class="baseline-dot" style="left:${todayPct}%"></div>
+            </div>
+          </div>
+
+          ${trackHTML}
+        </div>
+      </div>
+
+      <div class="cal-right" id="calRight">${rightHTML}</div>
+    </div>`
+
+  // Sync sticky header with the single scroll container
+  const so=document.getElementById("calScrollOuter")
+  const hs=document.getElementById("calHeaderScroll")
+  so.addEventListener("scroll",()=>{ hs.scrollLeft=so.scrollLeft })
 }
 
-window.toggleDone = function(id, checked) {
-  const done = getDone()
-  if (checked) done[id] = true; else delete done[id]
-  setDone(done)
-  renderCalendar()
+window.toggleDone=function(id,checked){
+  const done=getDone();if(checked)done[id]=true;else delete done[id];setDone(done);renderCalendar()
 }
 
-window.showDetail = function(e, id) {
+let detailTaskId=null
+window.deleteFromDetail=async function(){
+  if(!detailTaskId)return
+  if(!confirm("Delete this task permanently?"))return
+  await deleteDoc(doc(db,"tasks",detailTaskId))
+  closeDetail()
+}
+
+function updateLatestPill(){
+  const pill=document.getElementById("latestPill")
+  if(!pill||tasks.length===0)return
+  // Find task with highest createdAt (fallback: last in array)
+  const newest=tasks.reduce((a,b)=>((b.createdAt||0)>(a.createdAt||0)?b:a),tasks[0])
+  if(!newest)return
+  const ts=newest.createdAt
+  let timeStr
+  if(!ts){
+    timeStr="recently"
+  } else {
+    const diff=Date.now()-ts
+    const mins=Math.floor(diff/60000)
+    const hrs=Math.floor(diff/3600000)
+    const days=Math.floor(diff/86400000)
+    if(mins<1)timeStr="just now"
+    else if(mins<60)timeStr=`${mins}m ago`
+    else if(hrs<24)timeStr=`${hrs}h ago`
+    else timeStr=`${days}d ago`
+  }
+  pill.textContent=`✨ ${newest.name} · ${timeStr}`
+  pill.style.display="inline-flex"
+}
+
+window.markDoneFromDetail=function(){
+  if(!detailTaskId)return
+  const done=getDone();done[detailTaskId]=true;setDone(done)
+  closeDetail();renderCalendar()
+}
+
+window.showDetail=function(e,id){
   e.stopPropagation()
-  const t = tasks.find(x => x.id === id)
-  if (!t) return
+  const t=tasks.find(x=>x.id===id);if(!t)return
+  detailTaskId=id
+  const end=parseDate(t.end),dl=daysLeft(end)
+  let chipClass="ok",chipText=`⏱ ${dl} Days Left`
+  if(dl<0){chipClass="overdue-chip";chipText=`⚠️ ${Math.abs(dl)}d Overdue`}
+  else if(dl<=3){chipClass="soon";chipText=`⚠️ ${dl} Days Left`}
+  else if(dl===0){chipClass="overdue-chip";chipText="⚠️ Due Today"}
 
-  const end = parseDate(t.end)
-  const dl = daysLeft(end)
-  let chipClass = "ok", chipText = `${dl}d left`
-  if (dl < 0) { chipClass = "overdue"; chipText = `${Math.abs(dl)}d overdue` }
-  else if (dl <= 3) { chipClass = "soon"; chipText = `⚠️ ${dl}d left` }
+  document.getElementById("dp-name").textContent=t.name
+  document.getElementById("dp-subject").innerHTML=`${t.subject} · <span class="type-badge badge-${t.type}">${TYPE_LABEL[t.type]||t.type}</span>`
+  document.getElementById("dp-days").innerHTML=`<span class="days-chip ${chipClass}">${chipText}</span>`
+  document.getElementById("dp-dates").innerHTML=`<span>📅 Start: ${shortDate(parseDate(t.start))}</span><span>🗓 Due: ${shortDate(end)}</span>`
 
-  document.getElementById("dp-name").textContent = t.name
-  document.getElementById("dp-subject").innerHTML =
-    `<span class="type-badge badge-${t.type}">${t.type==="normal"?"🟢 Normal":t.type==="deadline"?"🔴 Deadline":"🟡 Prediction"}</span> · ${t.subject}`
-  document.getElementById("dp-days").innerHTML =
-    `<span class="days-chip ${chipClass}">${chipText}</span>`
-  document.getElementById("dp-dates").innerHTML =
-    `<span>📅 Start: ${shortDate(parseDate(t.start))}</span><span>🏁 Due: ${shortDate(end)}</span>`
+  const ns=document.getElementById("dp-note-section")
+  if(t.note){document.getElementById("dp-note").textContent=t.note;ns.style.display="block"}else{ns.style.display="none"}
 
-  const noteEl = document.getElementById("dp-note")
-  if (t.note) { noteEl.textContent = "📌 " + t.note; noteEl.style.display = "block" }
-  else { noteEl.style.display = "none" }
+  const done=getDone()
+  const isOverdueTask = dl < 0
+  // Mark done: only for active tasks not yet done
+  const markDoneBtn = document.getElementById("dp-mark-done")
+  markDoneBtn.style.display = (!isOverdueTask && !done[id]) ? "block" : "none"
+  // Delete: shown for overdue/archived tasks (replaces mark done)
+  const deleteBtn = document.getElementById("dp-delete-btn")
+  deleteBtn.className = "detail-delete-btn" + (isOverdueTask ? " visible" : "")
+  const eb=document.getElementById("dp-edit-btn")
+  eb.className="detail-edit-btn"+(isMod?" visible":"")
+  eb.onclick=()=>{closeDetail();openEditModal(t)}
 
-  const editBtn = document.getElementById("dp-edit-btn")
-  editBtn.className = "detail-edit-btn" + (isMod ? " visible" : "")
-  editBtn.onclick = () => { closeDetail(); openEditModal(t) }
+  const popup=document.getElementById("detailPopup")
+  popup.style.display="block"
 
-  const popup = document.getElementById("detailPopup")
-  popup.style.display = "block"
-  const rect = e.target.closest(".gantt-bar").getBoundingClientRect()
-  let top  = rect.bottom + 8 + window.scrollY
-  let left = Math.min(rect.left + window.scrollX, window.innerWidth - 300)
-  popup.style.top = top + "px"; popup.style.left = left + "px"
+  if(window.innerWidth>600){
+    // Works for both gantt bars and archive cards
+    const anchor=e.target.closest(".gantt-bar,.out-indicator,.archive-card")
+    const rect=anchor?anchor.getBoundingClientRect():{bottom:e.clientY,left:e.clientX}
+    let top=rect.bottom+8+window.scrollY
+    let left=Math.min(rect.left+window.scrollX,window.innerWidth-312)
+    if(left<8)left=8
+    popup.style.top=top+"px";popup.style.left=left+"px"
+  } else {popup.style.top="";popup.style.left=""}
+
   popup.classList.add("open")
-  setTimeout(() => document.addEventListener("click", closeDetailOutside), 0)
+  setTimeout(()=>document.addEventListener("click",closeDetailOutside),0)
 }
-
-function closeDetailOutside(e) {
-  if (!document.getElementById("detailPopup").contains(e.target)) closeDetail()
-}
-window.closeDetail = function() {
+function closeDetailOutside(e){if(!document.getElementById("detailPopup").contains(e.target))closeDetail()}
+window.closeDetail=function(){
   document.getElementById("detailPopup").classList.remove("open")
-  document.getElementById("detailPopup").style.display = "none"
-  document.removeEventListener("click", closeDetailOutside)
+  document.getElementById("detailPopup").style.display="none"
+  document.removeEventListener("click",closeDetailOutside)
 }
 
-// MOD MODE
-window.toggleModMode = function() {
-  if (isMod) { isMod = false; updateModUI(); return }
-  document.getElementById("pwOverlay").style.display = "flex"
-  setTimeout(() => document.getElementById("pwInput").focus(), 100)
+window.toggleModMode=function(){
+  if(isMod){isMod=false;updateModUI();return}
+  document.getElementById("pwOverlay").classList.add("active")
+  setTimeout(()=>document.getElementById("pwInput").focus(),100)
 }
-window.checkPw = function() {
-  if (document.getElementById("pwInput").value === MOD_PASSWORD) {
-    isMod = true; closePw(); updateModUI()
-  } else {
-    document.getElementById("pwError").style.display = "block"
-    document.getElementById("pwInput").value = ""
-    document.getElementById("pwInput").focus()
-  }
+window.checkPw=async function(){
+  const input=document.getElementById("pwInput").value
+  const h=await hashInput(input)
+  if(h===MOD_PASSWORD_HASH){isMod=true;closePw();updateModUI()}
+  else{document.getElementById("pwError").style.display="block";document.getElementById("pwInput").value="";document.getElementById("pwInput").focus()}
 }
-window.closePw = function() {
-  document.getElementById("pwOverlay").style.display = "none"
-  document.getElementById("pwInput").value = ""
-  document.getElementById("pwError").style.display = "none"
+window.closePw=function(){
+  document.getElementById("pwOverlay").classList.remove("active")
+  document.getElementById("pwInput").value=""
+  document.getElementById("pwError").style.display="none"
 }
-function updateModUI() {
-  const btn = document.getElementById("modBtn")
-  const addBtn = document.getElementById("addTaskBtn")
-  if (isMod) { btn.textContent = "🔓 Mod mode"; btn.classList.add("active"); addBtn.classList.add("visible") }
-  else { btn.textContent = "🔒 Mod mode"; btn.classList.remove("active"); addBtn.classList.remove("visible") }
+function updateModUI(){
+  const btn=document.getElementById("modBtn"),ab=document.getElementById("addTaskBtn")
+  if(isMod){btn.textContent="🔓 Mod mode";btn.classList.add("active");ab.classList.add("visible")}
+  else{btn.textContent="🔒 Mod mode";btn.classList.remove("active");ab.classList.remove("visible")}
   renderCalendar()
 }
 
-// MODAL
-window.openAddModal = function() {
-  editingId = null
-  document.getElementById("modal-title").textContent = "Add task"
-  document.getElementById("t-name").value = ""
-  document.getElementById("t-subject").value = ""
-  document.getElementById("t-type").value = "normal"
-  document.getElementById("t-start").value = new Date().toISOString().split("T")[0]
-  document.getElementById("t-end").value = ""
-  document.getElementById("t-note").value = ""
-  document.getElementById("modal-delete-btn").style.display = "none"
+window.openAddModal=function(){
+  editingId=null
+  document.getElementById("modal-title").textContent="Add task"
+  document.getElementById("t-name").value=""
+  document.getElementById("t-subject").value=""
+  document.getElementById("t-type").value="normal"
+  document.getElementById("t-start").value=new Date().toISOString().split("T")[0]
+  document.getElementById("t-end").value=""
+  document.getElementById("t-note").value=""
+  document.getElementById("modal-delete-btn").style.display="none"
   document.getElementById("taskModal").classList.add("open")
 }
-function openEditModal(t) {
-  editingId = t.id
-  document.getElementById("modal-title").textContent = "Edit task"
-  document.getElementById("t-name").value = t.name
-  document.getElementById("t-subject").value = t.subject
-  document.getElementById("t-type").value = t.type
-  document.getElementById("t-start").value = t.start
-  document.getElementById("t-end").value = t.end
-  document.getElementById("t-note").value = t.note || ""
-  document.getElementById("modal-delete-btn").style.display = "block"
+function openEditModal(t){
+  editingId=t.id
+  document.getElementById("modal-title").textContent="Edit task"
+  document.getElementById("t-name").value=t.name
+  document.getElementById("t-subject").value=t.subject
+  document.getElementById("t-type").value=t.type
+  document.getElementById("t-start").value=t.start
+  document.getElementById("t-end").value=t.end
+  document.getElementById("t-note").value=t.note||""
+  document.getElementById("modal-delete-btn").style.display="block"
   document.getElementById("taskModal").classList.add("open")
 }
-window.closeModal = function() { document.getElementById("taskModal").classList.remove("open") }
+window.closeModal=function(){document.getElementById("taskModal").classList.remove("open")}
 
-window.saveTask = async function() {
-  const name    = document.getElementById("t-name").value.trim()
-  const subject = document.getElementById("t-subject").value.trim()
-  const type    = document.getElementById("t-type").value
-  const start   = document.getElementById("t-start").value
-  const end     = document.getElementById("t-end").value
-  const note    = document.getElementById("t-note").value.trim()
-  if (!name || !subject || !start || !end) { alert("Please fill in name, subject, and dates."); return }
-  if (new Date(start) > new Date(end)) { alert("Start date must be before end date."); return }
-  const data = { name, subject, type, start, end, note }
-  if (editingId) {
-    await updateDoc(doc(db, "tasks", editingId), data)
-  } else {
-    await addDoc(collection(db, "tasks"), data)
-  }
+window.saveTask=async function(){
+  const name=document.getElementById("t-name").value.trim()
+  const subject=document.getElementById("t-subject").value.trim()
+  const type=document.getElementById("t-type").value
+  const start=document.getElementById("t-start").value
+  const end=document.getElementById("t-end").value
+  const note=document.getElementById("t-note").value.trim()
+  if(!name||!subject||!start||!end){alert("Please fill in name, subject, and dates.");return}
+  if(new Date(start)>new Date(end)){alert("Start date must be before end date.");return}
+  const data={name,subject,type,start,end,note}
+  if(editingId)await updateDoc(doc(db,"tasks",editingId),data)
+  else await addDoc(collection(db,"tasks"),{...data,createdAt:Date.now()})
   closeModal()
 }
-
-window.deleteTask = async function() {
-  if (!editingId) return
-  if (!confirm("Delete this task?")) return
-  await deleteDoc(doc(db, "tasks", editingId))
-  closeModal()
+window.deleteTask=async function(){
+  if(!editingId)return;if(!confirm("Delete this task?"))return
+  await deleteDoc(doc(db,"tasks",editingId));closeModal()
 }
 
-// REALTIME
-onSnapshot(collection(db, "tasks"), snap => {
-  tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-  renderCalendar()
+onSnapshot(collection(db,"tasks"),snap=>{
+  tasks=snap.docs.map(d=>({id:d.id,...d.data()}))
+  updateLatestPill()
+  if(currentView==="archive") renderArchive()
+  else renderCalendar()
 })
 
-document.getElementById("taskModal").addEventListener("click", function(e) {
-  if (e.target === this) closeModal()
-})
+document.getElementById("taskModal").addEventListener("click",function(e){if(e.target===this)closeModal()})
+window.addEventListener("resize",()=>{ if(currentView==="calendar") renderCalendar() })
 </script>
 </body>
 </html>

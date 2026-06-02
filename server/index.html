@@ -97,11 +97,52 @@
     .divider { height: 1px; background: var(--border); margin: 1.25rem 0; }
     .sync-banner { background: var(--purple-light); border: 1px solid var(--purple-border); border-radius: 10px; padding: 10px 14px; font-size: 12px; color: var(--purple); margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
     .sync-banner b { font-weight: 600; }
-    /* Firebase status indicator */
     .fb-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); margin-left: auto; }
     .fb-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--label); flex-shrink: 0; transition: background 0.3s; }
     .fb-dot.ready { background: var(--green); }
     .fb-dot.error { background: var(--red); }
+
+    /* ── Flex Card toggle ───────────────────────────────────────── */
+    .flex-toggle-row { display: flex; align-items: center; justify-content: space-between; background: #f0f4ff; border: 1px solid #c7d7fb; border-radius: 10px; padding: 10px 14px; margin-bottom: 1rem; }
+    .flex-toggle-label { display: flex; flex-direction: column; gap: 2px; }
+    .flex-toggle-title { font-size: 13px; font-weight: 500; color: #1e40af; }
+    .flex-toggle-sub { font-size: 11px; color: #3b5bdb; font-weight: 300; }
+    .toggle-switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-track { position: absolute; cursor: pointer; inset: 0; background: #d1d5db; border-radius: 24px; transition: background 0.2s; }
+    .toggle-track:before { content: ""; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; background: white; border-radius: 50%; transition: transform 0.2s; }
+    .toggle-switch input:checked + .toggle-track { background: var(--blue); }
+    .toggle-switch input:checked + .toggle-track:before { transform: translateX(18px); }
+
+    /* Flex card fields */
+    .flex-card-fields { background: #f0f4ff; border: 1px solid #c7d7fb; border-radius: 10px; padding: 14px; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 10px; }
+    .flex-card-fields .field { margin-bottom: 0; }
+    .flex-card-fields .field > label { color: #1e40af; font-size: 11px; }
+    .flex-card-fields input, .flex-card-fields textarea { border-color: #c7d7fb !important; background: white !important; }
+    .flex-card-fields input:focus, .flex-card-fields textarea:focus { border-color: var(--blue) !important; }
+
+    /* Image placeholder */
+    .img-placeholder { width: 100%; height: 120px; border: 2px dashed #93c5fd; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: white; color: #3b82f6; font-size: 12px; font-weight: 400; cursor: pointer; transition: background 0.15s; position: relative; overflow: hidden; }
+    .img-placeholder:hover { background: #eff6ff; }
+    .img-placeholder span { font-size: 24px; }
+    .img-placeholder small { font-size: 11px; color: #93c5fd; }
+    .img-placeholder img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+    .img-placeholder input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .img-placeholder .remove-img { position: absolute; top: 6px; right: 8px; background: rgba(0,0,0,0.45); color: white; border: none; border-radius: 6px; font-size: 11px; padding: 3px 7px; cursor: pointer; font-family: 'Prompt', sans-serif; z-index: 2; display: none; }
+    .img-placeholder.has-image .placeholder-text { display: none; }
+    .img-placeholder.has-image .remove-img { display: block; }
+
+    /* Flex card preview */
+    .flex-preview-wrap { margin-top: 1.25rem; }
+    .flex-card-preview { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: white; }
+    .flex-card-header { width: 100%; background: #e0e7ff; min-height: 100px; display: flex; align-items: center; justify-content: center; color: #6366f1; font-size: 12px; font-weight: 400; position: relative; overflow: hidden; }
+    .flex-card-header img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+    .flex-card-header .no-img-label { position: relative; z-index: 1; }
+    .flex-card-body { padding: 14px 16px; white-space: pre-wrap; font-size: 13px; line-height: 1.9; color: var(--text); font-weight: 300; word-break: break-word; }
+    .flex-card-footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fafafa; }
+    .flex-card-footer-url { font-size: 11px; color: var(--muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .flex-card-footer-btn { flex-shrink: 0; font-size: 12px; font-weight: 500; background: var(--blue); color: white; border: none; border-radius: 8px; padding: 7px 14px; font-family: 'Prompt', sans-serif; cursor: default; }
+
     @media (max-width: 480px) {
       body { padding: 1.25rem 0.75rem 3rem; }
       .header { margin-bottom: 1.25rem; }
@@ -139,6 +180,32 @@
         <div class="field"><label>Date</label><input type="date" id="fmtDate" /></div>
         <div class="field"><label>Reported by</label><input type="text" id="fmtReporter" placeholder="Your name" /></div>
       </div>
+
+      <!-- Flex Card Toggle -->
+      <div class="flex-toggle-row">
+        <div class="flex-toggle-label">
+          <span class="flex-toggle-title">🪪 Flex Card mode</span>
+          <span class="flex-toggle-sub">Wrap message in a LINE Flex Card with image header &amp; calendar button</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="flexCardToggle" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <!-- Flex Card extra fields (shown when toggled on) -->
+      <div class="flex-card-fields" id="flexCardFields" style="display:none;">
+        <div class="section-label" style="margin-bottom:4px;">🪪 Flex Card settings</div>
+        <div class="field">
+          <label>Header banner</label>
+          <img src="https://i.ibb.co/V08nTBMD/banner.png" alt="Banner preview" style="width:100%;border-radius:10px;border:1px solid #c7d7fb;display:block;" />
+        </div>
+        <div class="field">
+          <label>Calendar button</label>
+          <div class="locked-url">🔒 https://tas-calendar.netlify.app/</div>
+        </div>
+      </div>
+
       <div class="sync-banner">
         <span>📅</span>
         <div>Subjects with <b>Add to calendar</b> toggled on will be saved to Firestore on send.</div>
@@ -149,7 +216,23 @@
       <button class="action-btn btn-add-green" style="margin-bottom:1rem;" id="addSectionBtn">➕ Add section</button>
       <div class="divider"></div>
       <div class="section-label">Preview</div>
-      <div class="preview-box" id="preview">Fill in the form to see preview...</div>
+      <div id="textPreviewWrap">
+        <div class="preview-box" id="preview">Fill in the form to see preview...</div>
+      </div>
+      <!-- Flex card visual preview -->
+      <div class="flex-preview-wrap" id="flexPreviewWrap" style="display:none;">
+        <div class="section-label" style="margin-bottom:10px;">Flex Card preview</div>
+        <div class="flex-card-preview">
+          <div class="flex-card-header" id="flexCardHeaderPreview">
+            <img src="https://i.ibb.co/V08nTBMD/banner.png" alt="Banner" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;" />
+          </div>
+          <div class="flex-card-body" id="flexCardBodyPreview">Fill in the form to see preview...</div>
+          <div class="flex-card-footer">
+            <span class="flex-card-footer-url" id="flexCardUrlPreview">https://your-calendar-page.com</span>
+            <button class="flex-card-footer-btn" id="flexCardBtnPreview">📅 View Calendar</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -174,7 +257,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js"
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 
-// ── Firebase init ──────────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18",
   authDomain: "tas-samtabsam.firebaseapp.com",
@@ -205,13 +287,34 @@ function setFbStatus(ok) {
   txt.textContent = ok ? "Firebase ready" : "Firebase error"
 }
 
-// ── Constants ──────────────────────────────────────────────────
 const SERVER_URL = "https://tas-samtabsam.onrender.com"
 const SECTION_ICONS = ["📢","📚","💻","🎨","🔬","🏫","📌","🗓️"]
 const WORK_ICONS = ["📝","💻","🔬","🎨","📚","🏃","🎵","📐","✏️"]
 
 let currentMode = "free"
 let sections = []
+let flexCardEnabled = false
+const BANNER_URL = "https://i.ibb.co/V08nTBMD/banner.png"
+
+// ── Flex card toggle ───────────────────────────────────────────
+document.getElementById("flexCardToggle").onchange = function() {
+  flexCardEnabled = this.checked
+  document.getElementById("flexCardFields").style.display = flexCardEnabled ? "flex" : "none"
+  document.getElementById("flexPreviewWrap").style.display = flexCardEnabled ? "block" : "none"
+  document.getElementById("textPreviewWrap").style.display = flexCardEnabled ? "none" : "block"
+  updatePreview()
+}
+
+// Image upload removed — banner is hardcoded
+
+function updateFlexCardPreview() {
+  if (!flexCardEnabled) return
+  const url = "https://tas-calendar.netlify.app/"
+  const btnLabel = "📅 ดูปฏิทิน"
+  document.getElementById("flexCardUrlPreview").textContent = url
+  document.getElementById("flexCardBtnPreview").textContent = btnLabel
+  document.getElementById("flexCardBodyPreview").textContent = buildFormattedMessage() || "Fill in the form to see preview..."
+}
 
 // ── Helpers ────────────────────────────────────────────────────
 function esc(str) {
@@ -257,7 +360,7 @@ function addSubject(si, doRender = true) {
   const today = new Date().toISOString().split("T")[0]
   sections[si].subjects.push({
     icon: "📝", title: "", bullets: [""], note: "", showNote: false,
-    syncToCalendar: false, taskSubject: "", taskStart: today, taskEnd: "", taskType: "normal"
+    syncToCalendar: false, taskStart: today, taskEnd: "", taskType: "send_on"
   })
   if (doRender) renderSections()
 }
@@ -314,9 +417,8 @@ function renderSections() {
         <div class="task-fields">
           <div class="task-fields-label">📅 Calendar task</div>
           <div class="field">
-            <label>Subject label (shown in calendar)</label>
-            <input type="text" placeholder="e.g. การงาน" value="${esc(subj.taskSubject)}"
-              class="cal-subject" data-si="${si}" data-sj="${sj}" />
+            <label>Section (auto-filled)</label>
+            <input type="text" value="${esc(sections[si].title || '(no section)')}" disabled style="opacity:0.6;cursor:not-allowed;" />
           </div>
           <div class="task-fields-row">
             <div class="field"><label>Start date</label>
@@ -328,9 +430,9 @@ function renderSections() {
           </div>
           <div class="field"><label>Type</label>
             <select class="cal-type" data-si="${si}" data-sj="${sj}">
-              <option value="normal"${subj.taskType==="normal"?" selected":""}>🟢 Normal</option>
-              <option value="deadline"${subj.taskType==="deadline"?" selected":""}>🔴 Send before (deadline)</option>
-              <option value="prediction"${subj.taskType==="prediction"?" selected":""}>🟡 Prediction</option>
+              <option value="send_on"${subj.taskType==="send_on"?" selected":""}>🟢 Send on</option>
+              <option value="send_before"${subj.taskType==="send_before"?" selected":""}>🔴 Send before</option>
+              <option value="estimated"${subj.taskType==="estimated"?" selected":""}>🟡 Estimated</option>
             </select>
           </div>
         </div>` : ""
@@ -385,10 +487,8 @@ function renderSections() {
   bindSectionEvents()
 }
 
-// Bind all events via delegation to avoid inline onclick (module scope issue)
 function bindSectionEvents() {
   const list = document.getElementById("sectionList")
-
   list.querySelectorAll(".sec-icon").forEach(el => {
     el.onchange = () => { sections[+el.dataset.si].icon = el.value; updatePreview() }
   })
@@ -428,10 +528,7 @@ function bindSectionEvents() {
   list.querySelectorAll(".add-subj").forEach(el => {
     el.onclick = () => addSubject(+el.dataset.si)
   })
-  // Calendar fields
-  list.querySelectorAll(".cal-subject").forEach(el => {
-    el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskSubject = el.value }
-  })
+  // cal-subject removed — uses section title directly
   list.querySelectorAll(".cal-start").forEach(el => {
     el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskStart = el.value }
   })
@@ -464,12 +561,50 @@ function buildFormattedMessage() {
 }
 
 function updatePreview() {
-  const el = document.getElementById("preview")
-  if (el) el.textContent = buildFormattedMessage() || "Fill in the form to see preview..."
+  const msg = buildFormattedMessage() || "Fill in the form to see preview..."
+  document.getElementById("preview").textContent = msg
+  if (flexCardEnabled) updateFlexCardPreview()
 }
 
 document.getElementById("fmtDate").oninput = updatePreview
 document.getElementById("fmtReporter").oninput = updatePreview
+
+// ── Build LINE Flex Card JSON ──────────────────────────────────
+function buildFlexCardPayload(message) {
+  const url = "https://tas-calendar.netlify.app/"
+  const btnLabel = "📅 ดูปฏิทิน"
+
+  const headerContents = []
+  headerContents.push({ type: "image", url: "https://i.ibb.co/V08nTBMD/banner.png", size: "full", aspectRatio: "20:6", aspectMode: "cover" })
+
+  const bodyContents = message.split("\n").map(line => ({
+    type: "text", text: line || " ", wrap: true, size: "sm", color: "#333333"
+  }))
+
+  return {
+    type: "flex",
+    altText: message.substring(0, 400),
+    contents: {
+      type: "bubble",
+      ...(headerContents.length > 0 ? {
+        hero: { type: "box", layout: "vertical", contents: headerContents, paddingAll: "0px" }
+      } : {}),
+      body: {
+        type: "box", layout: "vertical",
+        contents: bodyContents,
+        paddingTop: "14px", paddingBottom: "14px", paddingStart: "16px", paddingEnd: "16px"
+      },
+      footer: {
+        type: "box", layout: "vertical", spacing: "sm",
+        contents: [{
+          type: "button", style: "primary", color: "#2563eb",
+          action: { type: "uri", label: btnLabel, uri: url }
+        }],
+        paddingAll: "12px"
+      }
+    }
+  }
+}
 
 // ── Firestore sync ─────────────────────────────────────────────
 function collectCalendarTasks() {
@@ -482,8 +617,8 @@ function collectCalendarTasks() {
       const note = subj.note.trim()
       tasks.push({
         name: subj.title.trim() || "(no name)",
-        subject: subj.taskSubject.trim() || sec.title.trim() || "ไม่ระบุ",
-        type: subj.taskType || "normal",
+        subject: sec.title.trim() || "ไม่ระบุ",
+        type: subj.taskType || "send_on",
         start: subj.taskStart || today,
         end: subj.taskEnd || subj.taskStart || today,
         note: note + (bulletNote ? (note ? "\n" : "") + bulletNote : "")
@@ -499,10 +634,8 @@ async function syncToFirestore(tasks) {
   for (const task of tasks) {
     try {
       const ref = await addDoc(collection(db, "tasks"), task)
-      console.log("✅ Saved to Firestore:", task.name, ref.id)
       results.push({ ok: true, name: task.name })
     } catch(e) {
-      console.error("❌ Firestore write failed:", task.name, e)
       results.push({ ok: false, name: task.name, error: e.message })
     }
   }
@@ -576,6 +709,8 @@ document.getElementById("sendBtn").onclick = async function() {
   }
 
   let message = ""
+  let payload = null
+
   if (currentMode === "free") {
     const date = thaiDate(document.getElementById("freeDate").value)
     const text = document.getElementById("freeText").value.trim()
@@ -585,22 +720,26 @@ document.getElementById("sendBtn").onclick = async function() {
   } else {
     message = buildFormattedMessage()
     if (!message || message.length < 5) { setStatus("s-error", "⚠️ Please fill in the report."); return }
+    if (flexCardEnabled) {
+      payload = buildFlexCardPayload(message)
+    }
   }
 
   btn.disabled = true
   setStatus("s-info", "⏳ Sending LINE message...")
 
   try {
-    // 1. Send LINE
-    await Promise.all(selectedIds.map(groupId =>
-      fetch(`${SERVER_URL}/send`, {
+    await Promise.all(selectedIds.map(groupId => {
+      const body = flexCardEnabled && payload
+        ? { groupId, flexMessage: payload }
+        : { groupId, message }
+      return fetch(`${SERVER_URL}/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupId, message })
+        body: JSON.stringify(body)
       })
-    ))
+    }))
 
-    // 2. Firestore sync (formatted mode only)
     let syncNote = ""
     if (currentMode === "formatted") {
       const calTasks = collectCalendarTasks()
@@ -609,15 +748,14 @@ document.getElementById("sendBtn").onclick = async function() {
         const results = await syncToFirestore(calTasks)
         const ok = results.filter(r => r.ok).length
         const fail = results.filter(r => !r.ok).length
-        if (fail > 0) {
-          syncNote = ` · ⚠️ ${ok}/${calTasks.length} tasks saved (${fail} failed — check console)`
-        } else {
-          syncNote = ` · 📅 ${ok} task(s) added to calendar`
-        }
+        syncNote = fail > 0
+          ? ` · ⚠️ ${ok}/${calTasks.length} tasks saved (${fail} failed)`
+          : ` · 📅 ${ok} task(s) added to calendar`
       }
     }
 
-    setStatus("s-success", `✅ Sent to ${selectedIds.length} group(s)!${syncNote}`)
+    const modeNote = flexCardEnabled ? " (Flex Card)" : ""
+    setStatus("s-success", `✅ Sent to ${selectedIds.length} group(s)${modeNote}!${syncNote}`)
   } catch(e) {
     console.error("Send error:", e)
     setStatus("s-error", "❌ Failed: " + e.message)
