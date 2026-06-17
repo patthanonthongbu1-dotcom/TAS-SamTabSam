@@ -25,11 +25,11 @@
       --amber-light: #fefce8; --amber-border: #e8d98a; --amber-text: #7a6a10;
       --blue-light: #eff6ff; --blue: #2563eb;
       --purple-light: #f3f0ff; --purple: #7c3aed; --purple-border: #c4b5fd;
+      --marker-light: #fff7ed; --marker: #ea580c; --marker-border: #fed7aa;
       --bg: #f4f6f4; --card: #ffffff; --border: #e8ebe8;
       --text: #1a1a1a; --muted: #6b7b6b; --label: #9aaa9a; --surface: #f8faf8;
     }
 
-    /* ── Auth gate overlay ──────────────────────────────────── */
     #authGate {
       position: fixed; inset: 0; background: var(--bg);
       display: flex; align-items: center; justify-content: center;
@@ -40,62 +40,29 @@
     #authGate .gate-msg  { font-size: 14px; color: var(--muted); font-weight: 300; }
     #authGate .gate-spin {
       width: 28px; height: 28px;
-      border: 3px solid var(--border);
-      border-top-color: var(--green);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
+      border: 3px solid var(--border); border-top-color: var(--green);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg) } }
 
-    /* ── User pill in header ────────────────────────────────── */
     .user-pill {
-      display: none;
-      align-items: center; gap: 8px;
-      background: var(--green-light);
-      border: 1px solid var(--green-mid);
-      border-radius: 20px;
-      padding: 5px 12px 5px 5px;
+      display: none; align-items: center; gap: 8px;
+      background: var(--green-light); border: 1px solid var(--green-mid);
+      border-radius: 20px; padding: 5px 12px 5px 5px;
       font-size: 12px; font-weight: 500; color: var(--green-dark);
-      cursor: pointer;
-      transition: background 0.15s;
-      position: relative;
-      user-select: none;
+      cursor: pointer; transition: background 0.15s; position: relative; user-select: none;
     }
     .user-pill:hover { background: var(--green-mid); }
-    .user-pill img {
-      width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
-      border: 2px solid var(--green-mid);
-      flex-shrink: 0;
-    }
-    .user-pill-fallback {
-      width: 26px; height: 26px; border-radius: 50%;
-      background: var(--green); color: white; font-size: 10px; font-weight: 600;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
+    .user-pill img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 2px solid var(--green-mid); flex-shrink: 0; }
+    .user-pill-fallback { width: 26px; height: 26px; border-radius: 50%; background: var(--green); color: white; font-size: 10px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .user-pill.visible { display: flex; }
-
-    /* Dropdown from user pill */
-    .user-dropdown {
-      position: absolute; top: calc(100% + 6px); right: 0;
-      background: white; border: 1px solid var(--border); border-radius: 12px;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.10); padding: 8px;
-      min-width: 180px; z-index: 1000;
-      display: none; flex-direction: column; gap: 4px;
-      animation: dropIn 0.18s cubic-bezier(0.34,1.56,0.64,1) both;
-    }
+    .user-dropdown { position: absolute; top: calc(100% + 6px); right: 0; background: white; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,0.10); padding: 8px; min-width: 180px; z-index: 1000; display: none; flex-direction: column; gap: 4px; animation: dropIn 0.18s cubic-bezier(0.34,1.56,0.64,1) both; }
     @keyframes dropIn { from { opacity:0; transform:translateY(-6px) scale(0.97); } to { opacity:1; transform:none; } }
     .user-dropdown.open { display: flex; }
     .user-dropdown-info { padding: 6px 8px 10px; border-bottom: 1px solid var(--border); margin-bottom: 2px; }
     .user-dropdown-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .user-dropdown-email { font-size: 11px; color: var(--muted); font-weight: 300; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .user-dropdown-btn {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 10px; border-radius: 8px; border: none;
-      background: transparent; font-family: 'Prompt', sans-serif;
-      font-size: 13px; color: var(--text); cursor: pointer;
-      transition: background 0.13s; text-align: left; width: 100%;
-    }
+    .user-dropdown-btn { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: none; background: transparent; font-family: 'Prompt', sans-serif; font-size: 13px; color: var(--text); cursor: pointer; transition: background 0.13s; text-align: left; width: 100%; }
     .user-dropdown-btn:hover { background: var(--red-light); color: var(--red); }
 
     body { font-family: 'Prompt', sans-serif; background: var(--bg); min-height: 100vh; display: flex; justify-content: center; padding: 2.5rem 1rem 4rem; }
@@ -108,11 +75,7 @@
     .field { margin-bottom: 1.1rem; }
     .field:last-child { margin-bottom: 0; }
     .field > label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
-    input[type="text"], input[type="date"], textarea, select {
-      width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px;
-      font-family: 'Prompt', sans-serif; font-weight: 400; color: var(--text);
-      background: white; outline: none; transition: border-color 0.15s; font-size: max(16px, 14px);
-    }
+    input[type="text"], input[type="date"], textarea, select { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; font-family: 'Prompt', sans-serif; font-weight: 400; color: var(--text); background: white; outline: none; transition: border-color 0.15s; font-size: max(16px, 14px); }
     input:focus, textarea:focus, select:focus { border-color: var(--green); }
     textarea { resize: vertical; min-height: 110px; line-height: 1.6; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -124,12 +87,9 @@
     .btn:hover { background: var(--green-dark); }
     .btn:active { transform: scale(0.99); }
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-    /* Clear button */
     .btn-clear { width: 100%; padding: 12px; font-size: 14px; font-weight: 500; font-family: 'Prompt', sans-serif; background: var(--red-light); color: var(--red); border: 1px solid var(--red-mid); border-radius: 12px; cursor: pointer; transition: background 0.15s, transform 0.1s; touch-action: manipulation; margin-top: 8px; }
     .btn-clear:hover { background: var(--red-mid); }
     .btn-clear:active { transform: scale(0.99); }
-
     .action-btn { display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px; font-size: 12px; font-weight: 500; font-family: 'Prompt', sans-serif; border-radius: 8px; border: none; cursor: pointer; transition: background 0.15s; white-space: nowrap; touch-action: manipulation; min-height: 36px; }
     .btn-add-green { background: var(--green-light); color: var(--green-dark); }
     .btn-add-green:hover { background: var(--green-mid); }
@@ -173,10 +133,54 @@
     .task-fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .task-fields .field { margin-bottom: 0; }
     .task-fields .field > label { font-size: 11px; color: var(--purple); }
-    .bullet-list { display: flex; flex-direction: column; gap: 5px; }
+
+    /* ── Bullet row — now supports per-bullet marker ── */
+    .bullet-list { display: flex; flex-direction: column; gap: 6px; }
+    .bullet-block { display: flex; flex-direction: column; gap: 5px; }
     .bullet-row { display: flex; align-items: center; gap: 6px; }
     .bullet-dash { color: var(--label); font-size: 13px; flex-shrink: 0; padding-left: 2px; }
     .bullet-row input { flex: 1; font-size: 13px !important; padding: 6px 10px !important; min-width: 0; }
+    .bullet-marker-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 9px; font-size: 11px; font-weight: 500;
+      font-family: 'Prompt', sans-serif; border-radius: 6px; border: none;
+      cursor: pointer; white-space: nowrap; touch-action: manipulation;
+      background: var(--marker-light); color: var(--marker);
+      border: 1px solid var(--marker-border);
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    .bullet-marker-btn.active { background: var(--marker); color: white; border-color: var(--marker); }
+    .bullet-marker-btn:hover { filter: brightness(0.93); }
+
+    /* Per-bullet marker fields panel */
+    .bullet-marker-fields {
+      margin-left: 28px;
+      background: var(--marker-light);
+      border: 1px solid var(--marker-border);
+      border-radius: 8px;
+      padding: 9px 11px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .bullet-marker-fields-label {
+      font-size: 10px; font-weight: 500; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--marker);
+    }
+    .bullet-marker-fields input {
+      font-size: 13px !important; padding: 6px 10px !important;
+      border-color: var(--marker-border) !important; background: white !important;
+    }
+    .bullet-marker-fields input:focus { border-color: var(--marker) !important; }
+    .marker-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .marker-type-btn {
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      padding: 7px 10px; border: 1.5px solid var(--marker-border);
+      border-radius: 8px; background: white; font-family: 'Prompt', sans-serif;
+      font-size: 12px; font-weight: 400; color: var(--muted); cursor: pointer;
+      transition: all 0.15s; white-space: nowrap;
+    }
+    .marker-type-btn.active { background: var(--marker); color: white; border-color: var(--marker); font-weight: 500; }
+
     .note-field { display: none; }
     .note-field.visible { display: block; }
     .note-input { font-size: 13px !important; padding: 7px 11px !important; border-color: var(--amber-border) !important; background: var(--amber-light) !important; color: var(--amber-text) !important; }
@@ -216,14 +220,7 @@
     .flex-card-footer-btn.primary { background: #2563eb; color: white; }
     .flex-card-footer-btn.secondary { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
     .locked-url { font-size: 12px; color: var(--muted); padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-family: monospace; }
-
-    /* Auto-save indicator */
-    .save-indicator {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 11px; color: var(--label); font-weight: 300;
-      padding: 3px 8px; border-radius: 6px;
-      transition: color 0.3s, background 0.3s;
-    }
+    .save-indicator { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--label); font-weight: 300; padding: 3px 8px; border-radius: 6px; transition: color 0.3s, background 0.3s; }
     .save-indicator.saved { color: var(--green-dark); background: var(--green-light); }
     .save-indicator.saving { color: #7a6a10; background: var(--amber-light); }
     .save-indicator-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
@@ -238,12 +235,12 @@
       .card { padding: 1rem; }
       .section-body { padding: 10px 10px; }
       .task-fields-row { grid-template-columns: 1fr; }
+      .marker-type-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
 <body>
 
-<!-- Auth gate -->
 <div id="authGate">
   <div class="gate-icon">📚</div>
   <div class="gate-spin"></div>
@@ -256,7 +253,6 @@
       <h1>3/3 Academic System</h1>
       <p>Mod panel — daily report sender</p>
     </div>
-    <!-- user pill with dropdown -->
     <div style="position:relative;">
       <div class="user-pill" id="userPill" onclick="toggleUserDropdown(event)">
         <div id="pillAvatar"></div>
@@ -361,7 +357,6 @@
     </div>
   </div>
 
-  <!-- Bottom row: save indicator + send + clear -->
   <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; padding: 0 2px;">
     <span class="save-indicator" id="saveIndicator">
       <span class="save-indicator-dot"></span>
@@ -387,21 +382,14 @@ const firebaseConfig = {
   appId: "1:645483732924:web:5a1ec2b9f7c58a18c655b9"
 }
 
-// ── SHA-256 hash of fallback password ("tas33") ───────────────
-// Non-whitelisted users must enter this password to access the panel.
-// Whitelisted users (Firestore config/modWhitelist) skip the password entirely.
 const MOD_PASSWORD_HASH = "4710ce735963a78ed12d2348a6ddd4e45a0f75cce94d78b3d81d077274e8c8fa"
-
 const LOGIN_URL = "index.html"
 
 const app  = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 let db = null, fbReady = false
 
-try {
-  db = getFirestore(app)
-  fbReady = true
-} catch(e) { /* handled below */ }
+try { db = getFirestore(app); fbReady = true } catch(e) {}
 
 function setFbStatus(ok) {
   const dot = document.getElementById("fbDot"), txt = document.getElementById("fbStatusText")
@@ -415,23 +403,15 @@ async function sha256(str) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("")
 }
 
-// ── Fetch whitelist from Firestore ────────────────────────────
-// Stored at: config/modWhitelist  →  { emails: ["a@b.com", ...] }
-// Falls back to [] if missing/error (= access denied for everyone until set up)
 async function fetchWhitelist() {
   if (!db) return []
   try {
     const snap = await getDoc(doc(db, "config", "modWhitelist"))
     if (!snap.exists()) return []
     return (snap.data().emails || []).map(e => e.toLowerCase())
-  } catch(e) {
-    console.warn("Could not fetch whitelist:", e)
-    return []
-  }
+  } catch(e) { return [] }
 }
 
-// ── Gate state machine ────────────────────────────────────────
-// States: checking → denied | password-prompt → app
 let pendingUser = null
 
 function showPasswordPrompt(user) {
@@ -441,7 +421,6 @@ function showPasswordPrompt(user) {
     <div style="font-size:13px;color:#6b7b6b;font-weight:300;margin-bottom:20px;text-align:center;max-width:260px;line-height:1.5">
       Your account isn't on the whitelist.<br>Enter the panel password to continue.
     </div>
-
     <div style="width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px;">
       <div style="display:flex;align-items:center;gap:10px;background:#f8fafc;border:1px solid #e8ebe8;border-radius:12px;padding:8px 12px;">
         <img src="${user.photoURL || ''}" onerror="this.style.display='none'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;" />
@@ -450,19 +429,13 @@ function showPasswordPrompt(user) {
           <div style="font-size:10px;color:#6b7b6b;font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${user.email}</div>
         </div>
       </div>
-
-      <input type="password" id="gatePasswordInput"
-        placeholder="Panel password"
+      <input type="password" id="gatePasswordInput" placeholder="Panel password"
         style="width:100%;padding:11px 14px;border:1.5px solid #e8ebe8;border-radius:10px;font-family:'Prompt',sans-serif;font-size:14px;outline:none;letter-spacing:2px;transition:border-color 0.15s;"
         onkeydown="if(event.key==='Enter')window._submitGatePassword()"
-        onfocus="this.style.borderColor='#1D9E75'"
-        onblur="this.style.borderColor='#e8ebe8'"
-      />
-      <div id="gatePasswordError" style="display:none;font-size:12px;color:#c0392b;text-align:center;padding:6px 10px;background:#fdecea;border-radius:8px;">
-        ❌ Incorrect password
-      </div>
+        onfocus="this.style.borderColor='#1D9E75'" onblur="this.style.borderColor='#e8ebe8'" />
+      <div id="gatePasswordError" style="display:none;font-size:12px;color:#c0392b;text-align:center;padding:6px 10px;background:#fdecea;border-radius:8px;">❌ Incorrect password</div>
       <button id="gatePasswordBtn" onclick="window._submitGatePassword()"
-        style="width:100%;padding:12px;background:#1D9E75;color:white;border:none;border-radius:10px;font-family:'Prompt',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:background 0.15s;">
+        style="width:100%;padding:12px;background:#1D9E75;color:white;border:none;border-radius:10px;font-family:'Prompt',sans-serif;font-size:14px;font-weight:500;cursor:pointer;">
         Enter Panel
       </button>
       <button onclick="window._cancelGatePassword()"
@@ -470,7 +443,6 @@ function showPasswordPrompt(user) {
         ← Use a different account
       </button>
     </div>`
-
   setTimeout(() => document.getElementById("gatePasswordInput")?.focus(), 80)
 }
 
@@ -479,58 +451,28 @@ window._submitGatePassword = async function() {
   const btn   = document.getElementById("gatePasswordBtn")
   const err   = document.getElementById("gatePasswordError")
   if (!input || !pendingUser) return
-  btn.textContent = "Checking..."
-  btn.disabled = true
-  err.style.display = "none"
-
+  btn.textContent = "Checking..."; btn.disabled = true; err.style.display = "none"
   const hash = await sha256(input.value)
   if (hash === MOD_PASSWORD_HASH) {
-    // Both checks passed — launch app
     document.getElementById("authGate").style.display = "none"
     document.getElementById("mainContent").style.display = "block"
-    fbReady = true
-    setFbStatus(true)
-    renderUserPill(pendingUser)
-    initApp()
+    fbReady = true; setFbStatus(true); renderUserPill(pendingUser); initApp()
   } else {
-    err.style.display = "block"
-    input.value = ""
-    input.focus()
-    btn.textContent = "Unlock Panel"
-    btn.disabled = false
+    err.style.display = "block"; input.value = ""; input.focus()
+    btn.textContent = "Unlock Panel"; btn.disabled = false
   }
 }
+window._cancelGatePassword = async function() { await signOut(auth); window.location.href = LOGIN_URL }
 
-window._cancelGatePassword = async function() {
-  await signOut(auth)
-  window.location.href = LOGIN_URL
-}
-
-// ── Auth state listener ────────────────────────────────────────
-// Logic:
-//   • Email is on Firestore whitelist → instant access, no password
-//   • Email is NOT on whitelist       → password prompt (tas33)
 onAuthStateChanged(auth, async user => {
-  if (!user) {
-    window.location.href = LOGIN_URL
-    return
-  }
-
+  if (!user) { window.location.href = LOGIN_URL; return }
   const whitelist = await fetchWhitelist()
-  const isWhitelisted = whitelist.includes(user.email.toLowerCase())
-
-  if (isWhitelisted) {
-    // ✅ Trusted mod — go straight in
+  if (whitelist.includes(user.email.toLowerCase())) {
     document.getElementById("authGate").style.display = "none"
     document.getElementById("mainContent").style.display = "block"
-    fbReady = true
-    setFbStatus(true)
-    renderUserPill(user)
-    initApp()
+    fbReady = true; setFbStatus(true); renderUserPill(user); initApp()
   } else {
-    // 🔐 Unknown account — require password
-    pendingUser = user
-    showPasswordPrompt(user)
+    pendingUser = user; showPasswordPrompt(user)
   }
 })
 
@@ -538,48 +480,35 @@ function renderUserPill(user) {
   const pill = document.getElementById("userPill")
   const av   = document.getElementById("pillAvatar")
   const name = user.displayName || user.email
-
-  // Header pill
   document.getElementById("pillName").textContent = name.split(" ")[0]
-  if (user.photoURL) {
-    av.innerHTML = `<img src="${user.photoURL}" alt="" />`
-  } else {
-    const initials = name.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2)
-    av.innerHTML = `<div class="user-pill-fallback">${initials}</div>`
-  }
+  if (user.photoURL) { av.innerHTML = `<img src="${user.photoURL}" alt="" />` }
+  else { const i = name.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2); av.innerHTML = `<div class="user-pill-fallback">${i}</div>` }
   pill.classList.add("visible")
-
-  // Dropdown info
-  document.getElementById("dropdownName").textContent = user.displayName || user.email
+  document.getElementById("dropdownName").textContent  = user.displayName || user.email
   document.getElementById("dropdownEmail").textContent = user.email
 }
 
-window.toggleUserDropdown = (e) => {
-  e.stopPropagation()
-  document.getElementById("userDropdown").classList.toggle("open")
-}
-document.addEventListener("click", () => {
-  document.getElementById("userDropdown")?.classList.remove("open")
-})
-
-window.handleSignOut = async () => {
-  await signOut(auth)
-  window.location.href = LOGIN_URL
-}
+window.toggleUserDropdown = (e) => { e.stopPropagation(); document.getElementById("userDropdown").classList.toggle("open") }
+document.addEventListener("click", () => document.getElementById("userDropdown")?.classList.remove("open"))
+window.handleSignOut = async () => { await signOut(auth); window.location.href = LOGIN_URL }
 
 // ── App logic ─────────────────────────────────────────────────
 function initApp() {
   const SERVER_URL    = "https://tas-samtabsam.onrender.com"
   const SECTION_ICONS = ["📢","📚","💻","🎨","🔬","🏫","📌","🗓️"]
   const WORK_ICONS    = ["📝","💻","🔬","🎨","📚","🏃","🎵","📐","✏️"]
-  const STORAGE_KEY   = "tas_mod_draft_v2"
+  const MARKER_TYPES  = [
+    { key: "quiz",  label: "📝 Quiz" },
+    { key: "exam",  label: "📋 Exam" },
+    { key: "event", label: "🎉 Event" },
+    { key: "date",  label: "📌 Important" },
+  ]
+  const STORAGE_KEY = "tas_mod_draft_v3"
 
   let currentMode = "free", sections = [], flexCardEnabled = false
   let saveTimer = null
 
-  // ── Persistence helpers ────────────────────────────────────
   function setSaveIndicator(state) {
-    // state: 'saving' | 'saved'
     const el  = document.getElementById("saveIndicator")
     const txt = document.getElementById("saveIndicatorText")
     el.className = "save-indicator " + state
@@ -590,103 +519,91 @@ function initApp() {
     setSaveIndicator("saving")
     const draft = {
       mode: currentMode,
-      freeDate:     document.getElementById("freeDate").value,
-      reporter:     document.getElementById("reporter").value,
-      freeText:     document.getElementById("freeText").value,
-      fmtDate:      document.getElementById("fmtDate").value,
-      fmtReporter:  document.getElementById("fmtReporter").value,
-      flexCard:     flexCardEnabled,
-      sections:     JSON.parse(JSON.stringify(sections)),
+      freeDate:    document.getElementById("freeDate").value,
+      reporter:    document.getElementById("reporter").value,
+      freeText:    document.getElementById("freeText").value,
+      fmtDate:     document.getElementById("fmtDate").value,
+      fmtReporter: document.getElementById("fmtReporter").value,
+      flexCard:    flexCardEnabled,
+      sections:    JSON.parse(JSON.stringify(sections)),
     }
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(draft))
-    } catch(e) {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(draft)) } catch(e) {}
     setSaveIndicator("saved")
   }
 
-  function scheduleSave() {
-    clearTimeout(saveTimer)
-    saveTimer = setTimeout(saveDraft, 600)
+  function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveDraft, 600) }
+  function loadDraft() { try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : null } catch(e) { return null } }
+  function clearDraft() { try { localStorage.removeItem(STORAGE_KEY) } catch(e) {} }
+
+  // ── Bullet helpers ────────────────────────────────────────────
+  // Each bullet is now an object: { text, markerMode, markerDate, markerType }
+  function makeBullet(text = "") {
+    const today = new Date().toISOString().split("T")[0]
+    return { text, markerMode: false, markerDate: today, markerType: "quiz" }
   }
 
-  function loadDraft() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (!raw) return null
-      return JSON.parse(raw)
-    } catch(e) {
-      return null
-    }
-  }
-
-  function clearDraft() {
-    try { localStorage.removeItem(STORAGE_KEY) } catch(e) {}
+  // Migrate old string bullets to object form
+  function normalizeBullet(b) {
+    if (typeof b === "string") return makeBullet(b)
+    return { text: b.text || "", markerMode: !!b.markerMode, markerDate: b.markerDate || new Date().toISOString().split("T")[0], markerType: b.markerType || "quiz" }
   }
 
   function restoreDraft(draft) {
     if (!draft) return
-    // Mode
     setMode(draft.mode || "free", false)
-    // Free mode fields
     if (draft.freeDate)    document.getElementById("freeDate").value    = draft.freeDate
     if (draft.reporter)    document.getElementById("reporter").value    = draft.reporter
     if (draft.freeText)    document.getElementById("freeText").value    = draft.freeText
-    // Formatted mode fields
     if (draft.fmtDate)     document.getElementById("fmtDate").value     = draft.fmtDate
     if (draft.fmtReporter) document.getElementById("fmtReporter").value = draft.fmtReporter
-    // Flex card
     if (draft.flexCard) {
       document.getElementById("flexCardToggle").checked = true
       flexCardEnabled = true
-      document.getElementById("flexCardFields").style.display   = "flex"
-      document.getElementById("flexPreviewWrap").style.display  = "block"
-      document.getElementById("textPreviewWrap").style.display  = "none"
+      document.getElementById("flexCardFields").style.display  = "flex"
+      document.getElementById("flexPreviewWrap").style.display = "block"
+      document.getElementById("textPreviewWrap").style.display = "none"
     }
-    // Sections
     if (draft.sections && draft.sections.length > 0) {
-      sections = draft.sections
+      // Normalize bullets in all subjects
+      sections = draft.sections.map(sec => ({
+        ...sec,
+        subjects: (sec.subjects || []).map(subj => ({
+          ...subj,
+          bullets: (subj.bullets || [""]).map(normalizeBullet)
+        }))
+      }))
       renderSections()
-    } else if (draft.mode === "formatted" && (!draft.sections || draft.sections.length === 0)) {
+    } else if (draft.mode === "formatted") {
       addSection()
     }
     updatePreview()
   }
 
-  // ── Clear form ────────────────────────────────────────────
   function clearForm() {
     if (!confirm("Clear all form content? This cannot be undone.")) return
-    sections = []
-    flexCardEnabled = false
+    sections = []; flexCardEnabled = false
     document.getElementById("freeDate").value    = new Date().toISOString().split("T")[0]
     document.getElementById("reporter").value    = ""
     document.getElementById("freeText").value    = ""
     document.getElementById("fmtDate").value     = new Date().toISOString().split("T")[0]
     document.getElementById("fmtReporter").value = ""
     document.getElementById("flexCardToggle").checked = false
-    document.getElementById("flexCardFields").style.display   = "none"
-    document.getElementById("flexPreviewWrap").style.display  = "none"
-    document.getElementById("textPreviewWrap").style.display  = "block"
-    clearDraft()
-    setSaveIndicator("saved")
-
-    if (currentMode === "formatted") {
-      addSection()
-    } else {
-      renderSections()
-    }
+    document.getElementById("flexCardFields").style.display  = "none"
+    document.getElementById("flexPreviewWrap").style.display = "none"
+    document.getElementById("textPreviewWrap").style.display = "block"
+    clearDraft(); setSaveIndicator("saved")
+    if (currentMode === "formatted") addSection(); else renderSections()
     updatePreview()
   }
 
   document.getElementById("clearBtn").onclick = clearForm
 
-  // ── Flex card toggle ─────────────────────────────────────
   document.getElementById("flexCardToggle").onchange = function() {
     flexCardEnabled = this.checked
-    document.getElementById("flexCardFields").style.display   = flexCardEnabled ? "flex"  : "none"
-    document.getElementById("flexPreviewWrap").style.display  = flexCardEnabled ? "block" : "none"
-    document.getElementById("textPreviewWrap").style.display  = flexCardEnabled ? "none"  : "block"
-    updatePreview()
-    scheduleSave()
+    document.getElementById("flexCardFields").style.display  = flexCardEnabled ? "flex"  : "none"
+    document.getElementById("flexPreviewWrap").style.display = flexCardEnabled ? "block" : "none"
+    document.getElementById("textPreviewWrap").style.display = flexCardEnabled ? "none"  : "block"
+    updatePreview(); scheduleSave()
   }
 
   function updateFlexCardPreview() {
@@ -698,9 +615,7 @@ function initApp() {
     if (bodyEl) bodyEl.textContent = lines.slice(1).join("\n") || "Fill in the form to see preview..."
   }
 
-  function esc(str) {
-    return (str||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;")
-  }
+  function esc(str) { return (str||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;") }
 
   function thaiDate(dateStr) {
     if (!dateStr) return ""
@@ -709,9 +624,7 @@ function initApp() {
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()+543}`
   }
 
-  function iconOpts(sel, icons) {
-    return icons.map(ic => `<option value="${ic}"${ic===sel?" selected":""}>${ic}</option>`).join("")
-  }
+  function iconOpts(sel, icons) { return icons.map(ic => `<option value="${ic}"${ic===sel?" selected":""}>${ic}</option>`).join("") }
 
   function setMode(mode, doInit = true) {
     currentMode = mode
@@ -731,20 +644,42 @@ function initApp() {
     renderSections()
   }
   function removeSection(si) { sections.splice(si, 1); renderSections(); scheduleSave() }
+
   function addSubject(si, doRender = true) {
     const today = new Date().toISOString().split("T")[0]
-    sections[si].subjects.push({ icon: "📝", title: "", bullets: [""], note: "", showNote: false,
-      syncToCalendar: false, taskStart: today, taskEnd: "", taskType: "send_on" })
+    sections[si].subjects.push({
+      icon: "📝", title: "", bullets: [makeBullet()], note: "", showNote: false,
+      syncToCalendar: false, taskStart: today, taskEnd: "", taskType: "send_on",
+    })
     if (doRender) renderSections()
   }
+
   function removeSubject(si, sj) { sections[si].subjects.splice(sj, 1); renderSections(); scheduleSave() }
-  function addBullet(si, sj)   { sections[si].subjects[sj].bullets.push(""); renderSections() }
+
+  function addBullet(si, sj) {
+    sections[si].subjects[sj].bullets.push(makeBullet())
+    renderSections()
+  }
+
   function removeBullet(si, sj, bk) {
     if (sections[si].subjects[sj].bullets.length <= 1) return
-    sections[si].subjects[sj].bullets.splice(bk, 1); renderSections(); scheduleSave()
+    sections[si].subjects[sj].bullets.splice(bk, 1)
+    renderSections(); scheduleSave()
   }
-  function toggleNote(si, sj)  { sections[si].subjects[sj].showNote = !sections[si].subjects[sj].showNote; renderSections() }
-  function toggleSync(si, sj)  { sections[si].subjects[sj].syncToCalendar = !sections[si].subjects[sj].syncToCalendar; renderSections(); scheduleSave() }
+
+  function toggleNote(si, sj) { sections[si].subjects[sj].showNote = !sections[si].subjects[sj].showNote; renderSections() }
+  function toggleSync(si, sj) { sections[si].subjects[sj].syncToCalendar = !sections[si].subjects[sj].syncToCalendar; renderSections(); scheduleSave() }
+
+  // Toggle marker mode on a specific bullet
+  function toggleBulletMarker(si, sj, bk) {
+    sections[si].subjects[sj].bullets[bk].markerMode = !sections[si].subjects[sj].bullets[bk].markerMode
+    renderSections(); scheduleSave()
+  }
+
+  function setBulletMarkerType(si, sj, bk, type) {
+    sections[si].subjects[sj].bullets[bk].markerType = type
+    renderSections(); scheduleSave()
+  }
 
   function renderSections() {
     const list = document.getElementById("sectionList")
@@ -752,17 +687,46 @@ function initApp() {
     sections.forEach((sec, si) => {
       const div = document.createElement("div")
       div.className = "section-block"
+
       const subjHTML = sec.subjects.map((subj, sj) => {
-        const bullets = subj.bullets.map((b, bk) => `
-          <div class="bullet-row">
-            <span class="bullet-dash">-</span>
-            <input type="text" placeholder="Write bullet point..." value="${esc(b)}"
-              data-si="${si}" data-sj="${sj}" data-bk="${bk}" class="bullet-inp" />
-            <button class="action-btn btn-delete rm-bullet" data-si="${si}" data-sj="${sj}" data-bk="${bk}">🗑️</button>
-          </div>`).join("")
+        // ── Render each bullet as an object ──
+        const bulletsHTML = subj.bullets.map((b, bk) => {
+          const isMarker = b.markerMode
+
+          const markerTypeButtons = MARKER_TYPES.map(mt =>
+            `<button class="marker-type-btn${b.markerType===mt.key?" active":""}"
+              data-si="${si}" data-sj="${sj}" data-bk="${bk}" data-mtype="${mt.key}">${mt.label}</button>`
+          ).join("")
+
+          const markerPanel = isMarker ? `
+            <div class="bullet-marker-fields">
+              <div class="bullet-marker-fields-label">📍 Marker</div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <input type="date" value="${esc(b.markerDate)}" class="bullet-marker-date" data-si="${si}" data-sj="${sj}" data-bk="${bk}" />
+                <div class="marker-type-grid">${markerTypeButtons}</div>
+              </div>
+            </div>` : ""
+
+          return `
+            <div class="bullet-block">
+              <div class="bullet-row">
+                <span class="bullet-dash">-</span>
+                <input type="text" placeholder="Write bullet point..." value="${esc(b.text)}"
+                  data-si="${si}" data-sj="${sj}" data-bk="${bk}" class="bullet-inp" />
+                <button class="bullet-marker-btn${isMarker?" active":""} toggle-bullet-marker"
+                  data-si="${si}" data-sj="${sj}" data-bk="${bk}" title="Toggle marker for this bullet">
+                  📍${isMarker?" ✓":""}
+                </button>
+                <button class="action-btn btn-delete rm-bullet" data-si="${si}" data-sj="${sj}" data-bk="${bk}">🗑️</button>
+              </div>
+              ${markerPanel}
+            </div>`
+        }).join("")
+
         const noteVisible  = subj.showNote ? "visible" : ""
         const noteBtnLabel = subj.showNote ? "🟡 Hide note" : "📌 Add note"
         const syncActive   = subj.syncToCalendar
+
         const calPanel = syncActive ? `
           <div class="task-fields">
             <div class="task-fields-label">📅 Calendar task</div>
@@ -786,6 +750,7 @@ function initApp() {
               </select>
             </div>
           </div>` : ""
+
         return `
           <div class="subject-block">
             <div class="subject-row">
@@ -797,7 +762,7 @@ function initApp() {
                     data-si="${si}" data-sj="${sj}" />
                   <button class="action-btn btn-delete rm-subj" data-si="${si}" data-sj="${sj}">🗑️</button>
                 </div>
-                <div class="bullet-list">${bullets}</div>
+                <div class="bullet-list">${bulletsHTML}</div>
                 <div class="subject-actions">
                   <button class="action-btn btn-add-blue add-bullet" data-si="${si}" data-sj="${sj}">➕ Bullet</button>
                   <button class="action-btn btn-toggle-note toggle-note" data-si="${si}" data-sj="${sj}">${noteBtnLabel}</button>
@@ -848,7 +813,22 @@ function initApp() {
     list.querySelectorAll(".toggle-note").forEach(el => { el.onclick = () => toggleNote(+el.dataset.si, +el.dataset.sj) })
     list.querySelectorAll(".toggle-sync").forEach(el => { el.onclick = () => toggleSync(+el.dataset.si, +el.dataset.sj) })
     list.querySelectorAll(".rm-bullet").forEach(el => { el.onclick = () => removeBullet(+el.dataset.si, +el.dataset.sj, +el.dataset.bk) })
-    list.querySelectorAll(".bullet-inp").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].bullets[+el.dataset.bk] = el.value; updatePreview(); scheduleSave() } })
+    // Bullet text
+    list.querySelectorAll(".bullet-inp").forEach(el => {
+      el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].bullets[+el.dataset.bk].text = el.value; updatePreview(); scheduleSave() }
+    })
+    // Per-bullet marker toggle
+    list.querySelectorAll(".toggle-bullet-marker").forEach(el => {
+      el.onclick = () => toggleBulletMarker(+el.dataset.si, +el.dataset.sj, +el.dataset.bk)
+    })
+    // Per-bullet marker date
+    list.querySelectorAll(".bullet-marker-date").forEach(el => {
+      el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].bullets[+el.dataset.bk].markerDate = el.value; scheduleSave() }
+    })
+    // Per-bullet marker type buttons
+    list.querySelectorAll(".marker-type-btn").forEach(el => {
+      el.onclick = () => setBulletMarkerType(+el.dataset.si, +el.dataset.sj, +el.dataset.bk, el.dataset.mtype)
+    })
     list.querySelectorAll(".add-subj").forEach(el => { el.onclick = () => addSubject(+el.dataset.si) })
     list.querySelectorAll(".cal-start").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskStart = el.value; scheduleSave() } })
     list.querySelectorAll(".cal-end").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskEnd = el.value; scheduleSave() } })
@@ -856,13 +836,11 @@ function initApp() {
   }
 
   document.getElementById("addSectionBtn").onclick = () => { addSection(); scheduleSave() }
-
-  // Auto-save on free-mode field changes
-  document.getElementById("freeDate").oninput     = () => { updatePreview(); scheduleSave() }
-  document.getElementById("reporter").oninput     = () => scheduleSave()
-  document.getElementById("freeText").oninput     = () => scheduleSave()
-  document.getElementById("fmtDate").oninput      = () => { updatePreview(); scheduleSave() }
-  document.getElementById("fmtReporter").oninput  = () => { updatePreview(); scheduleSave() }
+  document.getElementById("freeDate").oninput    = () => { updatePreview(); scheduleSave() }
+  document.getElementById("reporter").oninput    = () => scheduleSave()
+  document.getElementById("freeText").oninput    = () => scheduleSave()
+  document.getElementById("fmtDate").oninput     = () => { updatePreview(); scheduleSave() }
+  document.getElementById("fmtReporter").oninput = () => { updatePreview(); scheduleSave() }
 
   function buildFormattedMessage() {
     const date     = thaiDate(document.getElementById("fmtDate").value)
@@ -874,7 +852,7 @@ function initApp() {
       sec.subjects.forEach((subj, i) => {
         if (i > 0) msg += `\n`
         msg += `\n${i+1}. ${subj.icon} ${subj.title}`
-        subj.bullets.forEach(b => { if (b.trim()) msg += `\n- ${b}` })
+        subj.bullets.forEach(b => { if (b.text.trim()) msg += `\n- ${b.text}` })
         if (subj.note.trim()) msg += `\n📌 ${subj.note}`
       })
     })
@@ -891,8 +869,8 @@ function initApp() {
     const calUrl = "https://tas-33.netlify.app/calendar/"
     const gcUrl  = "https://classroom.google.com/"
     const lines  = message.split("\n")
-    const dateLine   = lines[0] || ""
-    const restLines  = lines.slice(1)
+    const dateLine  = lines[0] || ""
+    const restLines = lines.slice(1)
     const bodyContents = []
     if (dateLine) bodyContents.push({ type:"text", text:dateLine, wrap:true, size:"xl", weight:"bold", color:"#1a1a1a", margin:"none" })
     if (restLines.length > 0) bodyContents.push({ type:"separator", margin:"md" })
@@ -918,14 +896,34 @@ function initApp() {
     const tasks = []
     sections.forEach(sec => {
       sec.subjects.forEach(subj => {
+        // ── Per-bullet markers ──────────────────────────────────
+        subj.bullets.forEach(b => {
+          if (!b.markerMode || !b.text.trim()) return
+          tasks.push({
+            name:       subj.title.trim() || b.text.trim(),  // subject title is the event name
+            subject:    b.text.trim(),                        // bullet text is the topic/subject shown in modal
+            type:       "marker",
+            markerType: b.markerType || "quiz",
+            date:       b.markerDate,
+            start:      b.markerDate,
+            end:        b.markerDate,
+            note:       subj.note.trim() || ""
+          })
+        })
+
+        // ── Normal calendar sync ────────────────────────────────
         if (!subj.syncToCalendar) return
-        const today = new Date().toISOString().split("T")[0]
-        const bulletNote = subj.bullets.filter(b => b.trim()).map(b => `- ${b}`).join("\n")
-        const note = subj.note.trim()
-        tasks.push({ name: subj.title.trim() || "(no name)", subject: sec.title.trim() || "ไม่ระบุ",
-          type: subj.taskType || "send_on", start: subj.taskStart || today,
-          end: subj.taskEnd || subj.taskStart || today,
-          note: note + (bulletNote ? (note ? "\n" : "") + bulletNote : "") })
+        const today     = new Date().toISOString().split("T")[0]
+        const bulletNote = subj.bullets.filter(b=>b.text.trim()).map(b=>`- ${b.text}`).join("\n")
+        const note       = subj.note.trim()
+        tasks.push({
+          name:    subj.title.trim() || "(no name)",
+          subject: sec.title.trim() || "ไม่ระบุ",
+          type:    subj.taskType || "send_on",
+          start:   subj.taskStart || today,
+          end:     subj.taskEnd || subj.taskStart || today,
+          note:    note + (bulletNote ? (note ? "\n" : "") + bulletNote : "")
+        })
       })
     })
     return tasks
@@ -935,7 +933,7 @@ function initApp() {
     if (!fbReady || !db) throw new Error("Firebase not initialized")
     const results = []
     for (const task of tasks) {
-      try { await addDoc(collection(db, "tasks"), task); results.push({ ok: true, name: task.name }) }
+      try { await addDoc(collection(db, "tasks"), { ...task, createdAt: Date.now() }); results.push({ ok: true, name: task.name }) }
       catch(e) { results.push({ ok: false, name: task.name, error: e.message }) }
     }
     return results
@@ -964,9 +962,7 @@ function initApp() {
         </div>
         <button class="action-btn btn-delete" data-idx="${i}">🗑️ Remove</button>`
       item.querySelector("input[type='checkbox']").onchange = function() { item.classList.toggle("checked", this.checked) }
-      item.querySelector(".btn-delete").onclick = () => {
-        const tgts = loadTargets(); tgts.splice(i, 1); saveTargets(tgts); renderTargets()
-      }
+      item.querySelector(".btn-delete").onclick = () => { const tgts = loadTargets(); tgts.splice(i, 1); saveTargets(tgts); renderTargets() }
       list.appendChild(item)
     })
   }
@@ -985,9 +981,7 @@ function initApp() {
 
   function setStatus(cls, text) {
     const el = document.getElementById("status")
-    el.className    = "status " + cls
-    el.style.display = "block"
-    el.textContent  = text
+    el.className = "status " + cls; el.style.display = "block"; el.textContent = text
   }
 
   document.getElementById("sendBtn").onclick = async function() {
@@ -1020,35 +1014,34 @@ function initApp() {
       if (currentMode === "formatted") {
         const calTasks = collectCalendarTasks()
         if (calTasks.length > 0) {
-          setStatus("s-info", `⏳ Saving ${calTasks.length} task(s) to calendar...`)
+          const markers = calTasks.filter(t => t.type === "marker")
+          const normal  = calTasks.filter(t => t.type !== "marker")
+          const label   = markers.length && normal.length
+            ? `${normal.length} task(s) + ${markers.length} marker(s)`
+            : markers.length ? `${markers.length} marker(s)` : `${normal.length} task(s)`
+          setStatus("s-info", `⏳ Saving ${label} to calendar...`)
           const results = await syncToFirestore(calTasks)
           const ok = results.filter(r => r.ok).length, fail = results.filter(r => !r.ok).length
-          syncNote = fail > 0 ? ` · ⚠️ ${ok}/${calTasks.length} tasks saved (${fail} failed)` : ` · 📅 ${ok} task(s) added to calendar`
+          syncNote = fail > 0
+            ? ` · ⚠️ ${ok}/${calTasks.length} saved (${fail} failed)`
+            : ` · 📅 ${label} added to calendar`
         }
       }
       setStatus("s-success", `✅ Sent to ${selectedIds.length} group(s)${flexCardEnabled?" (Flex Card)":""}!${syncNote}`)
     } catch(e) {
       setStatus("s-error", "❌ Failed: " + e.message)
-    } finally {
-      btn.disabled = false
-    }
+    } finally { btn.disabled = false }
   }
 
-  // ── Init ──────────────────────────────────────────────────
   const today = new Date().toISOString().split("T")[0]
   document.getElementById("freeDate").value = today
   document.getElementById("fmtDate").value  = today
   renderTargets()
   setSaveIndicator("saved")
 
-  // Restore draft or set defaults
   const draft = loadDraft()
-  if (draft) {
-    restoreDraft(draft)
-  } else {
-    setMode("free", false)
-    renderSections()
-  }
+  if (draft) restoreDraft(draft)
+  else { setMode("free", false); renderSections() }
 
 } // end initApp
 </script>

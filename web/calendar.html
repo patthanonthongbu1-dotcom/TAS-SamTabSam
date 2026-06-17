@@ -23,6 +23,7 @@
       --green:#1D9E75;--green-dark:#0F6E56;--green-light:#e6f7f1;--green-mid:#c3ead8;
       --red:#e53e3e;--red-light:#fff5f5;--red-mid:#fed7d7;
       --amber:#d97706;--amber-light:#fffbeb;--amber-mid:#fde68a;
+      --marker:#ea580c;--marker-light:#fff7ed;--marker-border:#fed7aa;--marker-dark:#c2410c;
       --bg:#f4f6f4;--card:#fff;--border:#dde3dd;--text:#1a1a1a;--muted:#6b7b6b;--label:#9aaa9a;--surface:#f8faf8;
       --label-w:160px;--check-w:40px;--row-h:46px;
       --font-row-name:13px;--font-row-sub:11px;--font-bar:10px;--topbar-h:56px;
@@ -87,8 +88,9 @@
     .cal-header-left{width:var(--label-w);flex-shrink:0;background:white;border-right:2px solid var(--border);box-shadow:4px 0 14px -4px rgba(0,0,0,0.10);position:relative;z-index:52;padding:6px 8px 4px 12px;font-size:10px;font-weight:500;color:var(--label);letter-spacing:.04em;display:flex;align-items:flex-end}
     .cal-header-right{width:var(--check-w);flex-shrink:0;background:white;border-left:2px solid var(--border);box-shadow:-4px 0 14px -4px rgba(0,0,0,0.10);position:relative;z-index:52}
     .cal-header-scroll{flex:1;overflow:hidden;background:var(--bg);padding:6px 0 4px}
-    .cal-dates-header{position:relative;height:36px;min-width:500px}
+    .cal-dates-header{position:relative;min-width:500px}
 
+    /* ── Date tick ── adjusted height to accommodate marker labels */
     .date-tick{position:absolute;top:0;display:flex;flex-direction:column;align-items:center;cursor:pointer;user-select:none;transform:translateX(-50%);z-index:1}
     .date-tick-line{width:1px;height:8px;background:var(--label);border-radius:1px;transition:background 0.18s,height 0.18s,width 0.18s}
     .date-tick-label{font-size:10px;color:var(--label);white-space:nowrap;padding-top:2px;transition:color 0.18s,font-weight 0.18s}
@@ -96,6 +98,36 @@
     .date-tick.today-tick .date-tick-line{background:var(--red);height:11px}
     .date-tick.hl-tick .date-tick-line{background:var(--green-dark)!important;height:13px;width:2px}
     .date-tick.hl-tick .date-tick-label{color:var(--green-dark)!important;font-weight:600!important}
+
+    /* ── Marker tick: persistent orange line + name label below date ── */
+    .date-tick.marker-tick .date-tick-line{
+      background:var(--marker)!important;
+      height:14px!important;width:2px!important;
+    }
+    .date-tick.marker-tick .date-tick-label{
+      color:var(--marker)!important;
+      font-weight:600!important;
+    }
+    /* Name tag below date label */
+    .marker-name-tag{
+      margin-top:2px;
+      font-size:9px;
+      font-weight:500;
+      color:var(--marker-dark);
+      background:var(--marker-light);
+      border:1px solid var(--marker-border);
+      border-radius:4px;
+      padding:1px 5px;
+      white-space:nowrap;
+      max-width:72px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      line-height:1.4;
+      text-align:center;
+    }
+
+    /* Header height must accommodate potential marker name tags */
+    .cal-dates-header{height:58px}
 
     .baseline-track-row{padding:4px 0 6px}
     .baseline-track{position:relative;height:2px;background:var(--border);border-radius:1px}
@@ -122,6 +154,18 @@
     .today-vline{position:absolute;top:0;bottom:0;width:2px;background:rgba(229,62,62,0.60);z-index:5;pointer-events:none;border-radius:1px}
     .hl-vline{position:absolute;top:0;bottom:0;width:1.5px;background:transparent;z-index:4;pointer-events:none;border-radius:1px;transition:background 0.2s}
     .hl-vline.active{background:rgba(15,110,86,0.55);width:2px}
+
+    /* ── Persistent marker vline — always visible ── */
+    .marker-vline{
+      position:absolute;top:0;bottom:0;
+      width:2px;
+      background:rgba(234,88,12,0.50);
+      z-index:4;pointer-events:auto;
+      border-radius:1px;
+      cursor:pointer;
+      transition:background 0.15s,width 0.15s;
+    }
+    .marker-vline:hover{background:rgba(234,88,12,0.85);width:3px}
 
     .gantt-bar{position:absolute;top:7px;bottom:7px;border-radius:7px;cursor:pointer;display:flex;align-items:center;padding:0 8px;overflow:hidden;z-index:3;min-width:6px;transition:filter 0.15s,transform 0.15s;animation:barIn 0.38s ease both}
     @keyframes barIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
@@ -151,7 +195,7 @@
     .legend-panel.open{transform:scale(1) translateY(0);opacity:1;pointer-events:all}
     .legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:4px 0}
     .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
-    .dot-sendon{background:var(--green)}.dot-deadline{background:var(--red)}.dot-prediction{background:#8b5cf6}
+    .dot-sendon{background:var(--green)}.dot-deadline{background:var(--red)}.dot-prediction{background:#8b5cf6}.dot-marker{background:var(--marker)}
     .legend-hint{font-size:10px;color:var(--label);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);line-height:1.6}
 
     .range-fab{pointer-events:all;position:relative}
@@ -188,6 +232,80 @@
     .badge-normal{background:var(--green-light);color:var(--green-dark)}
     .badge-deadline{background:var(--red-light);color:var(--red)}
     .badge-prediction{background:#ede9fe;color:#6d28d9}
+    .badge-marker{background:var(--marker-light);color:var(--marker-dark)}
+
+    /* ── Multi-marker modal overlay ────────────────────────────── */
+    .marker-modal-overlay{
+      position:fixed;inset:0;background:rgba(0,0,0,0.32);z-index:700;
+      display:none;align-items:center;justify-content:center;padding:1.25rem;
+    }
+    .marker-modal-overlay.open{display:flex;animation:fadeIn 0.18s ease both}
+    .marker-modal{
+      background:#f5f5f5;border-radius:20px;width:100%;max-width:380px;
+      max-height:82vh;overflow:hidden;display:flex;flex-direction:column;
+      box-shadow:0 16px 48px rgba(0,0,0,0.18);
+      animation:modalSlide 0.28s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    .marker-modal-header{
+      padding:1.4rem 1.5rem 1rem;border-bottom:1px solid #e0e0e0;
+      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+    }
+    .marker-modal-title-wrap{ flex:1; min-width:0; }
+    .marker-modal-title{
+      font-size:28px;font-weight:700;color:#1a1a1a;letter-spacing:-0.5px;line-height:1.15;
+    }
+    .marker-modal-date{
+      font-size:14px;color:#6b7b6b;font-weight:400;margin-top:2px;
+    }
+    .marker-modal-count{
+      font-size:13px;font-weight:500;color:#6b7b6b;white-space:nowrap;padding-top:4px;
+    }
+    .marker-modal-close{
+      background:none;border:none;font-size:17px;cursor:pointer;color:#9aaa9a;
+      line-height:1;padding:2px;transition:color 0.15s;flex-shrink:0;
+    }
+    .marker-modal-close:hover{color:#1a1a1a}
+    .marker-modal-table{
+      flex:1;overflow-y:auto;padding:0.75rem 1.5rem;
+    }
+    .marker-table-head{
+      display:flex;align-items:center;justify-content:space-between;
+      font-size:12px;font-weight:500;color:#9aaa9a;
+      padding-bottom:8px;margin-bottom:4px;
+    }
+    .marker-table-row{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:10px 0;border-top:1px solid #e8e8e8;gap:12px;
+    }
+    .marker-table-row:first-child{ border-top:none; }
+    .marker-table-name{
+      display:flex;align-items:center;gap:8px;
+      font-size:15px;font-weight:500;color:#1a1a1a;flex:1;min-width:0;
+    }
+    .marker-table-dot{
+      width:5px;height:5px;border-radius:50%;background:#1e3a8a;flex-shrink:0;
+    }
+    .marker-table-type{
+      font-size:15px;font-weight:400;color:#1a1a1a;flex-shrink:0;
+    }
+    .marker-modal-footer{
+      padding:1rem 1.5rem 1.4rem;
+    }
+    .marker-days-btn{
+      display:block;width:100%;padding:13px 20px;
+      background:rgba(229,62,62,0.72);color:white;
+      border:none;border-radius:50px;
+      font-family:'Prompt',sans-serif;font-size:16px;font-weight:500;
+      cursor:default;text-align:center;
+    }
+    .marker-days-btn.future{ background:rgba(229,62,62,0.72); }
+    .marker-days-btn.today{ background:rgba(234,88,12,0.82); }
+    .marker-days-btn.past{ background:rgba(107,123,107,0.55); color:#f0f0f0; }
+
+    /* ── Single-marker name-tag: show first name, or "N Events" ── */
+    .marker-name-tag.multi-tag{
+      background:#fff0ea;border-color:#fbb;color:#b94010;font-weight:600;
+    }
 
     /* PASSWORD */
     .pw-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;display:none;align-items:center;justify-content:center;padding:1rem}
@@ -220,6 +338,7 @@
     .days-chip.soon{background:var(--amber-light);color:var(--amber)}
     .days-chip.overdue-chip{background:var(--red-light);color:var(--red)}
     .days-chip.ok{background:var(--green-light);color:var(--green-dark)}
+    .days-chip.marker-chip{background:var(--marker-light);color:var(--marker-dark);border:1px solid var(--marker-border)}
     .detail-dates{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
     .detail-edit-btn{margin-top:6px;width:100%;padding:9px;background:var(--green);color:white;border:none;border-radius:10px;font-family:'Prompt',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:none;transition:background 0.15s}
     .detail-edit-btn:hover{background:var(--green-dark)}
@@ -250,24 +369,188 @@
     .archive-days{font-size:10px;color:var(--label);margin-top:1px;text-align:right}
     .archive-empty{text-align:center;padding:3rem 2rem;color:var(--label);font-size:13px}
 
-    @media(max-width:600px){
-      :root{--label-w:96px;--check-w:38px;--row-h:50px;--topbar-h:52px}
-      .topbar{padding:0 1rem;height:52px}.topbar p{display:none}.topbar h1{font-size:15px}
-      .mod-btn,.add-task-btn{padding:6px 10px;font-size:12px}
-      .date-tick-label{font-size:10px}.gantt-bar{top:8px;bottom:8px}.check-row input{width:17px;height:17px}
-      .modal{border-radius:16px 16px 0 0;max-height:85vh;margin-top:auto}.modal-overlay{align-items:flex-end;padding:0}
-      .fab-container{bottom:1.25rem;left:0.875rem;right:0.875rem}
-      .detail-popup{position:fixed!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;max-width:100%!important;min-width:0!important;width:100%!important;border-radius:20px 20px 0 0!important;box-shadow:0 -4px 32px rgba(0,0,0,0.15)!important;display:none;transform:translateY(100%);transition:transform 0.28s cubic-bezier(0.32,0.72,0,1);animation:none!important}
-      .detail-popup.open{display:block!important;transform:translateY(0)!important}
-      .detail-popup::before{content:'';display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0}
-      .detail-header{padding-top:0.75rem}
-      .view-tab{padding:5px 10px;font-size:11px}
-      .archive-wrap{padding:1rem 1rem 7rem}
+    /* ── 480 px and below (phones) ─────────────────────────────── */
+    @media(max-width:480px){
+      :root{--label-w:88px;--check-w:36px;--row-h:48px;--topbar-h:96px}
+
+      /* Two-row topbar: title row + controls row */
+      .topbar{
+        padding:0;height:auto;
+        flex-direction:column;align-items:stretch;gap:0;
+      }
+      .topbar > div:first-child{
+        padding:10px 14px 0;
+      }
+      .topbar p{display:none}
+      .topbar h1{font-size:15px}
+      .topbar-right{
+        padding:6px 10px 8px;
+        gap:5px;
+        overflow-x:auto;
+        -webkit-overflow-scrolling:touch;
+        scrollbar-width:none;
+        flex-wrap:nowrap;
+        justify-content:flex-start;
+      }
+      .topbar-right::-webkit-scrollbar{display:none}
+      .view-tabs{flex-shrink:0}
+      .view-tab{padding:5px 9px;font-size:11px;white-space:nowrap}
+      .mod-btn{padding:6px 10px;font-size:12px;flex-shrink:0;white-space:nowrap}
+      .add-task-btn{padding:6px 10px;font-size:12px;flex-shrink:0;white-space:nowrap}
+      .user-pill{flex-shrink:0}
       .user-pill span.pill-name{display:none}
-      .announce-btn{display:none}
+
+      /* Sticky header offset matches two-row topbar */
+      .cal-header-row{top:96px}
+
+      /* Gantt + ticks */
+      .date-tick-label{font-size:9.5px}
+      .gantt-bar{top:8px;bottom:8px}
+      .check-row input{width:17px;height:17px}
+      .marker-name-tag{max-width:52px;font-size:8px}
+
+      /* Modals slide up from bottom */
+      .modal{border-radius:16px 16px 0 0;max-height:85vh;margin-top:auto}
+      .modal-overlay{align-items:flex-end;padding:0}
+      .fab-container{bottom:1.25rem;left:0.875rem;right:0.875rem}
+
+      /* Detail popup as bottom sheet */
+      .detail-popup{
+        position:fixed!important;left:0!important;right:0!important;
+        bottom:0!important;top:auto!important;
+        max-width:100%!important;min-width:0!important;width:100%!important;
+        border-radius:20px 20px 0 0!important;
+        box-shadow:0 -4px 32px rgba(0,0,0,0.15)!important;
+        display:none;transform:translateY(100%);
+        transition:transform 0.28s cubic-bezier(0.32,0.72,0,1);
+        animation:none!important;
+      }
+      .detail-popup.open{display:block!important;transform:translateY(0)!important}
+      .detail-popup::before{
+        content:'';display:block;width:36px;height:4px;
+        background:var(--border);border-radius:2px;margin:10px auto 0;
+      }
+      .detail-header{padding-top:0.75rem}
+
+      /* Multi-marker modal full-screen on mobile */
+      .marker-modal-overlay{padding:0;align-items:flex-end}
+      .marker-modal{border-radius:20px 20px 0 0;max-height:90vh;max-width:100%}
+
+      .archive-wrap{padding:1rem 1rem 7rem}
     }
-    @media(max-width:380px){:root{--label-w:76px;--font-row-name:12px}.row-subject{display:none}.label-row{padding-left:10px}.cal-header-left{padding-left:10px}}
-    @media(min-width:601px) and (max-width:1024px){:root{--label-w:150px}.label-row{padding-left:18px}.cal-header-left{padding-left:18px}}
+
+    /* ── 380 px and below (small phones) ───────────────────────── */
+    @media(max-width:380px){
+      :root{--label-w:72px;--font-row-name:12px;--topbar-h:90px}
+      .topbar-right{gap:4px}
+      .row-subject{display:none}
+      .label-row{padding-left:8px}
+      .cal-header-left{padding-left:8px}
+      .cal-header-row{top:90px}
+    }
+
+    /* ── Tablet 601–1024 px ─────────────────────────────────────── */
+    @media(min-width:601px) and (max-width:1024px){
+      :root{--label-w:150px}
+      .label-row{padding-left:18px}
+      .cal-header-left{padding-left:18px}
+    }
+    /* ── Personal task panel ───────────────────────────────────── */
+    .pt-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.36);z-index:800;display:none;align-items:flex-end;justify-content:center}
+    .pt-overlay.open{display:flex;animation:fadeIn 0.18s ease both}
+    .pt-panel{
+      background:white;border-radius:22px 22px 0 0;width:100%;max-width:560px;
+      height:96vh;overflow:hidden;display:flex;flex-direction:column;
+      box-shadow:0 -8px 40px rgba(0,0,0,0.15);
+      animation:ptSlideUp 0.3s cubic-bezier(0.32,0.72,0,1) both;
+    }
+    @keyframes ptSlideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+
+    /* drag handle */
+    .pt-panel::before{content:'';display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0;flex-shrink:0}
+
+    .pt-header{padding:0.75rem 1.25rem 0.6rem;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0}
+    .pt-header-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:2px}
+    .pt-header-desc{font-size:10px;color:var(--muted);font-weight:300;line-height:1.4;max-width:320px}
+    .pt-close{background:none;border:none;font-size:18px;cursor:pointer;color:var(--label);padding:2px;line-height:1;transition:color 0.15s;flex-shrink:0}
+    .pt-close:hover{color:var(--text)}
+
+    .pt-tabs{display:flex;gap:4px;padding:8px 1.25rem 0;flex-shrink:0}
+    .pt-tab{flex:1;padding:7px 12px;border:none;border-radius:10px 10px 0 0;font-family:'Prompt',sans-serif;font-size:13px;font-weight:500;cursor:pointer;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-bottom:none;transition:background 0.15s,color 0.15s}
+    .pt-tab.active{background:white;color:var(--text);box-shadow:0 -2px 8px rgba(0,0,0,0.06)}
+    .pt-count{display:inline-block;margin-left:5px;background:var(--green);color:white;font-size:10px;font-weight:600;border-radius:10px;padding:0 5px;line-height:16px;vertical-align:middle}
+
+    /* Pane fills remaining space, no scroll */
+    .pt-pane{flex:1;overflow:hidden;padding:0.75rem 1.25rem;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--border)}
+    .pt-pane.pt-pane-list{overflow-y:auto}
+
+    /* Two-column add layout: left = form, right = preview+save */
+    .pt-add-layout{flex:1;display:flex;gap:12px;overflow:hidden;min-height:0}
+    .pt-form-col{flex:1;display:flex;flex-direction:column;gap:7px;overflow-y:auto;padding-right:4px;min-width:0}
+    .pt-form-col::-webkit-scrollbar{width:3px}
+    .pt-form-col::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+    .pt-right-col{width:180px;flex-shrink:0;display:flex;flex-direction:column;gap:8px}
+
+    .pt-field{display:flex;flex-direction:column;gap:4px}
+    .pt-field label{font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+    .pt-field input,.pt-field select{padding:7px 10px;border:1px solid var(--border);border-radius:9px;font-size:13px;font-family:'Prompt',sans-serif;color:var(--text);background:white;outline:none;transition:border-color 0.15s}
+    .pt-field input:focus,.pt-field select:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(29,158,117,0.1)}
+    .pt-date-row{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+
+    /* Marker toggle row */
+    .pt-marker-toggle{display:flex;align-items:center;justify-content:space-between;background:var(--marker-light);border:1.5px solid var(--marker-border);border-radius:9px;padding:8px 12px;cursor:pointer;transition:background 0.15s;flex-shrink:0}
+    .pt-marker-toggle:hover{background:#ffedd5}
+    .pt-marker-toggle.active{background:#fff0e5;border-color:var(--marker)}
+    .pt-marker-toggle-title{font-size:12px;font-weight:500;color:var(--marker)}
+    .pt-marker-toggle-sub{font-size:9px;color:var(--marker-dark);font-weight:300;margin-top:1px}
+    .pt-switch{width:34px;height:18px;border-radius:18px;background:#d1d5db;position:relative;transition:background 0.2s;flex-shrink:0}
+    .pt-switch::before{content:'';position:absolute;left:2px;top:2px;width:14px;height:14px;background:white;border-radius:50%;transition:transform 0.2s}
+    .pt-switch.on{background:var(--marker)}
+    .pt-switch.on::before{transform:translateX(16px)}
+
+    /* Marker type grid */
+    .pt-marker-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+    .pt-mtype-btn{display:flex;align-items:center;justify-content:center;gap:4px;padding:6px 4px;border:1.5px solid var(--marker-border);border-radius:7px;background:white;font-family:'Prompt',sans-serif;font-size:11px;font-weight:400;color:var(--muted);cursor:pointer;transition:all 0.15s}
+    .pt-mtype-btn.active{background:var(--marker);color:white;border-color:var(--marker);font-weight:500}
+
+    /* Preview box — fills right column */
+    .pt-preview-box{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:11px;line-height:1.75;color:var(--text);font-weight:300;white-space:pre-wrap;word-break:break-word;overflow-y:auto;min-height:0}
+    .pt-preview-label{font-size:10px;font-weight:500;color:var(--label);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+
+    /* Save button */
+    .pt-save-btn{width:100%;padding:11px;background:var(--green);color:white;border:none;border-radius:10px;font-family:'Prompt',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:background 0.15s;flex-shrink:0}
+    .pt-save-btn:hover{background:var(--green-dark)}
+    .pt-save-btn:active{transform:scale(0.99)}
+
+    /* List tab */
+    .pt-list-empty{text-align:center;padding:2.5rem 1rem;color:var(--label);font-size:13px;line-height:1.8}
+    .pt-list-empty span{font-size:11px;font-weight:300}
+    .pt-list-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:box-shadow 0.15s,border-color 0.15s;position:relative;flex-shrink:0}
+    .pt-list-card:hover{box-shadow:0 2px 10px rgba(0,0,0,0.08);border-color:#c8d4c8}
+    .pt-list-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .pt-list-info{flex:1;min-width:0}
+    .pt-list-name{font-size:13px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .pt-list-sub{font-size:11px;color:var(--muted);margin-top:1px}
+    .pt-list-right{text-align:right;flex-shrink:0}
+    .pt-list-due{font-size:11px;font-weight:500}
+    .pt-list-days{font-size:10px;color:var(--label);margin-top:1px}
+    .pt-list-del{position:absolute;top:8px;right:10px;background:none;border:none;font-size:13px;color:var(--label);cursor:pointer;opacity:0;transition:opacity 0.15s;padding:2px 4px}
+    .pt-list-card:hover .pt-list-del{opacity:1}
+
+    /* Personal task bar — dashed border to distinguish from shared tasks */
+    .gantt-bar.personal{border:2px dashed rgba(255,255,255,0.6)!important}
+    .personal-badge{
+      position:absolute;top:3px;right:5px;
+      font-size:8px;font-weight:600;color:white;
+      background:rgba(0,0,0,0.22);border-radius:4px;padding:0 4px;line-height:14px;
+      pointer-events:none;
+    }
+
+    @media(min-width:481px){
+      .pt-overlay{align-items:center;padding:1rem}
+      .pt-panel{border-radius:20px;height:auto;max-height:90vh}
+      .pt-panel::before{display:none}
+    }
   </style>
 </head>
 <body>
@@ -291,7 +574,7 @@
       <button class="view-tab active" id="tabCalendar" onclick="switchView('calendar')">📅 Calendar</button>
       <button class="view-tab" id="tabArchive" onclick="switchView('archive')">🗂 Archive<span class="tab-count" id="archiveCount" style="display:none"></span></button>
     </div>
-    <button class="add-task-btn" id="addTaskBtn" onclick="openAddModal()">➕ Add task</button>
+    <button class="add-task-btn visible" id="addTaskBtn" onclick="openPersonalPanel()">✏️ My Tasks</button>
     <button class="mod-btn" id="modBtn" onclick="toggleModMode()">🔒 Mod</button>
     <div class="user-pill" id="userPill" onclick="window.location.href='index.html'">
       <div id="pillAv"></div>
@@ -311,7 +594,8 @@
       <div class="legend-item"><div class="legend-dot dot-sendon"></div>Send On</div>
       <div class="legend-item"><div class="legend-dot dot-deadline"></div>Send Before</div>
       <div class="legend-item"><div class="legend-dot dot-prediction"></div>Estimated</div>
-      <div class="legend-hint">✅ Check = personal done mark (synced to your account)<br>🟥 Colour = urgency level<br>📌 Tap date to highlight</div>
+      <div class="legend-item"><div class="legend-dot dot-marker"></div>Marker (quiz/exam/event)</div>
+      <div class="legend-hint">✅ Check = personal done mark (synced to your account)<br>🟥 Colour = urgency level<br>📍 Orange line = marked date<br>📌 Tap date to highlight</div>
     </div>
     <button class="legend-toggle" id="legendToggle" onclick="toggleLegend()" title="Legend">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green);transition:color 0.22s">
@@ -356,7 +640,95 @@
   </div>
 </div>
 
-<!-- ADD/EDIT MODAL -->
+<!-- PERSONAL TASK PANEL -->
+<div class="pt-overlay" id="ptOverlay" onclick="closePtPanel(event)">
+  <div class="pt-panel" onclick="event.stopPropagation()">
+    <!-- Header -->
+    <div class="pt-header">
+      <div>
+        <div class="pt-header-title">✏️ My Tasks</div>
+        <div class="pt-header-desc">Personal tasks visible only to you — not shared with the class. Supports markers too.</div>
+      </div>
+      <button class="pt-close" onclick="closePtPanel()">✕</button>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="pt-tabs">
+      <button class="pt-tab active" id="ptTabAdd" onclick="switchPtTab('add')">➕ Add</button>
+      <button class="pt-tab" id="ptTabList" onclick="switchPtTab('list')">📋 My list <span class="pt-count" id="ptCount" style="display:none"></span></button>
+    </div>
+
+    <!-- ADD TAB -->
+    <div id="ptAddPane" class="pt-pane">
+      <!-- Marker toggle spans full width above columns -->
+      <div class="pt-marker-toggle" id="ptMarkerToggleRow" onclick="togglePtMarker()">
+        <div>
+          <div class="pt-marker-toggle-title">📍 Marker mode</div>
+          <div class="pt-marker-toggle-sub">Mark a date for a quiz, exam or event instead of a task range</div>
+        </div>
+        <div class="pt-switch" id="ptMarkerSwitch"></div>
+      </div>
+
+      <!-- Two-column layout -->
+      <div class="pt-add-layout">
+
+        <!-- LEFT: form fields -->
+        <div class="pt-form-col">
+
+          <!-- Regular fields -->
+          <div id="ptRegularFields" style="display:flex;flex-direction:column;gap:7px">
+            <div class="pt-field"><label>Task name</label><input type="text" id="pt-name" placeholder="e.g. อ่านหนังสือ Math" oninput="updatePtPreview()" /></div>
+            <div class="pt-field"><label>Subject</label><input type="text" id="pt-subject" placeholder="e.g. คณิตศาสตร์" oninput="updatePtPreview()" /></div>
+            <div class="pt-field"><label>Type</label>
+              <select id="pt-type" onchange="updatePtPreview()">
+                <option value="normal">🟢 Send On</option>
+                <option value="deadline">🔴 Send Before</option>
+                <option value="prediction">🟣 Estimated</option>
+              </select>
+            </div>
+            <div class="pt-date-row">
+              <div class="pt-field"><label>Start date</label><input type="date" id="pt-start" oninput="updatePtPreview()" /></div>
+              <div class="pt-field"><label>Due date</label><input type="date" id="pt-end" oninput="updatePtPreview()" /></div>
+            </div>
+            <div class="pt-field"><label>Note (optional)</label><input type="text" id="pt-note" placeholder="Extra info..." oninput="updatePtPreview()" /></div>
+          </div>
+
+          <!-- Marker fields -->
+          <div id="ptMarkerFields" style="display:none;flex-direction:column;gap:7px">
+            <div class="pt-field"><label>Event name</label><input type="text" id="pt-m-name" placeholder="e.g. สอบ Math midterm" oninput="updatePtPreview()" /></div>
+            <div class="pt-field"><label>Subject / Topic</label><input type="text" id="pt-m-subject" placeholder="e.g. คณิตศาสตร์" oninput="updatePtPreview()" /></div>
+            <div class="pt-field"><label>Date</label><input type="date" id="pt-m-date" oninput="updatePtPreview()" /></div>
+            <div class="pt-field"><label>Type</label>
+              <div class="pt-marker-type-grid">
+                <button class="pt-mtype-btn active" data-type="quiz" onclick="setPtMarkerType('quiz')">📝 Quiz</button>
+                <button class="pt-mtype-btn" data-type="exam" onclick="setPtMarkerType('exam')">📋 Exam</button>
+                <button class="pt-mtype-btn" data-type="event" onclick="setPtMarkerType('event')">🎉 Event</button>
+                <button class="pt-mtype-btn" data-type="date" onclick="setPtMarkerType('date')">📌 Important</button>
+              </div>
+            </div>
+            <div class="pt-field"><label>Note (optional)</label><input type="text" id="pt-m-note" placeholder="Extra info..." oninput="updatePtPreview()" /></div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT: preview + save -->
+        <div class="pt-right-col">
+          <div class="pt-preview-label">Preview</div>
+          <div class="pt-preview-box" id="ptPreview">Fill in the fields to see a preview...</div>
+          <button class="pt-save-btn" onclick="savePtTask()">💾 Save</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- LIST TAB -->
+    <div id="ptListPane" class="pt-pane pt-pane-list" style="display:none">
+      <div id="ptListContent"><div class="pt-list-empty">No personal tasks yet.<br><span>Add one from the ➕ Add tab.</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MOD ADD/EDIT MODAL (kept for mod use) -->
 <div class="modal-overlay" id="taskModal">
   <div class="modal">
     <h2 id="modal-title">Add task</h2>
@@ -394,6 +766,31 @@
   </div>
 </div>
 
+<!-- MULTI-MARKER MODAL -->
+<div class="marker-modal-overlay" id="markerModal" onclick="closeMarkerModal(event)">
+  <div class="marker-modal" onclick="event.stopPropagation()">
+    <div class="marker-modal-header">
+      <div class="marker-modal-title-wrap">
+        <div class="marker-modal-title" id="mm-title">Events</div>
+        <div class="marker-modal-date" id="mm-date"></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px;padding-top:2px;">
+        <span class="marker-modal-count" id="mm-count"></span>
+        <button class="marker-modal-close" onclick="closeMarkerModal()">✕</button>
+      </div>
+    </div>
+    <div class="marker-modal-table">
+      <div class="marker-table-head">
+        <span>Topic</span><span>Event</span>
+      </div>
+      <div id="mm-rows"></div>
+    </div>
+    <div class="marker-modal-footer">
+      <div class="marker-days-btn" id="mm-days-btn"></div>
+    </div>
+  </div>
+</div>
+
 </div><!-- #appWrap -->
 
 <script type="module">
@@ -403,7 +800,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
 import {
   getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
-  onSnapshot, setDoc, getDoc
+  onSnapshot, setDoc, getDoc, query, orderBy
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 
 const firebaseConfig = {
@@ -420,6 +817,7 @@ const db   = getFirestore(app)
 
 const LOGIN_URL = "index.html"
 const MOD_PASSWORD_HASH = "4710ce735963a78ed12d2348a6ddd4e45a0f75cce94d78b3d81d077274e8c8fa"
+const RANGE_STORAGE_KEY = "tas_calendar_range"
 
 async function hashInput(str){
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str))
@@ -432,14 +830,23 @@ function shortDate(d){ return `${d.getDate()} ${thaiMonths[d.getMonth()]}` }
 function parseDate(s){ return new Date(s+"T00:00:00") }
 function daysLeft(e){ return Math.round((e-TODAY)/(24*60*60*1000)) }
 
-let tasks=[], isMod=false, editingId=null, currentRange="month", hlPct=null, currentView="calendar"
+// Marker type display info
+const MARKER_INFO = {
+  quiz:  { emoji: "📝", label: "Quiz" },
+  exam:  { emoji: "📋", label: "Exam" },
+  event: { emoji: "🎉", label: "Event" },
+  date:  { emoji: "📌", label: "Important" },
+}
+
+// ── Date range: restore last-used range from this device's localStorage ──
+const VALID_RANGES = ["week","2weeks","month","semester"]
+let storedRange = localStorage.getItem(RANGE_STORAGE_KEY)
+if(!VALID_RANGES.includes(storedRange)) storedRange = "month"
+
+let tasks=[], personalTasks=[], isMod=false, editingId=null, currentRange=storedRange, hlPct=null, currentView="calendar"
 let currentUser = null
 
 // ── Per-user done state ───────────────────────────────────────
-// Stored in Firestore at: userDone/{uid}  →  { done: { taskId: true, ... } }
-// userDoneCache is the in-memory source of truth.
-// savingIds tracks which task IDs are currently mid-save so onSnapshot
-// doesn't clobber an in-flight optimistic update.
 let userDoneCache = {}
 const savingIds = new Set()
 
@@ -454,7 +861,6 @@ async function loadUserDone(uid) {
 }
 
 async function persistUserDone(uid, taskId, checked) {
-  // Update cache immediately (already done by caller)
   try {
     await setDoc(doc(db, "userDone", uid), { done: userDoneCache }, { merge: true })
   } catch(e) {
@@ -478,7 +884,9 @@ onAuthStateChanged(auth, async user => {
   gate.style.display = "none"
   wrap.style.display  = "block"
   renderUserPill(user)
+  applyStoredRangeToUI()
   startTasksListener()
+  startPersonalTasksListener(user.uid)
 })
 
 function renderUserPill(user) {
@@ -506,8 +914,6 @@ function startTasksListener() {
   unsubTasks = onSnapshot(collection(db,"tasks"), snap => {
     tasks = snap.docs.map(d=>({id:d.id,...d.data()}))
     updateLatestPill()
-    // Don't re-render if a done-save is in flight — it would wipe the
-    // optimistic checkbox state before Firestore has confirmed.
     if (savingIds.size === 0) {
       if (currentView==="archive") renderArchive()
       else renderCalendar()
@@ -515,8 +921,31 @@ function startTasksListener() {
   })
 }
 
-const TYPE_LABEL = {normal:"Send On",deadline:"Send Before",prediction:"Estimated"}
+// ── Personal tasks listener ───────────────────────────────────
+let unsubPersonal = null
+function startPersonalTasksListener(uid) {
+  if (unsubPersonal) return
+  const col = collection(db, "userTasks", uid, "tasks")
+  unsubPersonal = onSnapshot(col, snap => {
+    personalTasks = snap.docs.map(d=>({id:d.id, _personal:true, ...d.data()}))
+    renderPtList()
+    updatePtCount()
+    if (savingIds.size === 0) {
+      if (currentView==="calendar") renderCalendar()
+    }
+  })
+}
+
+const TYPE_LABEL = {normal:"Send On",deadline:"Send Before",prediction:"Estimated",marker:"Marker"}
 const RANGE_NAMES = {week:"Week","2weeks":"2 Weeks",month:"Month",semester:"Semester"}
+
+// Sync the range FAB UI (active option + label) to whatever currentRange is —
+// used on initial load so the device's last-chosen range is reflected immediately.
+function applyStoredRangeToUI(){
+  document.querySelectorAll(".range-option").forEach(b=>b.classList.toggle("active",b.id==="ro-"+currentRange))
+  const label=document.getElementById("rangeLabel")
+  if(label) label.textContent="📆 "+(RANGE_NAMES[currentRange]||"Month")
+}
 
 window.switchView = function(view) {
   currentView = view
@@ -530,8 +959,17 @@ window.switchView = function(view) {
 function renderArchive() {
   const wrap   = document.getElementById("calWrap")
   const sorted = getOrderedTasks()
-  const archived = sorted.filter(t => daysLeft(parseDate(t.end)) < 0 && t.type!=="prediction")
+  // Markers don't go to archive
+  const archived = sorted.filter(t => t.type !== "marker" && daysLeft(parseDate(t.end)) < 0 && t.type!=="prediction")
   archived.sort((a,b) => new Date(b.end)-new Date(a.end))
+
+  // Keep archive count badge in sync even when on archive tab
+  const badge = document.getElementById("archiveCount")
+  if(badge){
+    if(archived.length){badge.textContent=archived.length;badge.style.display="inline-block"}
+    else badge.style.display="none"
+  }
+
   if (!archived.length) {
     wrap.innerHTML = `<div class="archive-wrap"><div class="archive-empty">📭 No archived tasks yet<br><span style="font-size:11px;color:var(--label)">Tasks past their due date will appear here</span></div></div>`
     return
@@ -556,6 +994,7 @@ function renderArchive() {
 
 function urgencyColor(type,dl){
   if(type==="prediction") return "#8b5cf6"
+  if(type==="marker") return "#ea580c"
   if(dl<0) return "#dc2626"
   if(dl<=3) return "#ef4444"
   if(dl<=7) return "#f97316"
@@ -568,7 +1007,10 @@ function getRange(key){
   const d=n=>{const x=new Date(TODAY);x.setDate(x.getDate()+n);return x}
   if(key==="semester"){
     let s=new Date(TODAY),e=d(120)
-    tasks.forEach(t=>{const ts=parseDate(t.start),te=parseDate(t.end);if(ts<s)s=ts;if(te>e)e=te})
+    tasks.forEach(t=>{
+      const ts=parseDate(t.start||t.date),te=parseDate(t.end||t.date)
+      if(ts<s)s=ts;if(te>e)e=te
+    })
     const P=3*864e5;return{start:new Date(s-P),end:new Date(+e+P)}
   }
   if(key==="week")   return{start:new Date(TODAY),end:d(7)}
@@ -579,6 +1021,8 @@ function tickStep(key){return key==="week"?1:key==="2weeks"?2:key==="month"?5:14
 
 window.setRange=function(key){
   currentRange=key;hlPct=null
+  // Remember this device's chosen range for next time
+  try{ localStorage.setItem(RANGE_STORAGE_KEY,key) }catch(e){}
   document.querySelectorAll(".range-option").forEach(b=>b.classList.toggle("active",b.id==="ro-"+key))
   document.getElementById("rangeLabel").textContent="📆 "+RANGE_NAMES[key]
   closeFabs();renderCalendar()
@@ -616,14 +1060,16 @@ document.addEventListener("click",e=>{
 function pct(d,start,total){return Math.max(0,Math.min(100,(d-start)/total*100))}
 
 function getOrderedTasks(){
-  return [...tasks].sort((a,b)=>new Date(a.end)-new Date(b.end))
+  // Merge shared + personal, mark personal with _personal flag
+  const all = [...tasks, ...personalTasks]
+  return all.sort((a,b)=>new Date(a.end||a.date)-new Date(b.end||b.date))
 }
 
 window.handleTickClick=function(p){
   hlPct=(hlPct!==null&&Math.abs(hlPct-p)<0.01)?null:p
   document.querySelectorAll(".date-tick").forEach(el=>{
     const ep=parseFloat(el.dataset.pct)
-    el.classList.toggle("hl-tick",hlPct!==null&&Math.abs(ep-hlPct)<0.01&&!el.classList.contains("today-tick"))
+    el.classList.toggle("hl-tick",hlPct!==null&&Math.abs(ep-hlPct)<0.01&&!el.classList.contains("today-tick")&&!el.classList.contains("marker-tick"))
   })
   document.querySelectorAll(".hl-vline").forEach(el=>{
     const ep=parseFloat(el.dataset.pct)
@@ -634,6 +1080,89 @@ window.handleTickClick=function(p){
   })
 }
 
+// Show detail popup for markers — handles single or multiple on same date
+window.showMarkerDetail=function(e,id){
+  e.stopPropagation()
+  showDetail(e,id)
+}
+
+// Called from vlines — ids is an array of marker IDs on that date
+// Always opens the card-style marker modal, whether there's one event or several.
+window.showMarkersDetail=function(e,...args){
+  e.stopPropagation()
+  // Last arg is the date string, all before are IDs
+  const dateStr = args[args.length-1]
+  const ids = args.slice(0,-1)
+
+  const markers = ids.map(id=>tasks.find(t=>t.id===id)).filter(Boolean)
+  if(!markers.length) return
+  openMarkerModal(markers, dateStr)
+}
+
+function openMarkerModal(markers, dateStr){
+  const date = parseDate(dateStr)
+  const dl = daysLeft(date)
+
+  // Title: use marker type label if all same, else "Events"
+  const types = [...new Set(markers.map(m=>m.markerType))]
+  const MARKER_TYPE_TITLES = { quiz:"Quizzes", exam:"Exams", event:"Events", date:"Important Dates" }
+  const MARKER_TYPE_TITLES_SINGLE = { quiz:"Quiz", exam:"Exam", event:"Event", date:"Important Date" }
+  const titles = markers.length===1 ? MARKER_TYPE_TITLES_SINGLE : MARKER_TYPE_TITLES
+  const titleText = types.length===1 ? (titles[types[0]]||"Events") : "Events"
+
+  document.getElementById("mm-title").textContent = titleText
+  document.getElementById("mm-date").textContent = formatFullDate(date)
+  document.getElementById("mm-count").textContent = `${markers.length} Event${markers.length===1?"":"s"} Total`
+
+  // Rows — one row per bullet topic across all markers on this date
+  // bullets[] is saved from the mod panel; fallback to subject/name if absent
+  const MARKER_TYPE_LABELS = { quiz:"Quiz", exam:"Exam", event:"Event", date:"Important" }
+  const rows = []
+  markers.forEach(m=>{
+    const label = MARKER_TYPE_LABELS[m.markerType] || m.markerType || "Event"
+    const bullets = Array.isArray(m.bullets) && m.bullets.filter(b=>b&&b.trim()).length > 0
+      ? m.bullets.filter(b=>b&&b.trim())
+      : [m.subject || m.name]
+    bullets.forEach(b=>{
+      rows.push(`<div class="marker-table-row">
+        <div class="marker-table-name"><span class="marker-table-dot"></span>${b}</div>
+        <div class="marker-table-type">${label}</div>
+      </div>`)
+    })
+  })
+  document.getElementById("mm-rows").innerHTML = rows.join("")
+
+  // Count label now reflects total topics, not just marker count
+  const totalTopics = rows.length
+  document.getElementById("mm-count").textContent = `${totalTopics} Topic${totalTopics===1?"":"s"} Total`
+
+  // Days chip
+  const btn = document.getElementById("mm-days-btn")
+  if(dl===0){
+    btn.textContent="Today";btn.className="marker-days-btn today"
+  } else if(dl>0){
+    btn.textContent=`In ${dl} Day${dl===1?"":"s"}`;btn.className="marker-days-btn future"
+  } else {
+    btn.textContent=`${Math.abs(dl)} Day${Math.abs(dl)===1?"":"s"} Ago`;btn.className="marker-days-btn past"
+  }
+
+  document.getElementById("markerModal").classList.add("open")
+  setTimeout(()=>document.addEventListener("keydown",closeMarkerModalKey),0)
+}
+
+function formatFullDate(d){
+  // e.g. "10/6/2026"
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`
+}
+
+window.closeMarkerModal=function(e){
+  // Called with event from overlay click — only close if click was on the backdrop
+  if(e && e.type==="click" && e.target!==document.getElementById("markerModal")) return
+  document.getElementById("markerModal").classList.remove("open")
+  document.removeEventListener("keydown",closeMarkerModalKey)
+}
+function closeMarkerModalKey(e){ if(e.key==="Escape") closeMarkerModal() }
+
 function renderCalendar(){
   const wrap=document.getElementById("calWrap")
   if(!tasks.length){
@@ -642,8 +1171,9 @@ function renderCalendar(){
   }
 
   const sorted = getOrderedTasks()
-  const activeTasks  = sorted.filter(t=>daysLeft(parseDate(t.end))>=0||t.type==="prediction")
-  const archivedTasks= sorted.filter(t=>daysLeft(parseDate(t.end))<0&&t.type!=="prediction")
+  // Row tasks: exclude markers (markers render as vlines/ticks only, not rows)
+  const activeTasks  = sorted.filter(t=>t.type!=="marker"&&(daysLeft(parseDate(t.end))>=0||t.type==="prediction"))
+  const archivedTasks= sorted.filter(t=>t.type!=="marker"&&daysLeft(parseDate(t.end))<0&&t.type!=="prediction")
 
   const badge=document.getElementById("archiveCount")
   if(badge){
@@ -661,6 +1191,29 @@ function renderCalendar(){
   const todayPct=pct(TODAY,rangeStart,totalMs)
   const step=tickStep(currentRange)
 
+  // ── Build marker map: dateStr → [task,...] grouped by date ──
+  // Includes both shared markers AND personal markers from this user.
+  // Overdue markers (date < today) are dropped entirely.
+  const markersByDate = {}
+  const allTasks = [...tasks, ...personalTasks]
+  allTasks.filter(t=>t.type==="marker").forEach(t=>{
+    const dateKey = (t.date||t.start||"").slice(0,10)
+    if(!dateKey) return
+    if(daysLeft(parseDate(dateKey))<0) return  // hide overdue markers
+    if(!markersByDate[dateKey]) markersByDate[dateKey]=[]
+    markersByDate[dateKey].push(t)
+  })
+  // Build pct lookup (only dates within visible range)
+  const markersByPct = {}
+  Object.keys(markersByDate).forEach(dk=>{
+    const p=pct(parseDate(dk),rangeStart,totalMs)
+    if(p>=-0.01&&p<=100.01){
+      const pk=p.toFixed(4)
+      markersByPct[pk]=markersByDate[dk]
+    }
+  })
+
+  // Build regular date ticks
   const tickPositions=[]
   let cur=new Date(rangeStart)
   while(cur<=rangeEnd){
@@ -671,21 +1224,79 @@ function renderCalendar(){
     cur=new Date(cur);cur.setDate(cur.getDate()+step)
   }
 
-  const ticksHTML=tickPositions.map(({p,isToday,isHL,label})=>
-    `<div class="date-tick${isToday?" today-tick":""}${isHL&&!isToday?" hl-tick":""}"
-      style="left:${p}%" data-pct="${p}" onclick="handleTickClick(${p})">
+  // Also add marker ticks (if not already covered by a regular tick)
+  const markerTickPositions=[]
+  Object.keys(markersByPct).forEach(pk=>{
+    const p=parseFloat(pk)
+    // Check if there's already a regular tick near this pct (within 0.5%)
+    const alreadyTick=tickPositions.some(tp=>Math.abs(tp.p-p)<0.5)
+    markerTickPositions.push({p,markers:markersByPct[pk],hasRegularTick:alreadyTick})
+  })
+
+  // Render date ticks — check if any marker coincides
+  const ticksHTML=tickPositions.map(({p,isToday,isHL,label})=>{
+    const pKey=(p).toFixed(4)
+    // Find closest marker within 0.5% for coincident annotation
+    const coincidentMarkers=markersByPct[pKey]||[]
+    const markerClass=coincidentMarkers.length?" marker-tick":""
+    const nameTag=coincidentMarkers.length
+      ? (coincidentMarkers.length===1
+          ? (()=>{ const info=MARKER_INFO[coincidentMarkers[0].markerType]||MARKER_INFO.date; return `<div class="marker-name-tag">${info.emoji} ${coincidentMarkers[0].name}</div>` })()
+          : `<div class="marker-name-tag multi-tag">… ${coincidentMarkers.length} Events</div>`)
+      : ""
+    const markerClick=coincidentMarkers.length
+      ? (()=>{ const ids=coincidentMarkers.map(m=>`'${m.id}'`).join(","); const ds=coincidentMarkers[0].date||coincidentMarkers[0].start; return `onclick="showMarkersDetail(event,${ids},'${ds}')"` })()
+      : `onclick="handleTickClick(${p})"`
+    return `<div class="date-tick${isToday?" today-tick":""}${isHL&&!isToday&&!coincidentMarkers.length?" hl-tick":""}${markerClass}"
+      style="left:${p}%" data-pct="${p}" ${markerClick}>
       <div class="date-tick-line"></div>
       <div class="date-tick-label">${label}</div>
-    </div>`).join("")
+      ${nameTag}
+    </div>`
+  }).join("")
 
-  const gridHTML=tickPositions.map(({p,isToday,isHL})=>
-    `<div class="grid-col${isToday?" grid-col-today":""}" style="left:${p}%"></div>
-     <div class="hl-vline${isHL?" active":""}" style="left:${p}%" data-pct="${p}"></div>`
-  ).join("")
+  // Extra marker-only ticks (not coinciding with any regular tick)
+  const extraMarkerTicksHTML=markerTickPositions
+    .filter(mt=>!mt.hasRegularTick)
+    .map(({p,markers})=>{
+      const nameTag=markers.length===1
+        ? (()=>{ const info=MARKER_INFO[markers[0].markerType]||MARKER_INFO.date; return `<div class="marker-name-tag">${info.emoji} ${markers[0].name}</div>` })()
+        : `<div class="marker-name-tag multi-tag">… ${markers.length} Events</div>`
+      const ids2=markers.map(m=>m.id)
+      const idsStr2=ids2.map(id=>`'${id}'`).join(",")
+      const dateStr2=markers[0].date||markers[0].start
+      return `<div class="date-tick marker-tick"
+        style="left:${p}%" data-pct="${p}" onclick="showMarkersDetail(event,${idsStr2},'${dateStr2}')">
+        <div class="date-tick-line"></div>
+        <div class="date-tick-label">${shortDate(parseDate(dateStr2))}</div>
+        ${nameTag}
+      </div>`
+    }).join("")
+
+  // Per-row grid: includes marker vlines
+  function buildGridHTML(){
+    const regularGrid=tickPositions.map(({p,isToday,isHL})=>
+      `<div class="grid-col${isToday?" grid-col-today":""}" style="left:${p}%"></div>
+       <div class="hl-vline${isHL?" active":""}" style="left:${p}%" data-pct="${p}"></div>`
+    ).join("")
+    // Marker vlines (persistent, always visible) — carry all IDs for multi-marker popup
+    const markerVlines=Object.keys(markersByPct).map(pk=>{
+      const p=parseFloat(pk)
+      const markers=markersByPct[pk]
+      const idsStr=markers.map(m=>`'${m.id}'`).join(",")
+      const dateStr=markers[0].date||markers[0].start
+      return `<div class="marker-vline" style="left:${p}%"
+        onclick="showMarkersDetail(event,${idsStr},'${dateStr}')"></div>`
+    }).join("")
+    return regularGrid+markerVlines
+  }
 
   let leftHTML="",trackHTML="",rightHTML=""
 
-  activeTasks.forEach((t,idx)=>{
+  // All activeTasks are regular (non-marker) rows
+  const regularTasks=activeTasks
+
+  regularTasks.forEach((t,idx)=>{
     const start=parseDate(t.start),end=parseDate(t.end)
     const isDone=!!userDoneCache[t.id]
     const left=pct(start,rangeStart,totalMs)
@@ -694,6 +1305,7 @@ function renderCalendar(){
     const dl=daysLeft(end)
     const color=urgencyColor(t.type,dl)
     const isOverdue=dl<0&&!isDone&&t.type!=="prediction"
+    const isPersonal=!!t._personal
     const delay=(0.06+idx*0.045).toFixed(3)
 
     let outLeft="",outRight=""
@@ -709,19 +1321,19 @@ function renderCalendar(){
 
     trackHTML+=`<div class="cal-row" data-id="${t.id}" style="animation-delay:${delay}s">
       <div class="cal-track">
-        ${gridHTML}
+        ${buildGridHTML()}
         <div class="today-vline" style="left:${todayPct}%"></div>
         ${outLeft}
-        <div class="gantt-bar${isOverdue?" overdue-pulse":""}${isDone?" done":""}"
+        <div class="gantt-bar${isOverdue?" overdue-pulse":""}${isDone?" done":""}${isPersonal?" personal":""}"
           style="left:${left}%;width:${width}%;background:${color};animation-delay:${delay}s"
           onclick="showDetail(event,'${t.id}')">
           <span class="gantt-bar-text">${t.name} · ${shortDate(end)}</span>
+          ${isPersonal?'<span class="personal-badge">👤</span>':''}
         </div>
         ${outRight}
       </div>
     </div>`
 
-    // Checkbox row with spinner element
     rightHTML+=`<div class="check-row" id="cr-${t.id}">
       <input type="checkbox" title="Mark as done" ${isDone?"checked":""}
         onchange="toggleDone('${t.id}',this.checked,this)" />
@@ -729,11 +1341,15 @@ function renderCalendar(){
     </div>`
   })
 
+  // Marker tasks: render as a thin label row (no Gantt bar, no checkbox)
+  // Markers are NOT rendered as rows — they live only as header ticks + persistent vlines
+  // markerTasksActive is used by buildGridHTML() via markersByPct already
+
   wrap.innerHTML=`
     <div class="cal-header-row">
       <div class="cal-header-left">TASK</div>
       <div class="cal-header-scroll" id="calHeaderScroll">
-        <div class="cal-dates-header">${ticksHTML}</div>
+        <div class="cal-dates-header">${ticksHTML}${extraMarkerTicksHTML}</div>
       </div>
       <div class="cal-header-right"></div>
     </div>
@@ -757,67 +1373,59 @@ function renderCalendar(){
   so.addEventListener("scroll",()=>{hs.scrollLeft=so.scrollLeft})
 }
 
-// ── toggleDone — optimistic DOM update, then persist ─────────
-// Strategy:
-//   1. Immediately update userDoneCache (source of truth for renders)
-//   2. Update the Gantt bar's .done class directly in the DOM (no full re-render)
-//   3. Show spinner on the checkbox row
-//   4. Register the taskId in savingIds so onSnapshot skips re-renders
-//   5. Persist to Firestore
-//   6. Remove spinner, remove from savingIds
-//   7. If tasks snapshot fired while we were saving, re-render now that it's safe
+// ── toggleDone ─────────────────────────────────────────────────
 window.toggleDone = async function(id, checked, checkbox) {
   if (!currentUser) return
-
-  // 1. Update in-memory cache
   if (checked) userDoneCache[id] = true
   else delete userDoneCache[id]
 
-  // 2. Update Gantt bar .done class directly — avoids full re-render flicker
   const calRow = document.querySelector(`.cal-row[data-id="${id}"]`)
   if (calRow) {
     const bar = calRow.querySelector(".gantt-bar")
     if (bar) bar.classList.toggle("done", checked)
   }
 
-  // 3. Show spinner
   const row = document.getElementById("cr-"+id)
   if (row) row.classList.add("saving")
-
-  // 4. Block onSnapshot re-renders while saving
   savingIds.add(id)
-
-  // 5. Persist
   await persistUserDone(currentUser.uid, id, checked)
-
-  // 6. Clean up spinner
   savingIds.delete(id)
   if (row) row.classList.remove("saving")
 
-  // 7. If tasks list changed while we were saving, re-render now
   if (savingIds.size === 0) {
     if (currentView === "archive") renderArchive()
     else renderCalendar()
   }
 }
 
-let detailTaskId=null
+let detailTaskId=null, detailTaskIsPersonal=false
 window.deleteFromDetail=async function(){
-  if(!detailTaskId)return
+  if(!detailTaskId||!currentUser)return
   if(!confirm("Delete this task permanently?"))return
-  await deleteDoc(doc(db,"tasks",detailTaskId))
+  if(detailTaskIsPersonal){
+    await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",detailTaskId))
+  } else {
+    await deleteDoc(doc(db,"tasks",detailTaskId))
+  }
   closeDetail()
 }
 
+// Latest update pill — shows how long ago the most recently created/edited
+// task was added, e.g. "Latest update: 3 days ago"
 function updateLatestPill(){
   const pill=document.getElementById("latestPill")
-  if(!pill||!tasks.length)return
+  if(!pill)return
+  if(!tasks.length){pill.style.display="none";return}
   const newest=tasks.reduce((a,b)=>((b.createdAt||0)>(a.createdAt||0)?b:a),tasks[0])
-  if(!newest)return
+  if(!newest||!newest.createdAt){pill.style.display="none";return}
   const diff=Date.now()-(newest.createdAt||0)
   const mins=Math.floor(diff/60000),hrs=Math.floor(diff/3600000),days=Math.floor(diff/86400000)
-  const timeStr=!newest.createdAt?"recently":mins<1?"just now":mins<60?`${mins}m ago`:hrs<24?`${hrs}h ago`:`${days}d ago`
-  pill.textContent=`✨ ${newest.name} · ${timeStr}`
+  let timeStr
+  if(mins<1) timeStr="just now"
+  else if(mins<60) timeStr=`${mins} minute${mins===1?"":"s"} ago`
+  else if(hrs<24) timeStr=`${hrs} hour${hrs===1?"":"s"} ago`
+  else timeStr=`${days} day${days===1?"":"s"} ago`
+  pill.textContent=`🔄 Latest update: ${timeStr}`
   pill.style.display="inline-flex"
 }
 
@@ -828,13 +1436,46 @@ window.markDoneFromDetail=async function(){
   await persistUserDone(currentUser.uid,detailTaskId,true)
   savingIds.delete(detailTaskId)
   closeDetail()
-  renderCalendar()
+  // Re-render whichever view is active — archive re-sorts after marking done
+  if(currentView==="archive") renderArchive()
+  else renderCalendar()
 }
 
 window.showDetail=function(e,id){
   e.stopPropagation()
-  const t=tasks.find(x=>x.id===id);if(!t)return
+  const t=tasks.find(x=>x.id===id)||personalTasks.find(x=>x.id===id)
+  if(!t)return
   detailTaskId=id
+  detailTaskIsPersonal=!!t._personal
+
+  // ── Marker detail ──────────────────────────────────────────
+  if(t.type==="marker"){
+    const markerDate=parseDate(t.date||t.start)
+    const dl=daysLeft(markerDate)
+    const info=MARKER_INFO[t.markerType]||MARKER_INFO.date
+    let chipText=dl===0?"📍 Today":dl>0?`📍 In ${dl} day${dl===1?"":"s"}`:`📍 ${Math.abs(dl)}d ago`
+
+    document.getElementById("dp-name").textContent=t.name
+    document.getElementById("dp-subject").innerHTML=`${t.subject} · <span class="type-badge badge-marker">${info.emoji} ${info.label}</span>`
+    document.getElementById("dp-days").innerHTML=`<span class="days-chip marker-chip">${chipText}</span>`
+    document.getElementById("dp-dates").innerHTML=`<span>📅 Date: ${shortDate(markerDate)}</span>`
+
+    const ns=document.getElementById("dp-note-section")
+    if(t.note){document.getElementById("dp-note").textContent=t.note;ns.style.display="block"}else ns.style.display="none"
+
+    document.getElementById("dp-mark-done").style.display="none"
+    const delBtn=document.getElementById("dp-delete-btn")
+    delBtn.className="detail-delete-btn"+(isMod?" visible":"")
+
+    const eb=document.getElementById("dp-edit-btn")
+    eb.className="detail-edit-btn"  // Markers not editable via modal for now
+    eb.style.display="none"
+
+    _positionAndShowDetail(e)
+    return
+  }
+
+  // ── Regular task detail ────────────────────────────────────
   const end=parseDate(t.end),dl=daysLeft(end)
   let chipClass="ok",chipText=`⏱ ${dl} Days Left`
   if(dl<0){chipClass="overdue-chip";chipText=`⚠️ ${Math.abs(dl)}d Overdue`}
@@ -851,27 +1492,35 @@ window.showDetail=function(e,id){
 
   const isOverdue=dl<0
   const isDone=!!userDoneCache[id]
-  document.getElementById("dp-mark-done").style.display=(!isOverdue&&!isDone)?"block":"none"
-  document.getElementById("dp-delete-btn").className="detail-delete-btn"+(isOverdue?" visible":"")
+  // Show "Mark as done" unless already personally marked done (regardless of overdue)
+  document.getElementById("dp-mark-done").style.display=isDone?"none":"block"
+  document.getElementById("dp-mark-done").textContent=isOverdue?"Mark as done (overdue)":"Mark as Done"
+  // Show delete button in mod mode, when overdue, or always for personal tasks
+  document.getElementById("dp-delete-btn").className="detail-delete-btn"+((isOverdue||isMod||detailTaskIsPersonal)?" visible":"")
 
   const eb=document.getElementById("dp-edit-btn")
   eb.className="detail-edit-btn"+(isMod?" visible":"")
+  eb.style.display=""
   eb.onclick=()=>{closeDetail();openEditModal(t)}
 
+  _positionAndShowDetail(e)
+}
+
+function _positionAndShowDetail(e){
   const popup=document.getElementById("detailPopup")
   popup.style.display="block"
-  if(window.innerWidth>600){
-    const anchor=e.target.closest(".gantt-bar,.out-indicator,.archive-card")
+  if(window.innerWidth>480){
+    const anchor=e.target.closest(".gantt-bar,.out-indicator,.archive-card,.marker-vline,.date-tick")
     const rect=anchor?anchor.getBoundingClientRect():{bottom:e.clientY,left:e.clientX}
     let top=rect.bottom+8+window.scrollY
     let left=Math.min(rect.left+window.scrollX,window.innerWidth-312)
     if(left<8)left=8
     popup.style.top=top+"px";popup.style.left=left+"px"
   } else {popup.style.top="";popup.style.left=""}
-
   popup.classList.add("open")
   setTimeout(()=>document.addEventListener("click",closeDetailOutside),0)
 }
+
 function closeDetailOutside(e){if(!document.getElementById("detailPopup").contains(e.target))closeDetail()}
 window.closeDetail=function(){
   document.getElementById("detailPopup").classList.remove("open")
@@ -896,9 +1545,9 @@ window.closePw=function(){
   document.getElementById("pwError").style.display="none"
 }
 function updateModUI(){
-  const btn=document.getElementById("modBtn"),ab=document.getElementById("addTaskBtn")
-  if(isMod){btn.textContent="🔓 Mod";btn.classList.add("active");ab.classList.add("visible")}
-  else{btn.textContent="🔒 Mod";btn.classList.remove("active");ab.classList.remove("visible")}
+  const btn=document.getElementById("modBtn")
+  if(isMod){btn.textContent="🔓 Mod";btn.classList.add("active")}
+  else{btn.textContent="🔒 Mod";btn.classList.remove("active")}
   renderCalendar()
 }
 
@@ -945,6 +1594,192 @@ window.saveTask=async function(){
 window.deleteTask=async function(){
   if(!editingId)return;if(!confirm("Delete this task?"))return
   await deleteDoc(doc(db,"tasks",editingId));closeModal()
+}
+
+// ── Personal Task Panel ───────────────────────────────────────
+let ptMarkerMode = false
+let ptMarkerType = "quiz"
+let ptCurrentTab = "add"
+
+window.openPersonalPanel = function(){
+  document.getElementById("ptOverlay").classList.add("open")
+  resetPtForm()
+  renderPtList()
+  setTimeout(()=>document.addEventListener("keydown",closePtKey),0)
+}
+
+function closePtKey(e){ if(e.key==="Escape") closePtPanel() }
+
+window.closePtPanel = function(e){
+  if(e && e.target!==document.getElementById("ptOverlay")) return
+  document.getElementById("ptOverlay").classList.remove("open")
+  document.removeEventListener("keydown",closePtKey)
+}
+
+window.switchPtTab = function(tab){
+  ptCurrentTab=tab
+  document.getElementById("ptTabAdd").classList.toggle("active",tab==="add")
+  document.getElementById("ptTabList").classList.toggle("active",tab==="list")
+  document.getElementById("ptAddPane").style.display  = tab==="add"  ? "flex" : "none"
+  document.getElementById("ptListPane").style.display = tab==="list" ? "flex" : "none"
+  if(tab==="list") renderPtList()
+}
+
+window.togglePtMarker = function(){
+  ptMarkerMode = !ptMarkerMode
+  document.getElementById("ptMarkerSwitch").classList.toggle("on", ptMarkerMode)
+  document.getElementById("ptMarkerToggleRow").classList.toggle("active", ptMarkerMode)
+  document.getElementById("ptRegularFields").style.display = ptMarkerMode ? "none" : "flex"
+  document.getElementById("ptMarkerFields").style.display  = ptMarkerMode ? "flex" : "none"
+  updatePtPreview()
+}
+window.togglePtMarker = function() {
+  ptMarkerMode = !ptMarkerMode;
+  document.getElementById("ptMarkerSwitch").classList.toggle("on", ptMarkerMode);
+  document.getElementById("ptMarkerToggleRow").classList.toggle("active", ptMarkerMode);
+  document.getElementById("ptRegularFields").style.display = ptMarkerMode ? "none" : "flex";
+  document.getElementById("ptMarkerFields").style.display  = ptMarkerMode ? "flex" : "none";
+  updatePtPreview();
+};
+
+window.setPtMarkerType = function(type) {
+  ptMarkerType = type;
+  document.querySelectorAll(".pt-mtype-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.type === type);
+  });
+  updatePtPreview();
+};
+
+// Live preview
+const PT_TYPE_LABELS = {normal:"Send On",deadline:"Send Before",prediction:"Estimated",marker:"Marker"}
+const PT_MARKER_LABELS = {quiz:"Quiz 📝",exam:"Exam 📋",event:"Event 🎉",date:"Important 📌"}
+const thaiMonthsFull = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"]
+
+function thaiDateFull(str){
+  if(!str) return "—"
+  const d=new Date(str+"T00:00:00")
+  return `${d.getDate()} ${thaiMonthsFull[d.getMonth()]} ${d.getFullYear()+543}`
+}
+
+window.updatePtPreview = function(){
+  const box = document.getElementById("ptPreview")
+  if(!box) return
+  if(ptMarkerMode){
+    const name    = document.getElementById("pt-m-name")?.value.trim()    || "—"
+    const subject = document.getElementById("pt-m-subject")?.value.trim() || "—"
+    const date    = document.getElementById("pt-m-date")?.value
+    const note    = document.getElementById("pt-m-note")?.value.trim()
+    const dl = date ? daysLeft(parseDate(date)) : null
+    const dayStr = dl===null?"—":dl===0?"Today":dl>0?`In ${dl} day${dl===1?"":"s"}`:`${Math.abs(dl)}d ago`
+    box.textContent = `👤 Personal Marker\n\n📍 ${PT_MARKER_LABELS[ptMarkerType]||ptMarkerType}\n${name} · ${subject}\n📅 ${thaiDateFull(date)}\n⏱ ${dayStr}${note?"\n📌 "+note:""}`
+  } else {
+    const name    = document.getElementById("pt-name")?.value.trim()    || "—"
+    const subject = document.getElementById("pt-subject")?.value.trim() || "—"
+    const type    = document.getElementById("pt-type")?.value            || "normal"
+    const end     = document.getElementById("pt-end")?.value
+    const note    = document.getElementById("pt-note")?.value.trim()
+    const dl = end ? daysLeft(parseDate(end)) : null
+    const dayStr = dl===null?"—":dl===0?"Due today":dl>0?`${dl} day${dl===1?"":"s"} left`:`${Math.abs(dl)}d overdue`
+    box.textContent = `👤 Personal Task\n\n${name}\n${subject} · ${PT_TYPE_LABELS[type]}\n📅 Due ${thaiDateFull(end)}\n⏱ ${dayStr}${note?"\n📌 "+note:""}`
+  }
+}
+
+// Wire up live preview on all inputs
+;["pt-name","pt-subject","pt-type","pt-start","pt-end","pt-note",
+  "pt-m-name","pt-m-subject","pt-m-date","pt-m-note"].forEach(id=>{
+  const el = document.getElementById(id)
+  if(el) el.addEventListener("input", updatePtPreview)
+})
+
+window.savePtTask = async function(){
+  if(!currentUser) return
+  const col = collection(db,"userTasks",currentUser.uid,"tasks")
+
+  if(ptMarkerMode){
+    const name    = document.getElementById("pt-m-name").value.trim()
+    const subject = document.getElementById("pt-m-subject").value.trim()
+    const date    = document.getElementById("pt-m-date").value
+    const note    = document.getElementById("pt-m-note").value.trim()
+    if(!name||!date){ alert("Please fill in event name and date."); return }
+    await addDoc(col,{ name, subject, type:"marker", markerType:ptMarkerType, date, start:date, end:date, note, createdAt:Date.now() })
+  } else {
+    const name    = document.getElementById("pt-name").value.trim()
+    const subject = document.getElementById("pt-subject").value.trim()
+    const type    = document.getElementById("pt-type").value
+    const start   = document.getElementById("pt-start").value
+    const end     = document.getElementById("pt-end").value
+    const note    = document.getElementById("pt-note").value.trim()
+    if(!name||!subject||!start||!end){ alert("Please fill in name, subject, and dates."); return }
+    if(new Date(start)>new Date(end)){ alert("Start date must be before end date."); return }
+    await addDoc(col,{ name, subject, type, start, end, note, createdAt:Date.now() })
+  }
+  resetPtForm()
+  switchPtTab("list")
+}
+
+function resetPtForm(){
+  const today = new Date().toISOString().split("T")[0]
+  ptMarkerMode = false; ptMarkerType = "quiz"
+  document.getElementById("ptMarkerSwitch").classList.remove("on")
+  document.getElementById("ptMarkerToggleRow").classList.remove("active")
+  document.getElementById("ptRegularFields").style.display = "flex"
+  document.getElementById("ptMarkerFields").style.display  = "none"
+  ;["pt-name","pt-subject","pt-note","pt-m-name","pt-m-subject","pt-m-note"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value="" })
+  const ps=document.getElementById("pt-start"); if(ps) ps.value=today
+  const pe=document.getElementById("pt-end");   if(pe) pe.value=""
+  const pm=document.getElementById("pt-m-date"); if(pm) pm.value=today
+  document.querySelectorAll(".pt-mtype-btn").forEach(b=>b.classList.toggle("active",b.dataset.type==="quiz"))
+  document.getElementById("pt-type").value="normal"
+  updatePtPreview()
+}
+
+function updatePtCount(){
+  const badge = document.getElementById("ptCount")
+  if(!badge) return
+  const active = personalTasks.filter(t=>t.type!=="marker"&&daysLeft(parseDate(t.end||t.date))>=0||t.type==="prediction"||t.type==="marker")
+  if(active.length){ badge.textContent=personalTasks.length; badge.style.display="inline-block" }
+  else badge.style.display="none"
+}
+
+function renderPtList(){
+  const wrap = document.getElementById("ptListContent")
+  if(!wrap) return
+  if(!personalTasks.length){
+    wrap.innerHTML=`<div class="pt-list-empty">No personal tasks yet.<br><span>Add one from the ➕ Add tab.</span></div>`
+    return
+  }
+  const sorted=[...personalTasks].sort((a,b)=>new Date(a.end||a.date)-new Date(b.end||b.date))
+  wrap.innerHTML = sorted.map(t=>{
+    const isMarker = t.type==="marker"
+    const dateVal  = isMarker ? t.date : t.end
+    const dl       = daysLeft(parseDate(dateVal))
+    const color    = urgencyColor(t.type,dl)
+    const dayStr   = isMarker
+      ? (dl===0?"Today":dl>0?`In ${dl}d`:`${Math.abs(dl)}d ago`)
+      : (dl<0?`${Math.abs(dl)}d overdue`:dl===0?"Due today":`${dl}d left`)
+    const typeTag  = isMarker
+      ? `📍 ${(MARKER_INFO[t.markerType]||MARKER_INFO.date).label}`
+      : TYPE_LABEL[t.type]||t.type
+    return `<div class="pt-list-card">
+      <div class="pt-list-dot" style="background:${color}"></div>
+      <div class="pt-list-info">
+        <div class="pt-list-name">${t.name}</div>
+        <div class="pt-list-sub">${t.subject} · ${typeTag}</div>
+      </div>
+      <div class="pt-list-right">
+        <div class="pt-list-due" style="color:${color}">${shortDate(parseDate(dateVal))}</div>
+        <div class="pt-list-days">${dayStr}</div>
+      </div>
+      <button class="pt-list-del" onclick="deletePtTask(event,'${t.id}')">🗑️</button>
+    </div>`
+  }).join("")
+  updatePtCount()
+}
+
+window.deletePtTask = async function(e,id){
+  e.stopPropagation()
+  if(!currentUser||!confirm("Delete this personal task?")) return
+  await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",id))
 }
 
 document.getElementById("taskModal").addEventListener("click",function(e){if(e.target===this)closeModal()})
