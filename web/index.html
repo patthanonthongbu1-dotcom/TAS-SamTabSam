@@ -15,241 +15,424 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>3/3 Academic System — Sign In</title>
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --green: #1D9E75; --green-dark: #0F6E56; --green-light: #e6f7f1; --green-mid: #c3ead8;
-      --red: #c0392b; --red-light: #fdecea;
-      --purple: #7c3aed; --purple-light: #ede9fe; --purple-mid: #c4b5fd;
-      --bg: #f4f6f4; --card: #ffffff; --border: #e8ebe8;
-      --text: #1a1a1a; --muted: #6b7b6b; --label: #9aaa9a;
+      --navy: #182848; --navy-dark: #0d1526; --navy-mid: #2f6fed;
+      --pink: #ff4fa3; --pink-dark: #8e1c63; --pink-soft: #ffd6ea;
+      --red: #c0392b; --text: #1a1a1a; --muted: #6b7b6b; --label: #9aaa9a;
     }
+    html, body { height: 100%; }
     body {
       font-family: 'Prompt', sans-serif;
-      background: var(--bg);
       min-height: 100vh;
+    }
+
+    .app-split {
       display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── LEFT PANEL — brand only ────────────────────────────────── */
+    .panel-left {
+      flex: 0 0 42%;
+      position: relative;
+      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 1.5rem;
+      padding: 3rem 2rem;
+      background: linear-gradient(160deg, #ffffff 0%, #fff0f7 45%, var(--pink-soft) 75%, #ffe3f1 100%);
+      overflow: hidden;
     }
-    .login-wrap {
-      width: 100%;
-      max-width: 380px;
+    /* Logo wrapper carries the float/entrance; the img carries the glow,
+       and ::after paints a white shine masked to the logo's own shape. */
+    .logo-wrap { position: relative; width: min(300px, 78%); z-index: 1; }
+    .brand-logo { width: 100%; height: auto; display: block; }
+    .logo-wrap::after {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(115deg, transparent 38%, rgba(255,255,255,0.9) 50%, transparent 62%);
+      background-size: 250% 100%; background-repeat: no-repeat;
+      -webkit-mask: url("TASLogo.png") center / contain no-repeat;
+              mask: url("TASLogo.png") center / contain no-repeat;
+      mix-blend-mode: screen; pointer-events: none;
+      animation: logoShine 5.5s ease-in-out 1s infinite;
+    }
+    .mobile-brand { display: none; }  /* shown only on narrow screens */
+
+    /* White glow — reads on the DARK panels (mobile login/dashboard logos) */
+    @keyframes logoGlow {
+      0%, 100% { filter: drop-shadow(0 0 3px rgba(255,255,255,0.25)); }
+      50%      { filter: drop-shadow(0 0 15px rgba(255,255,255,0.85)); }
+    }
+    /* Pink glow — reads on the LIGHT brand panel (desktop logo on white) */
+    @keyframes logoGlowPink {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(255,79,163,0.25)); }
+      50%      { filter: drop-shadow(0 0 17px rgba(255,79,163,0.6)); }
+    }
+    @keyframes logoShine {
+      0%      { background-position: 200% 0; }
+      55%,100%{ background-position: -120% 0; }
+    }
+
+    .dot-deco { position: absolute; left: 32px; bottom: 32px; display: flex; flex-direction: column; gap: 9px; }
+    .dot-row { display: flex; gap: 9px; }
+    .dot-row span { width: 8px; height: 8px; border-radius: 50%; background: var(--pink); display: block; }
+
+    /* ── RIGHT PANEL — sign-in card OR dashboard, both dark-themed ── */
+    .panel-right {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(160deg, #1c2f56 0%, var(--navy) 40%, var(--navy-dark) 100%);
+      color: white;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 1.5rem;
     }
-    .brand { text-align: center; }
-    .brand-icon {
-      width: 96px; height: 96px;
-      background-image: url('TASLogo.png');
-      background-position: center;
+    .panel-right::before {
+      content: "";
+      position: absolute; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 700'%3E%3Cg fill='none' stroke='white' stroke-opacity='0.07' stroke-width='1'%3E%3Cpath d='M-50 80 C150 20 250 140 450 80 S750 20 950 100'/%3E%3Cpath d='M-50 160 C150 100 250 220 450 160 S750 100 950 180'/%3E%3Cpath d='M-50 240 C150 180 250 300 450 240 S750 180 950 260'/%3E%3Cpath d='M-50 320 C150 260 250 380 450 320 S750 260 950 340'/%3E%3Cpath d='M-50 400 C150 340 250 460 450 400 S750 340 950 420'/%3E%3Cpath d='M-50 480 C150 420 250 540 450 480 S750 420 950 500'/%3E%3Cpath d='M-50 560 C150 500 250 620 450 560 S750 500 950 580'/%3E%3Cpath d='M-50 640 C150 580 250 700 450 640 S750 580 950 660'/%3E%3C/g%3E%3C/svg%3E");
       background-size: cover;
-      background-repeat: no-repeat;
-      border-radius: 18px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 30px;
-      margin: 0 auto 14px;
+      background-position: center;
+      pointer-events: none;
+      animation: waveDrift 26s ease-in-out infinite alternate;
     }
-    .brand h1 { font-size: 20px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
-    .brand p { font-size: 13px; color: var(--muted); margin-top: 4px; font-weight: 300; }
-    .card {
-      width: 100%;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 2rem 1.75rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1.25rem;
+
+    /* ── Floating gradient orbs — soft animated abstract backdrop ──── */
+    .bg-orbs { position: absolute; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; }
+    .orb { position: absolute; border-radius: 50%; filter: blur(64px); will-change: transform; }
+    /* Dark (right) panel — vivid blue/pink orbs */
+    .orb-1 { width: 360px; height: 360px; top: -90px; left: -70px;
+             background: radial-gradient(circle at 50% 50%, rgba(47,111,237,0.55), transparent 70%);
+             animation: drift1 19s ease-in-out infinite; }
+    .orb-2 { width: 300px; height: 300px; bottom: -100px; right: -80px;
+             background: radial-gradient(circle at 50% 50%, rgba(255,79,163,0.42), transparent 70%);
+             animation: drift2 23s ease-in-out infinite; }
+    .orb-3 { width: 240px; height: 240px; top: 42%; left: 52%;
+             background: radial-gradient(circle at 50% 50%, rgba(214,117,177,0.38), transparent 70%);
+             animation: drift3 27s ease-in-out infinite; }
+    /* Light (left) panel — barely-there pink orbs */
+    .bg-orbs-light .orb { filter: blur(70px); }
+    .orb-l1 { width: 320px; height: 320px; top: -60px; right: -80px;
+              background: radial-gradient(circle at 50% 50%, rgba(255,79,163,0.28), transparent 70%);
+              animation: drift2 24s ease-in-out infinite; }
+    .orb-l2 { width: 260px; height: 260px; bottom: -70px; left: -60px;
+              background: radial-gradient(circle at 50% 50%, rgba(214,117,177,0.22), transparent 70%);
+              animation: drift1 21s ease-in-out infinite; }
+
+    @keyframes drift1    { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(46px,54px) scale(1.08); } }
+    @keyframes drift2    { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-52px,-40px) scale(1.1); } }
+    @keyframes drift3    { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-38px,44px) scale(0.92); } }
+    @keyframes waveDrift { from { transform: translate3d(0,0,0); } to { transform: translate3d(-3%,-2%,0) scale(1.06); } }
+
+    /* ── Sign-in card (lives in the right/dark panel now) ──────────── */
+    #loginPanel {
+      flex: 1;
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1rem;
+      width: 100%; max-width: 340px; margin: 0 auto;
+      padding: 2rem;
     }
-    .card-title { font-size: 15px; font-weight: 500; color: var(--text); text-align: center; }
-    .card-sub { font-size: 12px; color: var(--muted); text-align: center; font-weight: 300; margin-top: -0.75rem; }
+    .card-title { font-size: 16px; font-weight: 500; color: white; text-align: center; }
+    .card-sub { font-size: 12px; color: rgba(255,255,255,0.6); text-align: center; font-weight: 300; margin-top: -0.5rem; }
+    .status { padding: 11px 14px; border-radius: 10px; font-size: 12px; text-align: center; font-weight: 400; display: none; line-height: 1.5; width: 100%; }
+    .s-error { background: rgba(192,57,43,0.18); color: #ff9b8a; display: block; }
+    .s-success { background: rgba(29,158,117,0.18); color: #6fe3bd; display: block; }
+    .s-loading { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.75); display: block; }
     .btn-google {
       width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
+      display: flex; align-items: center; justify-content: center; gap: 12px;
       padding: 13px 20px;
       background: white;
-      border: 1.5px solid #e2e8f0;
+      border: 1.5px solid transparent;
       border-radius: 12px;
       font-family: 'Prompt', sans-serif;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text);
+      font-size: 14px; font-weight: 500; color: var(--text);
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s, transform 0.1s;
       touch-action: manipulation;
     }
-    .btn-google:hover { background: #f8fafc; border-color: #cbd5e1; }
+    .btn-google:hover { background: #fff6fb; border-color: var(--pink); }
     .btn-google:active { transform: scale(0.99); }
     .btn-google:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .status {
-      padding: 11px 14px;
-      border-radius: 10px;
-      font-size: 12px;
-      text-align: center;
-      font-weight: 400;
-      display: none;
-      line-height: 1.5;
-    }
-    .s-error { background: var(--red-light); color: var(--red); display: block; }
-    .s-success { background: var(--green-light); color: var(--green-dark); display: block; }
-    .s-loading { background: #f8fafc; color: var(--muted); display: block; }
-    .user-card {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      text-align: center;
-    }
-    .user-card.visible { display: flex; }
-    .user-avatar {
-      width: 56px; height: 56px;
-      border-radius: 50%;
-      border: 2px solid var(--green-light);
-      object-fit: cover;
-    }
-    .user-avatar-fallback {
-      width: 56px; height: 56px;
-      border-radius: 50%;
-      background: var(--green);
-      color: white;
-      font-size: 20px;
-      font-weight: 500;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .user-name { font-size: 15px; font-weight: 500; color: var(--text); }
-    .user-email { font-size: 12px; color: var(--muted); font-weight: 300; }
-    .role-badge {
-      font-size: 11px;
-      font-weight: 500;
-      padding: 4px 12px;
-      border-radius: 20px;
-      background: var(--green-light);
-      color: var(--green-dark);
-    }
-    .role-badge.denied { background: var(--red-light); color: var(--red); }
-    .role-badge.checking { background: #f8fafc; color: var(--muted); }
+    .hint { font-size: 11px; color: rgba(255,255,255,0.45); text-align: center; line-height: 1.6; }
 
-    .btn-calendar {
-      width: 100%;
-      padding: 13px;
-      background: white;
-      border: 1.5px solid var(--green);
-      border-radius: 12px;
-      font-family: 'Prompt', sans-serif;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--green);
-      cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
-      touch-action: manipulation;
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    .btn-calendar:hover { background: var(--green-light); }
-    .btn-calendar:active { transform: scale(0.99); }
+    /* ── Dashboard (userPanel) ──────────────────────────────────── */
+    #userPanel { flex: 1; display: flex; flex-direction: column; padding: 2.75rem 3.5rem; }
+    .rp-top, .rp-middle, .rp-bottom { position: relative; z-index: 1; }
+    .rp-top { display: flex; justify-content: flex-end; }
+    #todayDate { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.75); }
+    .rp-middle { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2.25rem; width: 100%; max-width: 480px; margin: 0 auto; }
+    .rp-bottom { display: flex; justify-content: flex-end; }
 
-    .btn-announce {
-      width: 100%;
-      padding: 13px;
-      background: var(--purple-light);
-      border: 1.5px solid var(--purple-mid);
-      border-radius: 12px;
-      font-family: 'Prompt', sans-serif;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--purple);
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s, transform 0.1s;
-      touch-action: manipulation;
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    .btn-announce:hover { background: var(--purple-mid); border-color: var(--purple); }
-    .btn-announce:active { transform: scale(0.99); }
+    /* Welcome block */
+    /* z-index ordering so the role tooltip (inside .welcome-row) paints
+       ABOVE the nav pills. The fade-in animations leave a lingering
+       transform → each block is its own stacking context, so a huge
+       z-index on the tooltip alone can't escape; we rank the blocks here. */
+    .welcome-row { display: flex; align-items: center; gap: 18px; position: relative; z-index: 3; }
+    .user-avatar { width: 60px; height: 60px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.25); object-fit: cover; }
+    .user-avatar-fallback { width: 60px; height: 60px; border-radius: 50%; background: var(--pink); color: white; font-size: 21px; font-weight: 500; display: flex; align-items: center; justify-content: center; }
+    .welcome-hi { font-size: 13px; color: rgba(255,255,255,0.65); font-weight: 300; }
+    .welcome-name { font-size: 34px; font-weight: 700; letter-spacing: 0.3px; line-height: 1.15; }
+    .role-line { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+    .welcome-role { font-size: 11px; letter-spacing: 0.15em; color: rgba(255,255,255,0.55); text-transform: uppercase; transition: color 0.25s ease; }
+    .welcome-role.checking { animation: softPulse 1.1s ease-in-out infinite; }
+    .welcome-role.is-mod { color: var(--pink); }
+    @keyframes softPulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
 
-    .btn-continue {
-      width: 100%;
-      padding: 13px;
-      background: var(--green);
-      border: none;
-      border-radius: 12px;
+    /* Role info "i" + tooltip explaining how to become a Moderator */
+    .role-info {
+      position: relative;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 17px; height: 17px; border-radius: 50%;
+      font-size: 11px; font-weight: 600; font-style: normal; line-height: 1;
+      color: rgba(255,255,255,0.6);
+      border: 1px solid rgba(255,255,255,0.32);
+      cursor: help; user-select: none; flex-shrink: 0;
+      transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.15s;
+    }
+    .role-info:hover, .role-info:focus-visible {
+      color: #fff; border-color: var(--pink); background: rgba(255,79,163,0.18);
+      transform: scale(1.12); outline: none;
+    }
+    .role-tip {
+      position: absolute; top: calc(100% + 11px); left: -4px;
+      width: 250px; max-width: 74vw;
+      background: rgba(11,20,38,0.98); color: rgba(255,255,255,0.9);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 12px;
+      padding: 11px 13px;
+      font-size: 11.5px; font-weight: 300; line-height: 1.55;
+      letter-spacing: normal; text-transform: none; text-align: left;
+      box-shadow: 0 18px 38px -14px rgba(0,0,0,0.75);
+      opacity: 0; visibility: hidden; pointer-events: none;
+      transform: translateY(-6px) scale(0.96); transform-origin: top left;
+      transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+      z-index: 9999;
+    }
+    .role-tip b { color: var(--pink); font-weight: 600; }
+    .role-tip::before {
+      content: ""; position: absolute; bottom: 100%; left: 12px;
+      border: 6px solid transparent; border-bottom-color: rgba(11,20,38,0.98);
+    }
+    .role-info:hover .role-tip,
+    .role-info:focus .role-tip,
+    .role-info:focus-within .role-tip {
+      opacity: 1; visibility: visible; pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+
+    .statusUser-wrap { min-height: 0; position: relative; z-index: 2; }
+    #statusUser.status { width: auto; }
+
+    /* Nav pills — richer gradients + glossy highlight */
+    .nav-pills { display: flex; flex-direction: column; gap: 14px; position: relative; z-index: 1; }
+    .nav-pill {
+      position: relative;
+      display: flex; align-items: center; gap: 18px;
+      width: 100%; min-height: 96px;
+      padding: 18px 26px;
+      border: none; border-radius: 22px;
+      color: white; text-decoration: none;
       font-family: 'Prompt', sans-serif;
-      font-size: 14px;
-      font-weight: 500;
-      color: white;
       cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
+      overflow: hidden;
+      box-shadow: 0 10px 24px -8px rgba(0,0,0,0.5);
+      transition: filter 0.15s, transform 0.1s;
       touch-action: manipulation;
     }
-    .btn-continue:hover { background: var(--green-dark); }
-    .btn-continue:active { transform: scale(0.99); }
+    .nav-pill::before {
+      content: "";
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 55%);
+      pointer-events: none;
+    }
+    .nav-pill:hover { filter: brightness(1.1); }
+    .nav-pill:active { transform: scale(0.99); }
+    .pill-announce { background: linear-gradient(180deg, #093c80 0%, #0b1c3d 100%); }
+    .pill-calendar { background: linear-gradient(180deg, #d675b1 0%, #74163e 100%); }
+    .pill-icon { position: relative; z-index: 1; font-size: 28px; line-height: 1; flex-shrink: 0; display: flex; align-items: center; }
+    .pill-labels { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; }
+    .pill-title { font-size: 21px; font-weight: 700; letter-spacing: 0.2px; }
+    .pill-sub { font-size: 10px; font-weight: 500; letter-spacing: 0.18em; opacity: 0.85; margin-top: 2px; }
+    .pill-chevron { position: relative; z-index: 1; margin-left: auto; font-size: 22px; line-height: 1; opacity: 0.85; flex-shrink: 0; }
+    .pill-dot { position: absolute; top: 10px; right: 14px; width: 8px; height: 8px; border-radius: 50%; background: white; box-shadow: 0 0 0 3px rgba(255,255,255,0.15); z-index: 1; }
 
-    .divider {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 11px;
-      color: var(--label);
+    .logout-link {
+      display: flex; align-items: center; gap: 6px;
+      background: none; border: none;
+      font-family: 'Prompt', sans-serif; font-size: 13px; font-weight: 400;
+      color: rgba(255,255,255,0.55);
+      cursor: pointer; padding: 6px 2px;
+      transition: color 0.15s;
     }
-    .divider::before,.divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--border);
+    .logout-link:hover { color: white; }
+
+    /* ── Mobile: drop the brand panel entirely and let the active
+       right-panel content (login OR dashboard) own the full screen,
+       carrying its own logo inside it ────────────────────────────── */
+    @media (max-width: 860px) {
+      .app-split { flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+      .panel-left { display: none; }
+      .panel-right { flex: 1; min-height: 100vh; min-height: 100dvh; }
+      .mobile-brand { display: block; }
+
+      /* ── Login — centered card, logo up top ─────────────────── */
+      #loginPanel { max-width: 420px; padding: 2.5rem 1.6rem; gap: 1.2rem; }
+      #loginPanel .mobile-brand { width: min(190px, 54%); height: auto; margin: 0 auto 0.4rem; }
+
+      /* ── Dashboard — full-bleed: sticky header bar, top-aligned
+           content, roomy pills, footer pinned to the bottom ────── */
+      #userPanel { padding: 0; }
+
+      .rp-top {
+        justify-content: space-between; align-items: center;
+        padding: 1.1rem 1.4rem;
+        background: rgba(255,255,255,0.03);
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        backdrop-filter: blur(4px);
+      }
+      #userPanel .mobile-brand { width: 104px; height: auto; }
+      #todayDate { font-size: 12.5px; }
+
+      .rp-middle {
+        justify-content: flex-start;
+        gap: 2rem; max-width: 100%; margin: 0;
+        padding: 2.25rem 1.4rem 1.25rem;
+      }
+      .welcome-row { gap: 16px; }
+      .user-avatar, .user-avatar-fallback { width: 64px; height: 64px; }
+      .welcome-name { font-size: 30px; }
+
+      .nav-pills { gap: 16px; }
+      .nav-pill { min-height: 92px; border-radius: 24px; }
+
+      .rp-bottom { justify-content: center; padding: 0.5rem 1.4rem 1.8rem; }
+      .logout-link { font-size: 14px; padding: 10px; }
+
+      .role-tip { width: 240px; }
     }
 
-    .btn-signout {
-      width: 100%;
-      padding: 11px;
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      font-family: 'Prompt', sans-serif;
-      font-size: 13px;
-      font-weight: 400;
-      color: var(--muted);
-      cursor: pointer;
-      transition: background 0.15s;
-      touch-action: manipulation;
+    /* Extra-small phones — tighten spacing a touch more */
+    @media (max-width: 420px) {
+      #loginPanel { padding: 2rem 1.3rem; }
+      #userPanel .mobile-brand { width: 92px; }
+      #todayDate { font-size: 12px; }
+      .rp-middle { padding: 1.75rem 1.25rem 1rem; gap: 1.6rem; }
+      .welcome-name { font-size: 26px; }
+      .user-avatar, .user-avatar-fallback { width: 56px; height: 56px; }
+      .nav-pill { min-height: 84px; padding: 16px 20px; }
+      .pill-title { font-size: 19px; }
+      .pill-icon { font-size: 25px; }
     }
-    .btn-signout:hover { background: var(--red-light); color: var(--red); border-color: #f5c6c6; }
 
-    .hint {
-      font-size: 11px;
-      color: var(--label);
-      text-align: center;
-      line-height: 1.6;
+    /* ── Motion: entrance animations + richer hovers ──────────────── */
+    @keyframes fadeIn      { from { opacity: 0; }                                to { opacity: 1; } }
+    @keyframes fadeInUp    { from { opacity: 0; transform: translateY(14px); }   to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeInScale { from { opacity: 0; transform: scale(0.94); }        to { opacity: 1; transform: scale(1); } }
+    @keyframes floatLogo   { 0%,100% { transform: translateY(0); }              50% { transform: translateY(-9px); } }
+    @keyframes dotPulse    { 0%,100% { transform: scale(1); opacity: 0.75; }    50% { transform: scale(1.55); opacity: 1; } }
+    @keyframes shine       { 0% { left: -60%; opacity: 0.6; }                    100% { left: 130%; opacity: 0; } }
+
+    /* Brand side */
+    .panel-left  { animation: fadeIn 0.7s ease both; }
+    .logo-wrap   { animation: fadeInScale 0.7s ease both, floatLogo 6.5s ease-in-out 0.7s infinite; }
+    .brand-logo  { animation: logoGlowPink 4.5s ease-in-out 0.7s infinite; }
+    .mobile-brand { animation: logoGlow 4.5s ease-in-out infinite; }
+    /* Login logo lives on a dark panel & is child #1 of #loginPanel, so the
+       stagger rule would otherwise win — keep its entrance AND add the glow. */
+    #loginPanel img.mobile-brand { animation: fadeInUp 0.5s ease both, logoGlow 4.5s ease-in-out 0.5s infinite; }
+    .dot-row span { animation: dotPulse 2.4s ease-in-out infinite; }
+    .dot-row span:nth-child(2) { animation-delay: 0.15s; }
+    .dot-row span:nth-child(3) { animation-delay: 0.30s; }
+    .dot-row span:nth-child(4) { animation-delay: 0.45s; }
+    .dot-row span:nth-child(5) { animation-delay: 0.60s; }
+
+    /* Login card — stagger children in */
+    #loginPanel > * { animation: fadeInUp 0.5s ease both; }
+    #loginPanel > *:nth-child(1) { animation-delay: 0.04s; }
+    #loginPanel > *:nth-child(2) { animation-delay: 0.10s; }
+    #loginPanel > *:nth-child(3) { animation-delay: 0.16s; }
+    #loginPanel > *:nth-child(4) { animation-delay: 0.22s; }
+    #loginPanel > *:nth-child(5) { animation-delay: 0.28s; }
+    #loginPanel > *:nth-child(6) { animation-delay: 0.34s; }
+
+    /* Dashboard — stagger in when it becomes visible */
+    .rp-top       { animation: fadeIn 0.6s ease both; }
+    .welcome-row  { animation: fadeInUp 0.55s ease both 0.06s; }
+    .statusUser-wrap { animation: fadeInUp 0.55s ease both 0.12s; }
+    .nav-pill     { animation: fadeInUp 0.55s ease both; }
+    .nav-pill:nth-of-type(1) { animation-delay: 0.18s; }
+    .nav-pill:nth-of-type(2) { animation-delay: 0.26s; }
+    .rp-bottom    { animation: fadeIn 0.8s ease both 0.34s; }
+
+    /* Richer nav-pill hover — lift, deepen shadow, slide chevron, shine sweep */
+    .nav-pill { transition: transform 0.18s cubic-bezier(.2,.7,.3,1), filter 0.18s ease, box-shadow 0.18s ease; }
+    .nav-pill:hover  { transform: translateY(-4px); filter: brightness(1.09); box-shadow: 0 20px 36px -12px rgba(0,0,0,0.6); }
+    .nav-pill:active { transform: translateY(-1px) scale(0.99); }
+    .nav-pill::after {
+      content: ""; position: absolute; top: 0; left: -60%; width: 45%; height: 100%;
+      background: linear-gradient(100deg, transparent, rgba(255,255,255,0.35), transparent);
+      transform: skewX(-20deg); opacity: 0; z-index: 1; pointer-events: none;
     }
-    #loginPanel { display: flex; flex-direction: column; gap: 1rem; }
-    #userPanel { display: none; flex-direction: column; gap: 0.875rem; }
-    @media (max-width: 400px) { .card { padding: 1.5rem 1.25rem; } }
+    .nav-pill:hover::after { animation: shine 0.75s ease; }
+    .pill-chevron { transition: transform 0.18s ease; }
+    .nav-pill:hover .pill-chevron { transform: translateX(6px); }
+    .pill-dot { animation: dotPulse 2s ease-in-out infinite; }
+
+    /* Google button — lift + soft pink glow on hover */
+    .btn-google { transition: background 0.15s, border-color 0.15s, transform 0.15s ease, box-shadow 0.15s ease; }
+    .btn-google:hover  { transform: translateY(-2px); box-shadow: 0 12px 26px -10px rgba(255,79,163,0.5); }
+    .btn-google:active { transform: translateY(0) scale(0.99); }
+
+    /* Avatar pops slightly when the welcome row is hovered */
+    .user-avatar, .user-avatar-fallback { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .welcome-row:hover .user-avatar,
+    .welcome-row:hover .user-avatar-fallback { transform: scale(1.07); box-shadow: 0 6px 18px -6px rgba(255,79,163,0.55); }
+
+    /* Logout nudges on hover */
+    .logout-link { transition: color 0.15s ease, transform 0.15s ease; }
+    .logout-link:hover { color: white; transform: translateX(3px); }
+
+    /* Respect users who prefer less motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; }
+    }
   </style>
 </head>
 <body>
-<div class="login-wrap">
-  <div class="brand">
-    <div class="brand-icon"></div>
-    <h1>3/3 Academic System</h1>
-    <p>Sign in to continue</p>
+
+<div class="app-split">
+
+  <!-- LEFT PANEL — brand only -->
+  <div class="panel-left">
+    <div class="bg-orbs bg-orbs-light" aria-hidden="true">
+      <span class="orb orb-l1"></span>
+      <span class="orb orb-l2"></span>
+    </div>
+    <div class="logo-wrap">
+      <img class="brand-logo" src="TASLogo.png" alt="3/3 Academic System">
+    </div>
+    <div class="dot-deco" aria-hidden="true">
+      <div class="dot-row"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="dot-row"><span></span><span></span></div>
+    </div>
   </div>
 
-  <div class="card">
-    <!-- Login panel -->
+  <!-- RIGHT PANEL — sign-in card, then dashboard once signed in -->
+  <div class="panel-right">
+
+    <div class="bg-orbs" aria-hidden="true">
+      <span class="orb orb-1"></span>
+      <span class="orb orb-2"></span>
+      <span class="orb orb-3"></span>
+    </div>
+
     <div id="loginPanel">
+      <img class="mobile-brand" src="TASLogoLIGHT.png" alt="3/3 Academic System">
       <div class="card-title">Sign in with Google</div>
       <div class="card-sub">Use your school Google account</div>
       <div class="status" id="status"></div>
@@ -265,41 +448,64 @@
       <div class="hint">Sign in with any Google account to view the calendar.<br>Mod panel access is restricted to authorised accounts.</div>
     </div>
 
-    <!-- User panel (shown when signed in) -->
-    <div id="userPanel">
-      <div class="user-card" id="userCard">
-        <div id="avatarWrap"></div>
-        <div>
-          <div class="user-name" id="userName"></div>
-          <div class="user-email" id="userEmail"></div>
-        </div>
-        <div class="role-badge checking" id="roleBadge">⏳ Checking access...</div>
+    <div id="userPanel" style="display:none;">
+      <div class="rp-top">
+        <img class="mobile-brand" src="TASLogoLIGHT.png" alt="3/3 Academic System">
+        <span id="todayDate"></span>
       </div>
 
-      <div class="status" id="statusUser"></div>
+      <div class="rp-middle">
+        <div class="welcome-row">
+          <div id="avatarWrap"></div>
+          <div>
+            <div class="welcome-hi">Welcome Back,</div>
+            <div class="welcome-name" id="userName"></div>
+            <div class="role-line">
+              <span class="welcome-role checking" id="roleBadge">Checking access...</span>
+              <span class="role-info" tabindex="0" aria-label="How to become a Moderator" aria-describedby="modTip">i
+                <span class="role-tip" role="tooltip" id="modTip">
+                  The <b>Moderator</b> role is granted only to members of the
+                  <b>Academic Department</b>. To request access, contact <b>Non</b>.
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
 
-      <!-- Calendar -->
-      <a class="btn-calendar" id="calendarBtn" href="calendar.html">📅 Go to Calendar</a>
+        <div class="statusUser-wrap"><div class="status" id="statusUser"></div></div>
 
-      <!-- Announcements -->
-      <a class="btn-announce" href="announce.html" target="_blank" rel="noopener">📢 Announcements</a>
+        <div class="nav-pills">
+          <button class="nav-pill pill-announce" id="continueBtn" type="button" style="display:none">
+            <span class="pill-icon">📢</span>
+            <span class="pill-labels"><span class="pill-title">Announce</span><span class="pill-sub">SYSTEM</span></span>
+            <span class="pill-chevron">›</span>
+            <span class="pill-dot"></span>
+          </button>
 
-      <div class="divider">account</div>
+          <a class="nav-pill pill-calendar" id="calendarBtn" href="calendar.html">
+            <span class="pill-icon">📅</span>
+            <span class="pill-labels"><span class="pill-title">Calendar</span><span class="pill-sub">SYSTEM</span></span>
+            <span class="pill-chevron">›</span>
+            <span class="pill-dot"></span>
+          </a>
+        </div>
+      </div>
 
-      <!-- Mod panel — only for whitelisted accounts -->
-      <button class="btn-continue" id="continueBtn" style="display:none">🛠 Go to Mod Panel</button>
-
-      <button class="btn-signout" id="signOutBtn">Sign out</button>
+      <div class="rp-bottom">
+        <button class="logout-link" id="signOutBtn">🚪 Log Out</button>
+      </div>
     </div>
+
   </div>
 
-  <div class="hint" style="margin-top:-0.5rem;">3/3 Academic System &nbsp;·&nbsp; v2</div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js"
-import { getAuth, signInWithPopup, signOut, onAuthStateChanged, GoogleAuthProvider }
-  from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
+import {
+  getAuth, signInWithPopup, signOut, onAuthStateChanged, GoogleAuthProvider,
+  setPersistence, browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
 import { getFirestore, doc, getDoc }
   from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 
@@ -319,6 +525,10 @@ const auth     = getAuth(app)
 const db       = getFirestore(app)
 const provider = new GoogleAuthProvider()
 provider.setCustomParameters({ prompt: "select_account" })
+
+// Explicit local persistence — keeps the session in this browser across
+// reloads/reopens so users aren't asked to sign in again every visit.
+try { await setPersistence(auth, browserLocalPersistence) } catch(e) { console.warn("Could not set persistence:", e) }
 
 // ── Fetch whitelist from Firestore ────────────────────────────
 // Document: config/modWhitelist  →  { emails: ["a@b.com", ...] }
@@ -344,10 +554,16 @@ function clearStatus(id) {
   el.textContent = ""
 }
 
+function formatToday() {
+  const d = new Date()
+  return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`
+}
+
 async function showUserPanel(user) {
   document.getElementById("loginPanel").style.display = "none"
-  document.getElementById("userPanel").style.display = "flex"
-  document.getElementById("userCard").classList.add("visible")
+  document.getElementById("userPanel").style.display  = "flex"
+  document.getElementById("userPanel").style.flexDirection = "column"
+  document.getElementById("todayDate").textContent = formatToday()
 
   const avatarWrap = document.getElementById("avatarWrap")
   if (user.photoURL) {
@@ -358,23 +574,27 @@ async function showUserPanel(user) {
   }
 
   document.getElementById("userName").textContent = user.displayName || "—"
-  document.getElementById("userEmail").textContent = user.email
 
   const badge       = document.getElementById("roleBadge")
   const continueBtn = document.getElementById("continueBtn")
+
+  badge.textContent = "Checking access..."
+  badge.classList.add("checking")
+  badge.classList.remove("is-mod")
 
   // Check whitelist from Firestore
   const whitelist = await fetchWhitelist()
   const isMod = whitelist.includes(user.email.toLowerCase())
 
+  badge.classList.remove("checking")
   if (isMod) {
-    badge.textContent         = "✅ Moderator"
-    badge.className           = "role-badge"
-    continueBtn.style.display = "block"
+    badge.textContent         = "Moderator"
+    badge.classList.add("is-mod")
+    continueBtn.style.display = "flex"
     continueBtn.onclick       = () => { window.location.href = MOD_PANEL_URL }
   } else {
-    badge.textContent         = "👤 Student"
-    badge.className           = "role-badge"
+    badge.textContent         = "Student"
+    badge.classList.remove("is-mod")
     continueBtn.style.display = "none"
   }
   clearStatus("statusUser")
@@ -382,8 +602,7 @@ async function showUserPanel(user) {
 
 function showLoginPanel() {
   document.getElementById("loginPanel").style.display = "flex"
-  document.getElementById("userPanel").style.display  = "none"
-  document.getElementById("userCard").classList.remove("visible")
+  document.getElementById("userPanel").style.display   = "none"
   clearStatus("status")
 }
 

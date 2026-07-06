@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TAS Mod Panel</title>
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <title>TAS · Task Formatter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
     // Force external browser if opened in LINE
     (function() {
@@ -20,352 +20,494 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --green: #1D9E75; --green-dark: #0F6E56; --green-light: #e6f7f1; --green-mid: #c3ead8;
-      --red-light: #fdecea; --red: #c0392b; --red-mid: #f5c6c6;
-      --amber-light: #fefce8; --amber-border: #e8d98a; --amber-text: #7a6a10;
-      --blue-light: #eff6ff; --blue: #2563eb;
-      --purple-light: #f3f0ff; --purple: #7c3aed; --purple-border: #c4b5fd;
-      --marker-light: #fff7ed; --marker: #ea580c; --marker-border: #fed7aa;
-      --bg: #f4f6f4; --card: #ffffff; --border: #e8ebe8;
-      --text: #1a1a1a; --muted: #6b7b6b; --label: #9aaa9a; --surface: #f8faf8;
+      --navy: #182848; --navy-dark: #0d1526; --navy-mid: #2f6fed;
+      --pink: #ff4fa3; --pink-dark: #8e1c63; --pink-soft: #ffd6ea;
+      --glass: rgba(255,255,255,0.06);
+      --glass-2: rgba(255,255,255,0.04);
+      --glass-brd: rgba(255,255,255,0.12);
+      --field-bg: rgba(255,255,255,0.07);
+      --field-brd: rgba(255,255,255,0.16);
+      --text: #ffffff; --muted: rgba(255,255,255,0.62); --label: rgba(255,255,255,0.45);
+      --red: #ff9b8a; --amber: #fde68a; --blue: #a9c8ff; --orange: #fdba74; --green: #6fe3bd;
     }
+    /* One seamless backdrop — fixed gradient, dark html fallback for overscroll */
+    html { min-height: 100%; background: var(--navy-dark); }
+    body {
+      font-family: 'Kanit', sans-serif;
+      min-height: 100vh; min-height: 100dvh;
+      color: var(--text);
+      background: linear-gradient(160deg, #1c2f56 0%, var(--navy) 40%, var(--navy-dark) 100%) fixed;
+      background-size: 200% 200%;
+      animation: bgShift 24s ease-in-out infinite alternate;
+      display: flex; justify-content: center;
+      padding: 2.5rem 1rem 4rem;
+      position: relative; overflow-x: hidden;
+    }
+    @keyframes bgShift { 0% { background-position: 0% 0%; } 100% { background-position: 100% 100%; } }
 
+    /* ── Animated orb backdrop (matches index.html) ─────────────── */
+    .bg-orbs { position: fixed; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; }
+    .orb { position: absolute; border-radius: 50%; filter: blur(70px); will-change: transform; }
+    .orb-1 { width: 380px; height: 380px; top: -100px; left: -80px;
+             background: radial-gradient(circle at 50% 50%, rgba(47,111,237,0.5), transparent 70%);
+             animation: drift1 20s ease-in-out infinite; }
+    .orb-2 { width: 320px; height: 320px; bottom: -120px; right: -90px;
+             background: radial-gradient(circle at 50% 50%, rgba(255,79,163,0.4), transparent 70%);
+             animation: drift2 24s ease-in-out infinite; }
+    .orb-3 { width: 260px; height: 260px; top: 45%; left: 60%;
+             background: radial-gradient(circle at 50% 50%, rgba(214,117,177,0.34), transparent 70%);
+             animation: drift3 28s ease-in-out infinite; }
+    @keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(46px,54px) scale(1.08); } }
+    @keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-52px,-40px) scale(1.1); } }
+    @keyframes drift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-38px,44px) scale(0.92); } }
+
+    /* ── Skeleton loading gate ──────────────────────────────────── */
     #authGate {
-      position: fixed; inset: 0; background: var(--bg);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 9999; flex-direction: column; gap: 12px;
-      font-family: 'Prompt', sans-serif;
+      position: fixed; inset: 0; z-index: 50;
+      display: flex; justify-content: center;
+      padding: 2.5rem 1rem; overflow: auto;
+      background: linear-gradient(160deg, #1c2f56 0%, var(--navy) 40%, var(--navy-dark) 100%);
     }
-    #authGate .gate-icon { font-size: 40px; }
-    #authGate .gate-msg  { font-size: 14px; color: var(--muted); font-weight: 300; }
-    #authGate .gate-spin {
-      width: 28px; height: 28px;
-      border: 3px solid var(--border); border-top-color: var(--green);
-      border-radius: 50%; animation: spin 0.7s linear infinite;
+    .skeleton-wrap { width: 100%; max-width: 600px; position: relative; z-index: 1; }
+    .skel {
+      background: linear-gradient(100deg, rgba(255,255,255,0.05) 30%, rgba(255,255,255,0.14) 50%, rgba(255,255,255,0.05) 70%);
+      background-size: 200% 100%; animation: shimmer 1.3s linear infinite; border-radius: 10px;
     }
-    @keyframes spin { to { transform: rotate(360deg) } }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .skel-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.75rem; gap: 12px; }
+    .skel-logo { width: 62px; height: 62px; border-radius: 16px; }
+    .skel-line { height: 12px; }
+    .skel-pill { width: 118px; height: 40px; border-radius: 20px; flex-shrink: 0; }
+    .skel-card { width: 100%; border-radius: 20px; margin-bottom: 1rem; }
+    .gate-note { text-align: center; color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 1.5rem; letter-spacing: 0.02em; }
 
+    /* ── Layout ─────────────────────────────────────────────────── */
+    .container { width: 100%; max-width: 600px; position: relative; z-index: 1; }
+    .header { margin-bottom: 1.75rem; padding: 0 0.25rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .brand-mini { width: 46px; height: 46px; object-fit: contain; display: block; margin-bottom: 10px;
+                  animation: logoGlow 4.5s ease-in-out infinite; }
+    @keyframes logoGlow {
+      0%, 100% { filter: drop-shadow(0 0 3px rgba(255,255,255,0.25)); }
+      50%      { filter: drop-shadow(0 0 14px rgba(255,255,255,0.8)); }
+    }
+    .header-text h1 { font-size: 25px; font-weight: 700; letter-spacing: -0.3px; }
+    .header-text p { font-size: 13px; color: var(--muted); margin-top: 4px; font-weight: 300; }
+
+    /* ── Profile pill + dropdown (glassy) ───────────────────────── */
     .user-pill {
       display: none; align-items: center; gap: 8px;
-      background: var(--green-light); border: 1px solid var(--green-mid);
-      border-radius: 20px; padding: 5px 12px 5px 5px;
-      font-size: 12px; font-weight: 500; color: var(--green-dark);
-      cursor: pointer; transition: background 0.15s; position: relative; user-select: none;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 22px; padding: 5px 12px 5px 5px;
+      font-size: 12px; font-weight: 500; color: #fff;
+      cursor: pointer; transition: background 0.15s, transform 0.12s; position: relative; user-select: none;
     }
-    .user-pill:hover { background: var(--green-mid); }
-    .user-pill img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 2px solid var(--green-mid); flex-shrink: 0; }
-    .user-pill-fallback { width: 26px; height: 26px; border-radius: 50%; background: var(--green); color: white; font-size: 10px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .user-pill:hover { background: rgba(255,255,255,0.14); }
+    .user-pill:active { transform: scale(0.98); }
     .user-pill.visible { display: flex; }
-    .user-dropdown { position: absolute; top: calc(100% + 6px); right: 0; background: white; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,0.10); padding: 8px; min-width: 180px; z-index: 1000; display: none; flex-direction: column; gap: 4px; animation: dropIn 0.18s cubic-bezier(0.34,1.56,0.64,1) both; }
+    .user-pill img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.25); flex-shrink: 0; }
+    .user-pill-fallback { width: 28px; height: 28px; border-radius: 50%; background: var(--pink); color: white; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .user-dropdown {
+      position: absolute; top: calc(100% + 8px); right: 0;
+      background: rgba(18,27,48,0.97); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.14); border-radius: 14px;
+      box-shadow: 0 18px 44px -12px rgba(0,0,0,0.7);
+      padding: 8px; min-width: 210px; z-index: 1000; display: none; flex-direction: column; gap: 3px;
+      animation: dropIn 0.18s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
     @keyframes dropIn { from { opacity:0; transform:translateY(-6px) scale(0.97); } to { opacity:1; transform:none; } }
     .user-dropdown.open { display: flex; }
-    .user-dropdown-info { padding: 6px 8px 10px; border-bottom: 1px solid var(--border); margin-bottom: 2px; }
-    .user-dropdown-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .user-dropdown-email { font-size: 11px; color: var(--muted); font-weight: 300; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .user-dropdown-btn { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: none; background: transparent; font-family: 'Prompt', sans-serif; font-size: 13px; color: var(--text); cursor: pointer; transition: background 0.13s; text-align: left; width: 100%; }
-    .user-dropdown-btn:hover { background: var(--red-light); color: var(--red); }
+    .user-dropdown-info { padding: 8px 10px 11px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 3px; }
+    .user-dropdown-name { font-size: 13px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-dropdown-email { font-size: 11px; color: var(--muted); font-weight: 300; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+    .user-dropdown-role { display: inline-block; margin-top: 6px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--pink); border: 1px solid rgba(255,79,163,0.4); border-radius: 20px; padding: 2px 8px; }
+    .user-dropdown-btn { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 9px; border: none; background: transparent; font-family: 'Kanit', sans-serif; font-size: 13px; color: rgba(255,255,255,0.85); cursor: pointer; transition: background 0.13s, color 0.13s; text-align: left; width: 100%; }
+    .user-dropdown-btn.menu:hover { background: rgba(255,79,163,0.16); color: #ffc2e0; }
+    .user-dropdown-btn.signout:hover { background: rgba(192,57,43,0.18); color: var(--red); }
 
-    body { font-family: 'Prompt', sans-serif; background: var(--bg); min-height: 100vh; display: flex; justify-content: center; padding: 2.5rem 1rem 4rem; }
-    .container { width: 100%; max-width: 540px; }
-    .header { margin-bottom: 2rem; padding: 0 0.25rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-    .header-text h1 { font-size: 24px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
-    .header-text p { font-size: 13px; color: var(--muted); margin-top: 3px; font-weight: 300; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; margin-bottom: 1rem; }
-    .section-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--label); margin-bottom: 14px; }
+    /* ── Glass card (the whole "body") ──────────────────────────── */
+    .card {
+      background: var(--glass); backdrop-filter: blur(16px) saturate(1.15); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-brd); border-radius: 20px; padding: 1.5rem 1.5rem 1.75rem; margin-bottom: 1rem;
+      box-shadow: 0 20px 50px -22px rgba(0,0,0,0.6);
+    }
+    .section-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--label); margin-bottom: 14px; }
     .field { margin-bottom: 1.1rem; }
     .field:last-child { margin-bottom: 0; }
     .field > label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
-    input[type="text"], input[type="date"], textarea, select { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; font-family: 'Prompt', sans-serif; font-weight: 400; color: var(--text); background: white; outline: none; transition: border-color 0.15s; font-size: max(16px, 14px); }
-    input:focus, textarea:focus, select:focus { border-color: var(--green); }
+
+    input[type="text"], input[type="date"], textarea, select {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--field-brd); border-radius: 10px;
+      font-family: 'Kanit', sans-serif; font-weight: 400; color: #fff; background: var(--field-bg);
+      outline: none; transition: border-color 0.15s, background 0.15s; font-size: max(16px, 14px);
+    }
+    input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.38); }
+    input:focus, textarea:focus, select:focus { border-color: var(--pink); background: rgba(255,255,255,0.1); }
+    input[type="date"] { color-scheme: dark; }
+    select option { color: #1a1a1a; }
     textarea { resize: vertical; min-height: 110px; line-height: 1.6; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     @media (max-width: 360px) { .row { grid-template-columns: 1fr; } }
-    .mode-toggle { display: flex; background: var(--bg); border-radius: 12px; padding: 4px; margin-bottom: 1.5rem; border: 1px solid var(--border); }
-    .mode-btn { flex: 1; padding: 9px 12px; border: none; background: transparent; border-radius: 9px; font-size: 13px; font-weight: 400; font-family: 'Prompt', sans-serif; cursor: pointer; color: var(--muted); transition: all 0.2s; touch-action: manipulation; }
-    .mode-btn.active { background: white; color: var(--green); font-weight: 500; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
-    .btn { width: 100%; padding: 14px; font-size: 15px; font-weight: 500; font-family: 'Prompt', sans-serif; background: var(--green); color: white; border: none; border-radius: 12px; cursor: pointer; transition: background 0.15s, transform 0.1s; touch-action: manipulation; }
-    .btn:hover { background: var(--green-dark); }
-    .btn:active { transform: scale(0.99); }
-    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .btn-clear { width: 100%; padding: 12px; font-size: 14px; font-weight: 500; font-family: 'Prompt', sans-serif; background: var(--red-light); color: var(--red); border: 1px solid var(--red-mid); border-radius: 12px; cursor: pointer; transition: background 0.15s, transform 0.1s; touch-action: manipulation; margin-top: 8px; }
-    .btn-clear:hover { background: var(--red-mid); }
-    .btn-clear:active { transform: scale(0.99); }
-    .action-btn { display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px; font-size: 12px; font-weight: 500; font-family: 'Prompt', sans-serif; border-radius: 8px; border: none; cursor: pointer; transition: background 0.15s; white-space: nowrap; touch-action: manipulation; min-height: 36px; }
-    .btn-add-green { background: var(--green-light); color: var(--green-dark); }
-    .btn-add-green:hover { background: var(--green-mid); }
-    .btn-add-blue { background: var(--blue-light); color: var(--blue); }
-    .btn-add-blue:hover { background: #dbeafe; }
-    .btn-delete { background: var(--red-light); color: var(--red); }
-    .btn-delete:hover { background: var(--red-mid); }
-    .btn-toggle-note { background: var(--amber-light); color: var(--amber-text); border: 1px solid var(--amber-border); }
-    .btn-toggle-note:hover { background: #fef9c3; }
-    .status { margin-top: 1rem; padding: 12px 16px; border-radius: 10px; font-size: 13px; text-align: center; display: none; font-weight: 400; }
-    .s-success { background: var(--green-light); color: var(--green-dark); display: block; }
-    .s-error { background: var(--red-light); color: var(--red); display: block; }
-    .s-info { background: var(--blue-light); color: var(--blue); display: block; }
-    .target-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-    .target-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); transition: border-color 0.15s, background 0.15s; }
-    .target-item.checked { border-color: var(--green); background: var(--green-light); }
-    .target-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--green); flex-shrink: 0; cursor: pointer; }
-    .target-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--green); color: white; font-size: 12px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .target-info { flex: 1; min-width: 0; }
-    .target-name { font-size: 13px; font-weight: 500; color: var(--text); }
-    .target-id { font-size: 10px; color: var(--label); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .add-target-form { display: none; flex-direction: column; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
-    .add-target-form.open { display: flex; }
-    .section-block { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; background: var(--surface); overflow: hidden; }
-    .section-header { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: white; border-bottom: 1px solid var(--border); }
-    .icon-select { width: 52px !important; flex-shrink: 0; padding: 6px 2px !important; font-size: 17px !important; text-align: center; border-radius: 8px !important; }
-    .section-title-input { flex: 1; font-size: 14px !important; font-weight: 500 !important; min-width: 0; }
-    .section-body { padding: 12px 14px; }
-    .subject-block { padding: 10px 0; border-top: 1px dashed var(--border); margin-top: 2px; }
-    .subject-block:first-child { border-top: none; padding-top: 0; margin-top: 0; }
-    .subject-row { display: flex; align-items: flex-start; gap: 8px; }
-    .subject-num { font-size: 12px; font-weight: 500; color: var(--label); min-width: 18px; padding-top: 10px; text-align: right; flex-shrink: 0; }
-    .subject-body { flex: 1; display: flex; flex-direction: column; gap: 7px; min-width: 0; }
-    .subject-top { display: flex; align-items: center; gap: 6px; }
-    .work-icon-select { width: 48px !important; flex-shrink: 0; padding: 6px 2px !important; font-size: 15px !important; text-align: center; border-radius: 8px !important; }
-    .subject-title-input { flex: 1; font-size: 13px !important; min-width: 0; }
-    .task-fields { background: var(--purple-light); border: 1px solid var(--purple-border); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
-    .task-fields-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--purple); margin-bottom: 2px; }
-    .task-fields input, .task-fields select { font-size: 13px !important; padding: 6px 10px !important; border-color: var(--purple-border) !important; background: white !important; }
-    .task-fields input:focus, .task-fields select:focus { border-color: var(--purple) !important; }
-    .task-fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .task-fields .field { margin-bottom: 0; }
-    .task-fields .field > label { font-size: 11px; color: var(--purple); }
 
-    /* ── Bullet row — now supports per-bullet marker ── */
-    .bullet-list { display: flex; flex-direction: column; gap: 6px; }
-    .bullet-block { display: flex; flex-direction: column; gap: 5px; }
-    .bullet-row { display: flex; align-items: center; gap: 6px; }
-    .bullet-dash { color: var(--label); font-size: 13px; flex-shrink: 0; padding-left: 2px; }
-    .bullet-row input { flex: 1; font-size: 13px !important; padding: 6px 10px !important; min-width: 0; }
-    .bullet-marker-btn {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 4px 9px; font-size: 11px; font-weight: 500;
-      font-family: 'Prompt', sans-serif; border-radius: 6px; border: none;
-      cursor: pointer; white-space: nowrap; touch-action: manipulation;
-      background: var(--marker-light); color: var(--marker);
-      border: 1px solid var(--marker-border);
-      transition: background 0.15s;
-      flex-shrink: 0;
+    /* ── Buttons ────────────────────────────────────────────────── */
+    .btn {
+      width: 100%; padding: 15px; font-size: 15px; font-weight: 600; font-family: 'Kanit', sans-serif;
+      background: linear-gradient(180deg, #ff5fac 0%, #c02e7e 100%); color: white; border: none; border-radius: 14px;
+      cursor: pointer; transition: filter 0.15s, transform 0.12s, box-shadow 0.15s; touch-action: manipulation;
+      box-shadow: 0 12px 28px -10px rgba(255,79,163,0.55);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    .bullet-marker-btn.active { background: var(--marker); color: white; border-color: var(--marker); }
-    .bullet-marker-btn:hover { filter: brightness(0.93); }
+    .btn:hover { filter: brightness(1.07); transform: translateY(-2px); box-shadow: 0 18px 34px -12px rgba(255,79,163,0.6); }
+    .btn:active { transform: translateY(0) scale(0.99); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+    .task-count-badge { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 20px; background: rgba(255,255,255,0.25); font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
 
-    /* Per-bullet marker fields panel */
-    .bullet-marker-fields {
-      margin-left: 28px;
-      background: var(--marker-light);
-      border: 1px solid var(--marker-border);
-      border-radius: 8px;
-      padding: 9px 11px;
-      display: flex; flex-direction: column; gap: 8px;
+    .action-btn {
+      display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px; font-size: 12px; font-weight: 500;
+      font-family: 'Kanit', sans-serif; border-radius: 9px; border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85);
+      cursor: pointer; transition: background 0.15s, border-color 0.15s; white-space: nowrap; touch-action: manipulation; min-height: 36px;
     }
-    .bullet-marker-fields-label {
-      font-size: 10px; font-weight: 500; text-transform: uppercase;
-      letter-spacing: 0.08em; color: var(--marker);
-    }
-    .bullet-marker-fields input {
-      font-size: 13px !important; padding: 6px 10px !important;
-      border-color: var(--marker-border) !important; background: white !important;
-    }
-    .bullet-marker-fields input:focus { border-color: var(--marker) !important; }
-    .marker-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-    .marker-type-btn {
-      display: flex; align-items: center; justify-content: center; gap: 5px;
-      padding: 7px 10px; border: 1.5px solid var(--marker-border);
-      border-radius: 8px; background: white; font-family: 'Prompt', sans-serif;
-      font-size: 12px; font-weight: 400; color: var(--muted); cursor: pointer;
-      transition: all 0.15s; white-space: nowrap;
-    }
-    .marker-type-btn.active { background: var(--marker); color: white; border-color: var(--marker); font-weight: 500; }
+    .action-btn:hover { background: rgba(255,255,255,0.15); }
+    .btn-add-blue { background: rgba(47,111,237,0.18); color: var(--blue); border-color: rgba(47,111,237,0.36); }
+    .btn-add-blue:hover { background: rgba(47,111,237,0.28); }
+    .btn-delete { background: rgba(192,57,43,0.16); color: var(--red); border-color: rgba(192,57,43,0.34); }
+    .btn-delete:hover { background: rgba(192,57,43,0.26); }
+    .btn-delete.icon-only { padding: 0; width: 34px; min-height: 34px; justify-content: center; }
+    .btn-toggle-note { background: rgba(234,179,8,0.14); color: var(--amber); border-color: rgba(234,179,8,0.32); }
+    .btn-copy { background: rgba(255,255,255,0.1); color: #fff; gap: 6px; transition: background 0.2s, color 0.2s, border-color 0.2s; }
+    .btn-copy .ico-check { display: none; }
+    .btn-copy.copied { background: rgba(29,158,117,0.2); color: var(--green); border-color: rgba(29,158,117,0.42); }
+    .btn-copy.copied .ico-clip { display: none; }
+    .btn-copy.copied .ico-check { display: inline-flex; animation: popCheck 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes popCheck { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-    .note-field { display: none; }
-    .note-field.visible { display: block; }
-    .note-input { font-size: 13px !important; padding: 7px 11px !important; border-color: var(--amber-border) !important; background: var(--amber-light) !important; color: var(--amber-text) !important; }
-    .subject-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-    .preview-box { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem; font-size: 13px; line-height: 1.9; white-space: pre-wrap; color: var(--text); font-family: 'Prompt', sans-serif; font-weight: 300; min-height: 80px; word-break: break-word; }
-    .divider { height: 1px; background: var(--border); margin: 1.25rem 0; }
-    .sync-banner { background: var(--purple-light); border: 1px solid var(--purple-border); border-radius: 10px; padding: 10px 14px; font-size: 12px; color: var(--purple); margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
-    .sync-banner b { font-weight: 600; }
-    .fb-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); margin-left: auto; }
-    .fb-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--label); flex-shrink: 0; transition: background 0.3s; }
-    .fb-dot.ready { background: var(--green); }
-    .fb-dot.error { background: var(--red); }
-    .flex-toggle-row { display: flex; align-items: center; justify-content: space-between; background: #f0f4ff; border: 1px solid #c7d7fb; border-radius: 10px; padding: 10px 14px; margin-bottom: 1rem; }
-    .flex-toggle-label { display: flex; flex-direction: column; gap: 2px; }
-    .flex-toggle-title { font-size: 13px; font-weight: 500; color: #1e40af; }
-    .flex-toggle-sub { font-size: 11px; color: #3b5bdb; font-weight: 300; }
-    .toggle-switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
-    .toggle-switch input { opacity: 0; width: 0; height: 0; }
-    .toggle-track { position: absolute; cursor: pointer; inset: 0; background: #d1d5db; border-radius: 24px; transition: background 0.2s; }
-    .toggle-track:before { content: ""; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; background: white; border-radius: 50%; transition: transform 0.2s; }
-    .toggle-switch input:checked + .toggle-track { background: var(--blue); }
-    .toggle-switch input:checked + .toggle-track:before { transform: translateX(18px); }
-    .flex-card-fields { background: #f0f4ff; border: 1px solid #c7d7fb; border-radius: 10px; padding: 14px; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 10px; }
-    .flex-card-fields .field { margin-bottom: 0; }
-    .flex-card-fields .field > label { color: #1e40af; font-size: 11px; }
-    .flex-card-fields input, .flex-card-fields textarea { border-color: #c7d7fb !important; background: white !important; }
-    .flex-card-fields input:focus, .flex-card-fields textarea:focus { border-color: var(--blue) !important; }
-    .flex-preview-wrap { margin-top: 1.25rem; }
-    .flex-card-preview { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: white; }
-    .flex-card-header { width: 100%; background: #e0e7ff; aspect-ratio: 13/4; display: flex; align-items: center; justify-content: center; color: #6366f1; font-size: 12px; font-weight: 400; position: relative; overflow: hidden; }
-    .flex-card-header img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
-    .flex-card-body { padding: 14px 16px 8px; font-size: 13px; line-height: 1.8; color: var(--text); font-weight: 300; word-break: break-word; }
-    .flex-card-date { font-size: 17px; font-weight: 600; color: #1a1a1a; margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-    .flex-card-body-text { white-space: pre-wrap; }
-    .flex-card-footer { padding: 10px 14px 14px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; background: #fafafa; }
-    .flex-card-footer-btn { width: 100%; font-size: 13px; font-weight: 500; border: none; border-radius: 8px; padding: 9px 14px; font-family: 'Prompt', sans-serif; cursor: default; }
-    .flex-card-footer-btn.primary { background: #2563eb; color: white; }
-    .flex-card-footer-btn.secondary { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
-    .locked-url { font-size: 12px; color: var(--muted); padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-family: monospace; }
-    .save-indicator { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--label); font-weight: 300; padding: 3px 8px; border-radius: 6px; transition: color 0.3s, background 0.3s; }
-    .save-indicator.saved { color: var(--green-dark); background: var(--green-light); }
-    .save-indicator.saving { color: #7a6a10; background: var(--amber-light); }
+    /* Distinct hierarchy: SECTION (top, dashed, full-width) vs SUBJECT (nested chip) */
+    .btn-add-section {
+      width: 100%; justify-content: center; gap: 7px; display: inline-flex; align-items: center;
+      padding: 13px; min-height: 46px; margin-bottom: 0.5rem;
+      border: 1.5px dashed rgba(255,79,163,0.42); border-radius: 13px;
+      background: rgba(255,79,163,0.08); color: #ffc2e0;
+      font-family: 'Kanit', sans-serif; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.12s; touch-action: manipulation;
+    }
+    .btn-add-section:hover { background: rgba(255,79,163,0.16); border-color: rgba(255,79,163,0.7); }
+    .btn-add-section:active { transform: scale(0.995); }
+    .btn-add-subject {
+      display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; min-height: 36px; border-radius: 9px;
+      background: rgba(47,111,237,0.18); color: var(--blue); border: 1px solid rgba(47,111,237,0.36);
+      font-family: 'Kanit', sans-serif; font-size: 12px; font-weight: 500;
+      cursor: pointer; transition: background 0.15s; touch-action: manipulation;
+    }
+    .btn-add-subject:hover { background: rgba(47,111,237,0.28); }
+
+    /* ── Status + save indicator ────────────────────────────────── */
+    .status { margin-top: 1rem; padding: 12px 16px; border-radius: 12px; font-size: 13px; text-align: center; display: none; font-weight: 400; line-height: 1.5; }
+    .s-success { background: rgba(29,158,117,0.2); color: var(--green); display: block; }
+    .s-error { background: rgba(192,57,43,0.22); color: var(--red); display: block; }
+    .s-info { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.82); display: block; }
+    .save-indicator { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--label); font-weight: 400; padding: 4px 10px; border-radius: 20px; transition: color 0.3s, background 0.3s; }
+    .save-indicator.saved { color: var(--green); background: rgba(29,158,117,0.16); }
+    .save-indicator.saving { color: var(--amber); background: rgba(234,179,8,0.14); }
     .save-indicator-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
     .save-indicator.saving .save-indicator-dot { animation: savePulse 0.6s ease-in-out infinite alternate; }
     @keyframes savePulse { to { opacity: 0.3; } }
+    .fb-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); flex-shrink: 0; }
+    .fb-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--label); flex-shrink: 0; transition: background 0.3s; }
+    .fb-dot.ready { background: var(--green); }
+    .fb-dot.error { background: var(--red); }
+
+    /* ── Section / subject / bullet blocks (with hierarchy) ─────── */
+    /* No overflow:hidden here — that used to clip the "+ Add" dropdown.
+       The header corners are rounded directly instead. */
+    .section-block { border: 1px solid rgba(255,255,255,0.1); border-left: 3px solid rgba(255,79,163,0.5); border-radius: 14px; margin-bottom: 12px; background: var(--glass-2); }
+    .section-header { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1); border-radius: 13px 13px 0 0; }
+    .icon-select { width: 54px !important; flex-shrink: 0; padding: 7px 2px !important; font-size: 17px !important; text-align: center; border-radius: 9px !important; }
+    .section-title-input { flex: 1; font-size: 14px !important; font-weight: 500 !important; min-width: 0; }
+    .section-body { padding: 12px 14px; }
+    /* Nested one level in, with a left guide rail */
+    .subject-block { padding: 12px 0 12px 12px; border-top: 1px dashed rgba(255,255,255,0.12); border-left: 2px solid rgba(255,255,255,0.09); margin: 2px 0 0 2px; }
+    .subject-block:first-child { border-top: none; padding-top: 4px; margin-top: 0; }
+    .subject-row { display: flex; align-items: flex-start; gap: 8px; }
+    .subject-num { font-size: 12px; font-weight: 600; color: var(--label); min-width: 18px; padding-top: 11px; text-align: right; flex-shrink: 0; }
+    .subject-body { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .subject-top { display: flex; align-items: center; gap: 6px; }
+    .work-icon-select { width: 50px !important; flex-shrink: 0; padding: 7px 2px !important; font-size: 15px !important; text-align: center; border-radius: 9px !important; }
+    .subject-title-input { flex: 1; font-size: 13px !important; min-width: 0; }
+
+    /* ── Calendar-task fields (pink accent) ─────────────────────── */
+    .task-fields { background: rgba(255,79,163,0.1); border: 1px solid rgba(255,79,163,0.28); border-radius: 10px; padding: 11px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .task-fields-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #ffb3d6; margin-bottom: 2px; }
+    .task-fields input, .task-fields select { font-size: 13px !important; padding: 7px 10px !important; border-color: rgba(255,79,163,0.32) !important; background: rgba(255,255,255,0.06) !important; }
+    .task-fields input:focus, .task-fields select:focus { border-color: var(--pink) !important; }
+    .task-fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .task-fields .field { margin-bottom: 0; }
+    .task-fields .field > label { font-size: 11px; color: #ffb3d6; }
+
+    /* ── Bullets + per-bullet marker (orange accent) ────────────── */
+    .bullet-list { display: flex; flex-direction: column; gap: 6px; }
+    .bullet-block { display: flex; flex-direction: column; gap: 6px; }
+    .bullet-row { display: flex; align-items: center; gap: 6px; }
+    .bullet-dash { color: var(--label); font-size: 13px; flex-shrink: 0; padding-left: 2px; }
+    .bullet-row input { flex: 1; font-size: 13px !important; padding: 7px 10px !important; min-width: 0; background: rgba(255,255,255,0.14) !important; border-color: rgba(255,255,255,0.22) !important; }
+    .bullet-row input:focus { background: rgba(255,255,255,0.2) !important; border-color: var(--pink) !important; }
+    .bullet-marker-btn {
+      display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px; font-size: 11px; font-weight: 500;
+      font-family: 'Kanit', sans-serif; border-radius: 7px; cursor: pointer; white-space: nowrap; touch-action: manipulation;
+      background: rgba(234,88,12,0.15); color: var(--orange); border: 1px solid rgba(251,146,60,0.32);
+      transition: background 0.15s; flex-shrink: 0;
+    }
+    .bullet-marker-btn.active { background: #ea580c; color: white; border-color: #ea580c; }
+    .bullet-marker-btn:hover { filter: brightness(1.08); }
+    .bullet-marker-fields { margin-left: 28px; background: rgba(234,88,12,0.12); border: 1px solid rgba(251,146,60,0.3); border-radius: 9px; padding: 10px 11px; display: flex; flex-direction: column; gap: 8px; }
+    .bullet-marker-fields-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--orange); }
+    .bullet-marker-fields input { font-size: 13px !important; padding: 7px 10px !important; border-color: rgba(251,146,60,0.32) !important; background: rgba(255,255,255,0.06) !important; }
+    .bullet-marker-fields input:focus { border-color: #ea580c !important; }
+    .marker-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .marker-type-btn { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 8px 10px; border: 1.5px solid rgba(251,146,60,0.3); border-radius: 8px; background: rgba(255,255,255,0.05); font-family: 'Kanit', sans-serif; font-size: 12px; font-weight: 400; color: rgba(255,255,255,0.72); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+    .marker-type-btn.active { background: #ea580c; color: white; border-color: #ea580c; font-weight: 500; }
+
+    /* ── Note (amber accent) ────────────────────────────────────── */
+    .note-field { display: none; }
+    .note-field.visible { display: block; }
+    .note-input { font-size: 13px !important; padding: 8px 11px !important; border-color: rgba(234,179,8,0.32) !important; background: rgba(234,179,8,0.1) !important; color: var(--amber) !important; }
+    .subject-actions { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+
+    /* ── "+ Add" dropdown (per subject) — NOT clipped by parents ─── */
+    .add-dd { position: relative; display: inline-flex; }
+    .add-dd-btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; min-height: 36px;
+      border-radius: 9px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16);
+      color: #fff; font-family: 'Kanit', sans-serif; font-size: 12px; font-weight: 500;
+      cursor: pointer; transition: background 0.15s; touch-action: manipulation;
+    }
+    .add-dd-btn:hover { background: rgba(255,255,255,0.15); }
+    .add-dd-btn .caret { font-size: 9px; opacity: 0.6; transition: transform 0.2s ease; }
+    .add-dd-btn.open .caret { transform: rotate(180deg); }
+    .add-dd-menu {
+      position: absolute; top: calc(100% + 6px); left: 0; z-index: 100;
+      display: none; flex-direction: column; gap: 2px; min-width: 200px; padding: 6px;
+      background: rgba(16,25,44,0.99); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.16); border-radius: 12px;
+      box-shadow: 0 18px 44px -10px rgba(0,0,0,0.75); transform-origin: top left;
+    }
+    .add-dd-menu.up { top: auto; bottom: calc(100% + 6px); transform-origin: bottom left; }
+    .add-dd-menu.open { display: flex; animation: menuExpand 0.16s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes menuExpand { from { opacity: 0; transform: scale(0.9) translateY(-5px); } to { opacity: 1; transform: none; } }
+    .add-dd-item {
+      display: flex; align-items: center; gap: 9px; padding: 9px 11px; border: none; border-radius: 8px;
+      background: transparent; color: rgba(255,255,255,0.85); font-family: 'Kanit', sans-serif;
+      font-size: 12.5px; font-weight: 400; text-align: left; cursor: pointer; transition: background 0.13s, color 0.13s;
+    }
+    .add-dd-item .dd-ico { display: inline-flex; align-items: center; justify-content: center; width: 20px; flex-shrink: 0; }
+    .add-dd-item .dd-check { margin-left: auto; opacity: 0.9; }
+    .add-dd-item.bullet:hover { background: rgba(47,111,237,0.18); color: var(--blue); }
+    .add-dd-item.note:hover   { background: rgba(234,179,8,0.14); color: var(--amber); }
+    .add-dd-item.cal:hover    { background: rgba(255,79,163,0.16); color: #ffc2e0; }
+    .add-dd-item.active { color: #ffc2e0; }
+
+    /* ── Preview ────────────────────────────────────────────────── */
+    .preview-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; }
+    .preview-head .section-label { margin-bottom: 0; }
+    .preview-box { background: rgba(0,0,0,0.24); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 1rem 1.1rem; font-size: 13px; line-height: 1.9; white-space: pre-wrap; color: rgba(255,255,255,0.9); font-family: 'Kanit', sans-serif; font-weight: 300; min-height: 80px; word-break: break-word; }
+    .divider { height: 1px; background: rgba(255,255,255,0.1); margin: 1.35rem 0; }
+
+    /* ── Merged footer (lives INSIDE the card / body) ───────────── */
+    .footer-row { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 12px; }
+    .empty-hint { text-align: center; color: var(--label); font-size: 12px; font-weight: 300; padding: 18px 12px; border: 1px dashed rgba(255,255,255,0.12); border-radius: 12px; margin-bottom: 10px; }
+
+    /* ── Box add / remove animations ────────────────────────────── */
+    @keyframes boxIn { from { opacity: 0; transform: translateY(-8px) scale(0.985); } to { opacity: 1; transform: none; } }
+    .box-enter { animation: boxIn 0.28s cubic-bezier(0.34,1.4,0.64,1) both; }
+    .box-removing {
+      overflow: hidden !important;
+      opacity: 0; transform: translateX(-8px);
+      margin-top: 0 !important; margin-bottom: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important;
+      transition: max-height 0.26s ease, opacity 0.2s ease, transform 0.2s ease, margin 0.26s ease, padding 0.26s ease;
+    }
+    /* Accent panels animate ONLY the freshly-toggled one (via .just-opened);
+       NOT via a blanket rule — otherwise every re-render replays them (blink). */
+    .just-opened { animation: expandIn 0.2s ease both; transform-origin: top; }
+    @keyframes expandIn { from { opacity: 0; transform: scaleY(0.85) translateY(-4px); } to { opacity: 1; transform: none; } }
+
+    /* ── Modals (confirm + tour) with expand / shrink ───────────── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 3000; display: none; align-items: center; justify-content: center;
+      padding: 1.5rem; background: rgba(5,10,22,0.62); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+    }
+    .modal-overlay.open { display: flex; animation: overlayIn 0.16s ease; }
+    .modal-overlay.closing { animation: overlayOut 0.16s ease forwards; }
+    @keyframes overlayIn  { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes overlayOut { to { opacity: 0; } }
+    .modal {
+      width: 100%; max-width: 370px; position: relative;
+      background: rgba(20,30,54,0.98); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.14); border-radius: 22px; padding: 1.75rem 1.6rem 1.5rem;
+      box-shadow: 0 34px 80px -24px rgba(0,0,0,0.85); text-align: center;
+    }
+    .modal-overlay.open .modal    { animation: modalExpand 0.24s cubic-bezier(0.34,1.56,0.64,1); }
+    .modal-overlay.closing .modal { animation: modalShrink 0.16s ease forwards; }
+    @keyframes modalExpand { from { opacity: 0; transform: scale(0.82) translateY(12px); } to { opacity: 1; transform: none; } }
+    @keyframes modalShrink { to { opacity: 0; transform: scale(0.9); } }
+    .confirm-icon { font-size: 36px; margin-bottom: 8px; }
+    .confirm-title { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+    .confirm-msg { font-size: 13px; font-weight: 300; color: var(--muted); line-height: 1.55; margin-bottom: 1.4rem; }
+    .confirm-actions, .tour-actions { display: flex; gap: 10px; }
+    .btn-ghost, .btn-solid {
+      flex: 1; padding: 12px; border-radius: 11px; font-family: 'Kanit', sans-serif; font-size: 14px; font-weight: 500;
+      cursor: pointer; transition: background 0.15s, filter 0.15s, transform 0.1s; touch-action: manipulation; border: none;
+    }
+    .btn-ghost { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16); color: rgba(255,255,255,0.85); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.15); }
+    .btn-solid { background: linear-gradient(180deg, #ff5fac 0%, #c02e7e 100%); color: #fff; box-shadow: 0 10px 24px -10px rgba(255,79,163,0.55); }
+    .btn-solid:hover { filter: brightness(1.07); }
+    .btn-solid:active, .btn-ghost:active { transform: scale(0.98); }
+    .btn-solid.danger { background: linear-gradient(180deg, #e05a4a 0%, #a52a1e 100%); box-shadow: 0 10px 24px -10px rgba(192,57,43,0.55); }
+    .tour-close { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: none; border-radius: 9px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); cursor: pointer; transition: background 0.15s, color 0.15s; }
+    .tour-close:hover { background: rgba(255,255,255,0.14); color: #fff; }
+    .tour-emoji { font-size: 42px; margin-bottom: 10px; }
+    .tour-title { font-size: 19px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+    .tour-text { font-size: 13px; font-weight: 300; color: var(--muted); line-height: 1.6; min-height: 66px; }
+    .tour-body.step-anim { animation: stepIn 0.24s ease; }
+    @keyframes stepIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+    .tour-dots { display: flex; justify-content: center; gap: 7px; margin: 1.1rem 0 1.3rem; }
+    .tour-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.2); transition: background 0.2s, width 0.2s; }
+    .tour-dot.active { background: var(--pink); width: 20px; border-radius: 20px; }
+    .tour-back:disabled { opacity: 0.4; cursor: not-allowed; }
 
     @media (max-width: 480px) {
-      body { padding: 1.25rem 0.75rem 3rem; }
-      .header { margin-bottom: 1.25rem; }
-      .header-text h1 { font-size: 20px; }
-      .mode-btn { font-size: 12px; padding: 8px 8px; }
-      .card { padding: 1rem; }
-      .section-body { padding: 10px 10px; }
+      body { padding: 1.5rem 0.85rem 3rem; }
+      .header { margin-bottom: 1.35rem; }
+      .header-text h1 { font-size: 22px; }
+      .card { padding: 1.15rem 1.15rem 1.5rem; }
+      .section-body { padding: 11px 11px; }
       .task-fields-row { grid-template-columns: 1fr; }
-      .marker-type-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
     }
   </style>
 </head>
 <body>
 
+<div class="bg-orbs" aria-hidden="true">
+  <span class="orb orb-1"></span>
+  <span class="orb orb-2"></span>
+  <span class="orb orb-3"></span>
+</div>
+
+<!-- ── Skeleton loading gate ──────────────────────────────────── -->
 <div id="authGate">
-  <div class="gate-icon">📚</div>
-  <div class="gate-spin"></div>
-  <div class="gate-msg">Checking access...</div>
+  <div class="skeleton-wrap">
+    <div class="skel-header">
+      <div style="flex:1;">
+        <div class="skel skel-logo"></div>
+        <div class="skel skel-line" style="width:190px;height:22px;margin-top:12px;"></div>
+        <div class="skel skel-line" style="width:140px;margin-top:9px;"></div>
+      </div>
+      <div class="skel skel-pill"></div>
+    </div>
+    <div class="skel skel-card" style="height:400px;"></div>
+    <div class="gate-note">🔒 Checking access…</div>
+  </div>
 </div>
 
 <div class="container" id="mainContent" style="display:none;">
   <div class="header">
     <div class="header-text">
-      <h1>3/3 Academic System</h1>
-      <p>Mod panel — daily report sender</p>
+      <img class="brand-mini" src="TASLogoLIGHT.png" alt="3/3 Academic System" />
+      <h1>Task Formatter</h1>
+      <p>Format &amp; save academic tasks to the calendar</p>
     </div>
     <div style="position:relative;">
       <div class="user-pill" id="userPill" onclick="toggleUserDropdown(event)">
         <div id="pillAvatar"></div>
         <span id="pillName"></span>
-        <span style="opacity:0.4;font-size:9px;margin-left:2px;">▾</span>
+        <span style="opacity:0.5;font-size:9px;margin-left:2px;">▾</span>
       </div>
       <div class="user-dropdown" id="userDropdown">
         <div class="user-dropdown-info">
           <div class="user-dropdown-name" id="dropdownName"></div>
           <div class="user-dropdown-email" id="dropdownEmail"></div>
+          <span class="user-dropdown-role">Moderator</span>
         </div>
-        <button class="user-dropdown-btn" onclick="handleSignOut()">🚪 Sign out</button>
+        <button class="user-dropdown-btn menu" onclick="handleHowItWorks()">❔ How it works</button>
+        <button class="user-dropdown-btn menu" onclick="handleReturnToMenu()">🏠 Return to menu</button>
+        <a class="user-dropdown-btn menu" href="calendar.html" style="text-decoration:none;">📅 Open calendar</a>
+        <button class="user-dropdown-btn signout" onclick="handleSignOut()">🚪 Sign out</button>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <div class="mode-toggle">
-      <button class="mode-btn active" id="modeBtn0">✏️ Free writing</button>
-      <button class="mode-btn" id="modeBtn1">📋 Formatted</button>
+    <div class="row" style="margin-bottom:1.25rem;">
+      <div class="field"><label>Date</label><input type="date" id="fmtDate" /></div>
+      <div class="field"><label>Reported by</label><input type="text" id="fmtReporter" placeholder="Your name" /></div>
     </div>
 
-    <div id="freeMode">
-      <div class="row" style="margin-bottom:1.1rem;">
-        <div class="field"><label>Date</label><input type="date" id="freeDate" /></div>
-        <div class="field"><label>Reported by</label><input type="text" id="reporter" placeholder="Your name" /></div>
-      </div>
-      <div class="field"><label>Message</label><textarea id="freeText" rows="6" placeholder="Type your report here..."></textarea></div>
+    <div class="section-label">Sections</div>
+    <div id="sectionList"></div>
+    <button class="btn-add-section" id="addSectionBtn">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      New section
+    </button>
+
+    <div class="divider"></div>
+
+    <div class="preview-head">
+      <span class="section-label">Formatted preview</span>
+      <button class="action-btn btn-copy" id="copyBtn" aria-label="Copy formatted text">
+        <svg class="ico-clip" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+        <svg class="ico-check" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+        <span class="copy-label">Copy</span>
+      </button>
     </div>
+    <div class="preview-box" id="preview">Fill in the form to see preview...</div>
 
-    <div id="formattedMode" style="display:none;">
-      <div class="row" style="margin-bottom:1.1rem;">
-        <div class="field"><label>Date</label><input type="date" id="fmtDate" /></div>
-        <div class="field"><label>Reported by</label><input type="text" id="fmtReporter" placeholder="Your name" /></div>
-      </div>
+    <div class="divider"></div>
 
-      <div class="flex-toggle-row">
-        <div class="flex-toggle-label">
-          <span class="flex-toggle-title">🪪 Flex Card mode</span>
-          <span class="flex-toggle-sub">Wrap message in a LINE Flex Card with image header &amp; calendar button</span>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="flexCardToggle" />
-          <span class="toggle-track"></span>
-        </label>
-      </div>
+    <!-- Merged footer — part of the body now -->
+    <div class="footer-row">
+      <button class="action-btn btn-delete" id="clearBtn">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        Clear form
+      </button>
+    </div>
+    <button class="btn" id="saveBtn">💾 Save tasks to calendar <span class="task-count-badge" id="taskCount">0</span></button>
+    <div class="status" id="status"></div>
+  </div>
+</div>
 
-      <div class="flex-card-fields" id="flexCardFields" style="display:none;">
-        <div class="section-label" style="margin-bottom:4px;">🪪 Flex Card settings</div>
-        <div class="field">
-          <label>Header banner</label>
-          <img src="https://i.ibb.co/V08nTBMD/banner.png" alt="Banner preview" style="width:100%;border-radius:10px;border:1px solid #c7d7fb;display:block;" />
-        </div>
-        <div class="field">
-          <label>Calendar button</label>
-          <div class="locked-url">🔒  https://tas-33.netlify.app/calendar/</div>
-        </div>
-      </div>
-
-      <div class="sync-banner">
-        <span>📅</span>
-        <div>Subjects with <b>Add to calendar</b> toggled on will be saved to Firestore on send.</div>
-        <div class="fb-status"><div class="fb-dot" id="fbDot"></div><span id="fbStatusText">connecting...</span></div>
-      </div>
-      <div class="section-label">Sections</div>
-      <div id="sectionList"></div>
-      <button class="action-btn btn-add-green" style="margin-bottom:1rem;" id="addSectionBtn">➕ Add section</button>
-      <div class="divider"></div>
-      <div class="section-label">Preview</div>
-      <div id="textPreviewWrap">
-        <div class="preview-box" id="preview">Fill in the form to see preview...</div>
-      </div>
-      <div class="flex-preview-wrap" id="flexPreviewWrap" style="display:none;">
-        <div class="section-label" style="margin-bottom:10px;">Flex Card preview</div>
-        <div class="flex-card-preview">
-          <div class="flex-card-header">
-            <img src="https://i.ibb.co/V08nTBMD/banner.png" alt="Banner" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;" />
-          </div>
-          <div class="flex-card-body">
-            <div class="flex-card-date" id="flexCardDatePreview"></div>
-            <div class="flex-card-body-text" id="flexCardBodyPreview">Fill in the form to see preview...</div>
-          </div>
-          <div class="flex-card-footer">
-            <button class="flex-card-footer-btn primary">📅 ดูปฏิทิน</button>
-            <button class="flex-card-footer-btn secondary">🎓 Google Classroom</button>
-          </div>
-        </div>
-      </div>
+<!-- ── Confirmation modal ─────────────────────────────────────── -->
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal confirm-modal">
+    <div class="confirm-icon" id="confirmIcon">⚠️</div>
+    <div class="confirm-title" id="confirmTitle"></div>
+    <div class="confirm-msg" id="confirmMsg"></div>
+    <div class="confirm-actions">
+      <button class="btn-ghost" id="confirmCancel">Cancel</button>
+      <button class="btn-solid" id="confirmOk">Confirm</button>
     </div>
   </div>
+</div>
 
-  <div class="card">
-    <div class="section-label">Send to</div>
-    <div class="target-list" id="targetList"></div>
-    <button class="action-btn btn-add-green" id="toggleAddFormBtn">➕ Add target</button>
-    <div class="add-target-form" id="addForm">
-      <div class="row">
-        <input type="text" id="newName" placeholder="Group name" />
-        <input type="text" id="newId" placeholder="Group ID (C...)" />
-      </div>
-      <button class="action-btn btn-add-green" id="saveTargetBtn">💾 Save target</button>
+<!-- ── "How it works" tour popup ──────────────────────────────── -->
+<div class="modal-overlay" id="tourOverlay">
+  <div class="modal tour-modal" id="tourCard">
+    <button class="tour-close" id="tourClose" aria-label="Close">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <div class="tour-body">
+      <div class="tour-emoji" id="tourEmoji"></div>
+      <div class="tour-title" id="tourTitle"></div>
+      <div class="tour-text" id="tourText"></div>
+    </div>
+    <div class="tour-dots" id="tourDots"></div>
+    <div class="tour-actions">
+      <button class="btn-ghost tour-back" id="tourBack">Back</button>
+      <button class="btn-solid" id="tourNext">Next</button>
     </div>
   </div>
-
-  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; padding: 0 2px;">
-    <span class="save-indicator" id="saveIndicator">
-      <span class="save-indicator-dot"></span>
-      <span id="saveIndicatorText">Draft saved</span>
-    </span>
-    <button class="action-btn btn-delete" id="clearBtn" style="font-size:12px;">🗑️ Clear form</button>
-  </div>
-  <button class="btn" id="sendBtn">📤 Send report to LINE</button>
-  <div class="status" id="status"></div>
 </div>
 
 <script type="module">
@@ -395,7 +537,7 @@ function setFbStatus(ok) {
   const dot = document.getElementById("fbDot"), txt = document.getElementById("fbStatusText")
   if (!dot) return
   dot.className = "fb-dot " + (ok ? "ready" : "error")
-  txt.textContent = ok ? "Firebase ready" : "Firebase error"
+  txt.textContent = ok ? "Calendar connected" : "Connection error"
 }
 
 async function sha256(str) {
@@ -416,32 +558,34 @@ let pendingUser = null
 
 function showPasswordPrompt(user) {
   document.getElementById("authGate").innerHTML = `
-    <div style="font-size:32px;margin-bottom:4px">🔐</div>
-    <div style="font-size:16px;font-weight:600;color:#1a1a1a;margin-bottom:2px">Password required</div>
-    <div style="font-size:13px;color:#6b7b6b;font-weight:300;margin-bottom:20px;text-align:center;max-width:260px;line-height:1.5">
-      Your account isn't on the whitelist.<br>Enter the panel password to continue.
-    </div>
-    <div style="width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px;">
-      <div style="display:flex;align-items:center;gap:10px;background:#f8fafc;border:1px solid #e8ebe8;border-radius:12px;padding:8px 12px;">
-        <img src="${user.photoURL || ''}" onerror="this.style.display='none'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;" />
-        <div style="min-width:0;">
-          <div style="font-size:12px;font-weight:500;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${user.displayName || user.email}</div>
-          <div style="font-size:10px;color:#6b7b6b;font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${user.email}</div>
-        </div>
+    <div style="margin:auto;width:100%;max-width:320px;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;z-index:1;">
+      <div style="font-size:34px;margin-bottom:2px">🔐</div>
+      <div style="font-size:17px;font-weight:600;color:#fff;">Password required</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.6);font-weight:300;margin-bottom:18px;text-align:center;max-width:270px;line-height:1.5">
+        Your account isn't on the whitelist.<br>Enter the panel password to continue.
       </div>
-      <input type="password" id="gatePasswordInput" placeholder="Panel password"
-        style="width:100%;padding:11px 14px;border:1.5px solid #e8ebe8;border-radius:10px;font-family:'Prompt',sans-serif;font-size:14px;outline:none;letter-spacing:2px;transition:border-color 0.15s;"
-        onkeydown="if(event.key==='Enter')window._submitGatePassword()"
-        onfocus="this.style.borderColor='#1D9E75'" onblur="this.style.borderColor='#e8ebe8'" />
-      <div id="gatePasswordError" style="display:none;font-size:12px;color:#c0392b;text-align:center;padding:6px 10px;background:#fdecea;border-radius:8px;">❌ Incorrect password</div>
-      <button id="gatePasswordBtn" onclick="window._submitGatePassword()"
-        style="width:100%;padding:12px;background:#1D9E75;color:white;border:none;border-radius:10px;font-family:'Prompt',sans-serif;font-size:14px;font-weight:500;cursor:pointer;">
-        Enter Panel
-      </button>
-      <button onclick="window._cancelGatePassword()"
-        style="background:none;border:none;font-family:'Prompt',sans-serif;font-size:12px;color:#9aaa9a;cursor:pointer;padding:4px;">
-        ← Use a different account
-      </button>
+      <div style="width:100%;display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:12px;padding:9px 12px;">
+          <img src="${user.photoURL || ''}" onerror="this.style.display='none'" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;" />
+          <div style="min-width:0;">
+            <div style="font-size:12px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${user.displayName || user.email}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.55);font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${user.email}</div>
+          </div>
+        </div>
+        <input type="password" id="gatePasswordInput" placeholder="Panel password"
+          style="width:100%;padding:12px 14px;border:1.5px solid rgba(255,255,255,0.16);border-radius:11px;font-family:'Kanit',sans-serif;font-size:14px;outline:none;letter-spacing:2px;background:rgba(255,255,255,0.07);color:#fff;transition:border-color 0.15s;"
+          onkeydown="if(event.key==='Enter')window._submitGatePassword()"
+          onfocus="this.style.borderColor='#ff4fa3'" onblur="this.style.borderColor='rgba(255,255,255,0.16)'" />
+        <div id="gatePasswordError" style="display:none;font-size:12px;color:#ff9b8a;text-align:center;padding:7px 10px;background:rgba(192,57,43,0.2);border-radius:9px;">❌ Incorrect password</div>
+        <button id="gatePasswordBtn" onclick="window._submitGatePassword()"
+          style="width:100%;padding:13px;background:linear-gradient(180deg,#ff5fac,#c02e7e);color:white;border:none;border-radius:11px;font-family:'Kanit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 12px 26px -10px rgba(255,79,163,0.55);">
+          Enter Panel
+        </button>
+        <button onclick="window._cancelGatePassword()"
+          style="background:none;border:none;font-family:'Kanit',sans-serif;font-size:12px;color:rgba(255,255,255,0.5);cursor:pointer;padding:5px;">
+          ← Use a different account
+        </button>
+      </div>
     </div>`
   setTimeout(() => document.getElementById("gatePasswordInput")?.focus(), 80)
 }
@@ -454,23 +598,27 @@ window._submitGatePassword = async function() {
   btn.textContent = "Checking..."; btn.disabled = true; err.style.display = "none"
   const hash = await sha256(input.value)
   if (hash === MOD_PASSWORD_HASH) {
-    document.getElementById("authGate").style.display = "none"
-    document.getElementById("mainContent").style.display = "block"
-    fbReady = true; setFbStatus(true); renderUserPill(pendingUser); initApp()
+    revealApp(pendingUser)
   } else {
     err.style.display = "block"; input.value = ""; input.focus()
-    btn.textContent = "Unlock Panel"; btn.disabled = false
+    btn.textContent = "Enter Panel"; btn.disabled = false
   }
 }
 window._cancelGatePassword = async function() { await signOut(auth); window.location.href = LOGIN_URL }
+
+function revealApp(user) {
+  document.getElementById("authGate").style.display = "none"
+  document.getElementById("mainContent").style.display = "block"
+  fbReady = true; setFbStatus(!!db); renderUserPill(user); initApp()
+  // First-time visitors get the walkthrough automatically.
+  try { if (!localStorage.getItem("tas_tour_seen")) setTimeout(openTour, 550) } catch(e) {}
+}
 
 onAuthStateChanged(auth, async user => {
   if (!user) { window.location.href = LOGIN_URL; return }
   const whitelist = await fetchWhitelist()
   if (whitelist.includes(user.email.toLowerCase())) {
-    document.getElementById("authGate").style.display = "none"
-    document.getElementById("mainContent").style.display = "block"
-    fbReady = true; setFbStatus(true); renderUserPill(user); initApp()
+    revealApp(user)
   } else {
     pendingUser = user; showPasswordPrompt(user)
   }
@@ -489,12 +637,68 @@ function renderUserPill(user) {
 }
 
 window.toggleUserDropdown = (e) => { e.stopPropagation(); document.getElementById("userDropdown").classList.toggle("open") }
-document.addEventListener("click", () => document.getElementById("userDropdown")?.classList.remove("open"))
+document.addEventListener("click", () => {
+  document.getElementById("userDropdown")?.classList.remove("open")
+  document.querySelectorAll(".add-dd-menu.open").forEach(m => m.classList.remove("open"))
+  document.querySelectorAll(".add-dd-btn.open").forEach(b => b.classList.remove("open"))
+})
+window.handleReturnToMenu = () => { window.location.href = LOGIN_URL }
 window.handleSignOut = async () => { await signOut(auth); window.location.href = LOGIN_URL }
+
+// ── Modals: confirm dialog + "How it works" tour ──────────────
+function closeOverlay(ov) {
+  ov.classList.add("closing")
+  setTimeout(() => ov.classList.remove("open", "closing"), 160)
+}
+function openConfirm({ icon = "⚠️", title, message, okText = "Confirm", danger = true }) {
+  return new Promise(resolve => {
+    const ov = document.getElementById("confirmOverlay")
+    document.getElementById("confirmIcon").textContent  = icon
+    document.getElementById("confirmTitle").textContent = title
+    document.getElementById("confirmMsg").textContent   = message
+    const ok = document.getElementById("confirmOk"), cancel = document.getElementById("confirmCancel")
+    ok.textContent = okText
+    ok.className = "btn-solid" + (danger ? " danger" : "")
+    ov.classList.add("open")
+    const finish = (val) => { ok.onclick = cancel.onclick = ov.onclick = null; closeOverlay(ov); resolve(val) }
+    ok.onclick     = () => finish(true)
+    cancel.onclick = () => finish(false)
+    ov.onclick     = (e) => { if (e.target === ov) finish(false) }
+  })
+}
+
+const TOUR_STEPS = [
+  { emoji:"📢", title:"Build your report",      text:"Start with a section for each category — homework, announcements, events. Tap “New section” to add one." },
+  { emoji:"📝", title:"Add subjects & bullets", text:"Inside a section, add a subject, then use the “+ Add” menu on that subject to add bullet points or a note." },
+  { emoji:"📍", title:"Flag calendar tasks",    text:"Turn items into calendar events: tap 📍 on a bullet to mark a quiz/exam/event, or “+ Add → Add to calendar” on a subject." },
+  { emoji:"💾", title:"Save & copy",            text:"Hit “Save tasks to calendar” to push the flagged items to the shared calendar — or use the clipboard button to copy the formatted text." },
+]
+let tourIdx = 0
+function renderTour() {
+  const s = TOUR_STEPS[tourIdx]
+  document.getElementById("tourEmoji").textContent = s.emoji
+  document.getElementById("tourTitle").textContent = s.title
+  document.getElementById("tourText").textContent  = s.text
+  document.getElementById("tourDots").innerHTML = TOUR_STEPS.map((_, i) => `<span class="tour-dot${i===tourIdx?" active":""}"></span>`).join("")
+  document.getElementById("tourBack").disabled = tourIdx === 0
+  document.getElementById("tourNext").textContent = tourIdx === TOUR_STEPS.length - 1 ? "Got it!" : "Next"
+  const body = document.querySelector(".tour-body")
+  body.classList.remove("step-anim"); void body.offsetWidth; body.classList.add("step-anim")
+}
+function openTour() {
+  tourIdx = 0; renderTour()
+  document.getElementById("tourOverlay").classList.add("open")
+  try { localStorage.setItem("tas_tour_seen", "1") } catch(e) {}
+}
+function closeTour() { closeOverlay(document.getElementById("tourOverlay")) }
+window.handleHowItWorks = () => openTour()
+document.getElementById("tourNext").onclick  = () => { if (tourIdx === TOUR_STEPS.length - 1) closeTour(); else { tourIdx++; renderTour() } }
+document.getElementById("tourBack").onclick  = () => { if (tourIdx > 0) { tourIdx--; renderTour() } }
+document.getElementById("tourClose").onclick = closeTour
+document.getElementById("tourOverlay").onclick = (e) => { if (e.target.id === "tourOverlay") closeTour() }
 
 // ── App logic ─────────────────────────────────────────────────
 function initApp() {
-  const SERVER_URL    = "https://tas-samtabsam.onrender.com"
   const SECTION_ICONS = ["📢","📚","💻","🎨","🔬","🏫","📌","🗓️"]
   const WORK_ICONS    = ["📝","💻","🔬","🎨","📚","🏃","🎵","📐","✏️"]
   const MARKER_TYPES  = [
@@ -503,29 +707,31 @@ function initApp() {
     { key: "event", label: "🎉 Event" },
     { key: "date",  label: "📌 Important" },
   ]
-  const STORAGE_KEY = "tas_mod_draft_v3"
+  const STORAGE_KEY = "tas_fmt_draft_v4"
+  const ICON_X    = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`
+  const ICON_PLUS = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`
+  const ICON_BULLET = `<svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>`
+  const ICON_NOTE   = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h9"/></svg>`
+  const ICON_CAL    = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v4M16 3v4"/></svg>`
 
-  let currentMode = "free", sections = [], flexCardEnabled = false
+  let sections = []
   let saveTimer = null
+  let pendingEnter = null   // { sel, cls } — the ONE element to animate after a render
 
   function setSaveIndicator(state) {
-    const el  = document.getElementById("saveIndicator")
+    const el = document.getElementById("saveIndicator")
+    if (!el) return   // indicator was removed from the UI; drafts still save silently
     const txt = document.getElementById("saveIndicatorText")
     el.className = "save-indicator " + state
-    txt.textContent = state === "saving" ? "Saving…" : "Draft saved"
+    if (txt) txt.textContent = state === "saving" ? "Saving…" : "Draft saved"
   }
 
   function saveDraft() {
     setSaveIndicator("saving")
     const draft = {
-      mode: currentMode,
-      freeDate:    document.getElementById("freeDate").value,
-      reporter:    document.getElementById("reporter").value,
-      freeText:    document.getElementById("freeText").value,
-      fmtDate:     document.getElementById("fmtDate").value,
-      fmtReporter: document.getElementById("fmtReporter").value,
-      flexCard:    flexCardEnabled,
-      sections:    JSON.parse(JSON.stringify(sections)),
+      date:     document.getElementById("fmtDate").value,
+      reporter: document.getElementById("fmtReporter").value,
+      sections: JSON.parse(JSON.stringify(sections)),
     }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(draft)) } catch(e) {}
     setSaveIndicator("saved")
@@ -536,13 +742,10 @@ function initApp() {
   function clearDraft() { try { localStorage.removeItem(STORAGE_KEY) } catch(e) {} }
 
   // ── Bullet helpers ────────────────────────────────────────────
-  // Each bullet is now an object: { text, markerMode, markerDate, markerType }
   function makeBullet(text = "") {
     const today = new Date().toISOString().split("T")[0]
     return { text, markerMode: false, markerDate: today, markerType: "quiz" }
   }
-
-  // Migrate old string bullets to object form
   function normalizeBullet(b) {
     if (typeof b === "string") return makeBullet(b)
     return { text: b.text || "", markerMode: !!b.markerMode, markerDate: b.markerDate || new Date().toISOString().split("T")[0], markerType: b.markerType || "quiz" }
@@ -550,21 +753,9 @@ function initApp() {
 
   function restoreDraft(draft) {
     if (!draft) return
-    setMode(draft.mode || "free", false)
-    if (draft.freeDate)    document.getElementById("freeDate").value    = draft.freeDate
-    if (draft.reporter)    document.getElementById("reporter").value    = draft.reporter
-    if (draft.freeText)    document.getElementById("freeText").value    = draft.freeText
-    if (draft.fmtDate)     document.getElementById("fmtDate").value     = draft.fmtDate
-    if (draft.fmtReporter) document.getElementById("fmtReporter").value = draft.fmtReporter
-    if (draft.flexCard) {
-      document.getElementById("flexCardToggle").checked = true
-      flexCardEnabled = true
-      document.getElementById("flexCardFields").style.display  = "flex"
-      document.getElementById("flexPreviewWrap").style.display = "block"
-      document.getElementById("textPreviewWrap").style.display = "none"
-    }
+    if (draft.date)     document.getElementById("fmtDate").value     = draft.date
+    if (draft.reporter) document.getElementById("fmtReporter").value = draft.reporter
     if (draft.sections && draft.sections.length > 0) {
-      // Normalize bullets in all subjects
       sections = draft.sections.map(sec => ({
         ...sec,
         subjects: (sec.subjects || []).map(subj => ({
@@ -573,47 +764,23 @@ function initApp() {
         }))
       }))
       renderSections()
-    } else if (draft.mode === "formatted") {
+    } else {
       addSection()
     }
     updatePreview()
   }
 
-  function clearForm() {
-    if (!confirm("Clear all form content? This cannot be undone.")) return
-    sections = []; flexCardEnabled = false
-    document.getElementById("freeDate").value    = new Date().toISOString().split("T")[0]
-    document.getElementById("reporter").value    = ""
-    document.getElementById("freeText").value    = ""
+  async function clearForm() {
+    const ok = await openConfirm({ icon: "🧹", title: "Clear the whole form?", message: "Every section, subject and bullet will be wiped. This can't be undone.", okText: "Clear all" })
+    if (!ok) return
+    sections = []
     document.getElementById("fmtDate").value     = new Date().toISOString().split("T")[0]
     document.getElementById("fmtReporter").value = ""
-    document.getElementById("flexCardToggle").checked = false
-    document.getElementById("flexCardFields").style.display  = "none"
-    document.getElementById("flexPreviewWrap").style.display = "none"
-    document.getElementById("textPreviewWrap").style.display = "block"
     clearDraft(); setSaveIndicator("saved")
-    if (currentMode === "formatted") addSection(); else renderSections()
+    addSection()
     updatePreview()
   }
-
   document.getElementById("clearBtn").onclick = clearForm
-
-  document.getElementById("flexCardToggle").onchange = function() {
-    flexCardEnabled = this.checked
-    document.getElementById("flexCardFields").style.display  = flexCardEnabled ? "flex"  : "none"
-    document.getElementById("flexPreviewWrap").style.display = flexCardEnabled ? "block" : "none"
-    document.getElementById("textPreviewWrap").style.display = flexCardEnabled ? "none"  : "block"
-    updatePreview(); scheduleSave()
-  }
-
-  function updateFlexCardPreview() {
-    const fullMsg = buildFormattedMessage() || ""
-    const lines   = fullMsg.split("\n")
-    const dateEl  = document.getElementById("flexCardDatePreview")
-    const bodyEl  = document.getElementById("flexCardBodyPreview")
-    if (dateEl) dateEl.textContent = lines[0] || ""
-    if (bodyEl) bodyEl.textContent = lines.slice(1).join("\n") || "Fill in the form to see preview..."
-  }
 
   function esc(str) { return (str||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;") }
 
@@ -626,24 +793,20 @@ function initApp() {
 
   function iconOpts(sel, icons) { return icons.map(ic => `<option value="${ic}"${ic===sel?" selected":""}>${ic}</option>`).join("") }
 
-  function setMode(mode, doInit = true) {
-    currentMode = mode
-    document.getElementById("freeMode").style.display      = mode === "free" ? "block" : "none"
-    document.getElementById("formattedMode").style.display = mode === "formatted" ? "block" : "none"
-    document.getElementById("modeBtn0").classList.toggle("active", mode === "free")
-    document.getElementById("modeBtn1").classList.toggle("active", mode === "formatted")
-    if (doInit && mode === "formatted" && sections.length === 0) addSection()
-    scheduleSave()
-  }
-  document.getElementById("modeBtn0").onclick = () => setMode("free")
-  document.getElementById("modeBtn1").onclick = () => setMode("formatted")
-
+  // ── Structural add / remove (with box animations) ─────────────
   function addSection() {
     sections.push({ icon: "📢", title: "", subjects: [] })
     addSubject(sections.length - 1, false)
+    pendingEnter = { sel: `.section-block[data-si="${sections.length - 1}"]`, cls: "box-enter" }
     renderSections()
   }
-  function removeSection(si) { sections.splice(si, 1); renderSections(); scheduleSave() }
+  async function removeSection(si) {
+    const ok = await openConfirm({ icon: "🗑️", title: "Delete this section?", message: "The section and all of its subjects and bullets will be removed.", okText: "Delete" })
+    if (!ok) return
+    animateRemove(`.section-block[data-si="${si}"]`, () => {
+      sections.splice(si, 1); renderSections(); scheduleSave()
+    })
+  }
 
   function addSubject(si, doRender = true) {
     const today = new Date().toISOString().split("T")[0]
@@ -651,31 +814,59 @@ function initApp() {
       icon: "📝", title: "", bullets: [makeBullet()], note: "", showNote: false,
       syncToCalendar: false, taskStart: today, taskEnd: "", taskType: "send_on",
     })
-    if (doRender) renderSections()
+    if (doRender) { pendingEnter = { sel: `.subject-block[data-si="${si}"][data-sj="${sections[si].subjects.length - 1}"]`, cls: "box-enter" }; renderSections() }
   }
-
-  function removeSubject(si, sj) { sections[si].subjects.splice(sj, 1); renderSections(); scheduleSave() }
+  async function removeSubject(si, sj) {
+    const ok = await openConfirm({ icon: "🗑️", title: "Delete this subject?", message: "The subject and all of its bullets will be removed.", okText: "Delete" })
+    if (!ok) return
+    animateRemove(`.subject-block[data-si="${si}"][data-sj="${sj}"]`, () => {
+      sections[si].subjects.splice(sj, 1); renderSections(); scheduleSave()
+    })
+  }
 
   function addBullet(si, sj) {
     sections[si].subjects[sj].bullets.push(makeBullet())
+    pendingEnter = { sel: `.bullet-block[data-si="${si}"][data-sj="${sj}"][data-bk="${sections[si].subjects[sj].bullets.length - 1}"]`, cls: "box-enter" }
     renderSections()
   }
-
   function removeBullet(si, sj, bk) {
     if (sections[si].subjects[sj].bullets.length <= 1) return
-    sections[si].subjects[sj].bullets.splice(bk, 1)
-    renderSections(); scheduleSave()
+    animateRemove(`.bullet-block[data-si="${si}"][data-sj="${sj}"][data-bk="${bk}"]`, () => {
+      sections[si].subjects[sj].bullets.splice(bk, 1); renderSections(); scheduleSave()
+    })
   }
 
-  function toggleNote(si, sj) { sections[si].subjects[sj].showNote = !sections[si].subjects[sj].showNote; renderSections() }
-  function toggleSync(si, sj) { sections[si].subjects[sj].syncToCalendar = !sections[si].subjects[sj].syncToCalendar; renderSections(); scheduleSave() }
+  // Collapse an element out, then run the mutation + re-render
+  function animateRemove(sel, done) {
+    const el = document.querySelector(sel)
+    if (!el) { done(); return }
+    el.style.maxHeight = el.offsetHeight + "px"
+    el.classList.add("box-removing")
+    requestAnimationFrame(() => { el.style.maxHeight = "0px" })
+    let called = false
+    const finish = () => { if (called) return; called = true; done() }
+    el.addEventListener("transitionend", (e) => { if (e.propertyName === "max-height") finish() })
+    setTimeout(finish, 340)
+  }
 
-  // Toggle marker mode on a specific bullet
+  function toggleNote(si, sj) {
+    const nowOpen = !sections[si].subjects[sj].showNote
+    sections[si].subjects[sj].showNote = nowOpen
+    if (nowOpen) pendingEnter = { sel: `.subject-block[data-si="${si}"][data-sj="${sj}"] .note-field`, cls: "just-opened" }
+    renderSections()
+  }
+  function toggleSync(si, sj) {
+    const nowOn = !sections[si].subjects[sj].syncToCalendar
+    sections[si].subjects[sj].syncToCalendar = nowOn
+    if (nowOn) pendingEnter = { sel: `.subject-block[data-si="${si}"][data-sj="${sj}"] .task-fields`, cls: "just-opened" }
+    renderSections(); scheduleSave()
+  }
   function toggleBulletMarker(si, sj, bk) {
-    sections[si].subjects[sj].bullets[bk].markerMode = !sections[si].subjects[sj].bullets[bk].markerMode
+    const nowOn = !sections[si].subjects[sj].bullets[bk].markerMode
+    sections[si].subjects[sj].bullets[bk].markerMode = nowOn
+    if (nowOn) pendingEnter = { sel: `.bullet-block[data-si="${si}"][data-sj="${sj}"][data-bk="${bk}"] .bullet-marker-fields`, cls: "just-opened" }
     renderSections(); scheduleSave()
   }
-
   function setBulletMarkerType(si, sj, bk, type) {
     sections[si].subjects[sj].bullets[bk].markerType = type
     renderSections(); scheduleSave()
@@ -687,12 +878,11 @@ function initApp() {
     sections.forEach((sec, si) => {
       const div = document.createElement("div")
       div.className = "section-block"
+      div.dataset.si = si
 
       const subjHTML = sec.subjects.map((subj, sj) => {
-        // ── Render each bullet as an object ──
         const bulletsHTML = subj.bullets.map((b, bk) => {
           const isMarker = b.markerMode
-
           const markerTypeButtons = MARKER_TYPES.map(mt =>
             `<button class="marker-type-btn${b.markerType===mt.key?" active":""}"
               data-si="${si}" data-sj="${sj}" data-bk="${bk}" data-mtype="${mt.key}">${mt.label}</button>`
@@ -708,7 +898,7 @@ function initApp() {
             </div>` : ""
 
           return `
-            <div class="bullet-block">
+            <div class="bullet-block" data-si="${si}" data-sj="${sj}" data-bk="${bk}">
               <div class="bullet-row">
                 <span class="bullet-dash">-</span>
                 <input type="text" placeholder="Write bullet point..." value="${esc(b.text)}"
@@ -717,15 +907,14 @@ function initApp() {
                   data-si="${si}" data-sj="${sj}" data-bk="${bk}" title="Toggle marker for this bullet">
                   📍${isMarker?" ✓":""}
                 </button>
-                <button class="action-btn btn-delete rm-bullet" data-si="${si}" data-sj="${sj}" data-bk="${bk}">🗑️</button>
+                <button class="action-btn btn-delete icon-only rm-bullet" data-si="${si}" data-sj="${sj}" data-bk="${bk}" title="Remove bullet" aria-label="Remove bullet">${ICON_X}</button>
               </div>
               ${markerPanel}
             </div>`
         }).join("")
 
-        const noteVisible  = subj.showNote ? "visible" : ""
-        const noteBtnLabel = subj.showNote ? "🟡 Hide note" : "📌 Add note"
-        const syncActive   = subj.syncToCalendar
+        const noteVisible = subj.showNote ? "visible" : ""
+        const syncActive  = subj.syncToCalendar
 
         const calPanel = syncActive ? `
           <div class="task-fields">
@@ -752,7 +941,7 @@ function initApp() {
           </div>` : ""
 
         return `
-          <div class="subject-block">
+          <div class="subject-block" data-si="${si}" data-sj="${sj}">
             <div class="subject-row">
               <div class="subject-num">${sj+1}.</div>
               <div class="subject-body">
@@ -760,16 +949,18 @@ function initApp() {
                   <select class="work-icon-select subj-icon" data-si="${si}" data-sj="${sj}">${iconOpts(subj.icon,WORK_ICONS)}</select>
                   <input class="subject-title-input subj-title" type="text" placeholder="Subject name" value="${esc(subj.title)}"
                     data-si="${si}" data-sj="${sj}" />
-                  <button class="action-btn btn-delete rm-subj" data-si="${si}" data-sj="${sj}">🗑️</button>
+                  <button class="action-btn btn-delete icon-only rm-subj" data-si="${si}" data-sj="${sj}" title="Remove subject" aria-label="Remove subject">${ICON_X}</button>
                 </div>
                 <div class="bullet-list">${bulletsHTML}</div>
                 <div class="subject-actions">
-                  <button class="action-btn btn-add-blue add-bullet" data-si="${si}" data-sj="${sj}">➕ Bullet</button>
-                  <button class="action-btn btn-toggle-note toggle-note" data-si="${si}" data-sj="${sj}">${noteBtnLabel}</button>
-                  <button class="action-btn toggle-sync" data-si="${si}" data-sj="${sj}"
-                    style="background:${syncActive?"var(--purple-light)":"#f3f0ff"};color:var(--purple);border:1px solid var(--purple-border);">
-                    ${syncActive ? "📅 Syncing ✓" : "📅 Add to calendar"}
-                  </button>
+                  <div class="add-dd">
+                    <button class="add-dd-btn" data-si="${si}" data-sj="${sj}">${ICON_PLUS} Add <span class="caret">▾</span></button>
+                    <div class="add-dd-menu">
+                      <button class="add-dd-item bullet add-bullet" data-si="${si}" data-sj="${sj}"><span class="dd-ico">${ICON_BULLET}</span> Bullet point</button>
+                      <button class="add-dd-item note toggle-note" data-si="${si}" data-sj="${sj}"><span class="dd-ico">${ICON_NOTE}</span> ${subj.showNote ? "Hide note" : "Note"}</button>
+                      <button class="add-dd-item cal toggle-sync${syncActive?" active":""}" data-si="${si}" data-sj="${sj}"><span class="dd-ico">${ICON_CAL}</span> ${syncActive ? "Remove from calendar" : "Add to calendar"}${syncActive ? '<span class="dd-check">✓</span>' : ''}</button>
+                    </div>
+                  </div>
                 </div>
                 <div class="note-field ${noteVisible}">
                   <input class="note-input subj-note" type="text" placeholder="Write note here..." value="${esc(subj.note)}"
@@ -786,18 +977,28 @@ function initApp() {
           <select class="icon-select sec-icon" data-si="${si}">${iconOpts(sec.icon,SECTION_ICONS)}</select>
           <input class="section-title-input sec-title" type="text" placeholder="Section title e.g. การบ้าน"
             value="${esc(sec.title)}" data-si="${si}" />
-          <button class="action-btn btn-delete rm-sec" data-si="${si}">🗑️ Section</button>
+          <button class="action-btn btn-delete rm-sec" data-si="${si}">${ICON_X} Section</button>
         </div>
         <div class="section-body">
           ${subjHTML}
           <div style="margin-top:${sec.subjects.length>0?"10px":"0"};">
-            <button class="action-btn btn-add-green add-subj" data-si="${si}">➕ Add subject</button>
+            <button class="btn-add-subject add-subj" data-si="${si}">${ICON_PLUS} Add subject</button>
           </div>
         </div>`
       list.appendChild(div)
     })
+    if (sections.length === 0) {
+      list.innerHTML = `<div class="empty-hint">No sections yet — tap “New section” below to start.</div>`
+    }
     updatePreview()
     bindSectionEvents()
+
+    // Play the enter animation on the ONE element that just changed
+    if (pendingEnter) {
+      const el = document.querySelector(pendingEnter.sel)
+      if (el) { const c = pendingEnter.cls; el.classList.add(c); el.addEventListener("animationend", () => el.classList.remove(c), { once: true }) }
+      pendingEnter = null
+    }
   }
 
   function bindSectionEvents() {
@@ -813,32 +1014,43 @@ function initApp() {
     list.querySelectorAll(".toggle-note").forEach(el => { el.onclick = () => toggleNote(+el.dataset.si, +el.dataset.sj) })
     list.querySelectorAll(".toggle-sync").forEach(el => { el.onclick = () => toggleSync(+el.dataset.si, +el.dataset.sj) })
     list.querySelectorAll(".rm-bullet").forEach(el => { el.onclick = () => removeBullet(+el.dataset.si, +el.dataset.sj, +el.dataset.bk) })
-    // Bullet text
     list.querySelectorAll(".bullet-inp").forEach(el => {
       el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].bullets[+el.dataset.bk].text = el.value; updatePreview(); scheduleSave() }
     })
-    // Per-bullet marker toggle
     list.querySelectorAll(".toggle-bullet-marker").forEach(el => {
       el.onclick = () => toggleBulletMarker(+el.dataset.si, +el.dataset.sj, +el.dataset.bk)
     })
-    // Per-bullet marker date
     list.querySelectorAll(".bullet-marker-date").forEach(el => {
-      el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].bullets[+el.dataset.bk].markerDate = el.value; scheduleSave() }
+      el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].bullets[+el.dataset.bk].markerDate = el.value; updatePreview(); scheduleSave() }
     })
-    // Per-bullet marker type buttons
     list.querySelectorAll(".marker-type-btn").forEach(el => {
       el.onclick = () => setBulletMarkerType(+el.dataset.si, +el.dataset.sj, +el.dataset.bk, el.dataset.mtype)
     })
     list.querySelectorAll(".add-subj").forEach(el => { el.onclick = () => addSubject(+el.dataset.si) })
-    list.querySelectorAll(".cal-start").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskStart = el.value; scheduleSave() } })
+    list.querySelectorAll(".cal-start").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskStart = el.value; updatePreview(); scheduleSave() } })
     list.querySelectorAll(".cal-end").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskEnd = el.value; scheduleSave() } })
     list.querySelectorAll(".cal-type").forEach(el => { el.onchange = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskType = el.value; scheduleSave() } })
+
+    // "+ Add" dropdown toggle — positioned so it escapes any parent clipping
+    list.querySelectorAll(".add-dd-btn").forEach(el => {
+      el.onclick = (e) => {
+        e.stopPropagation()
+        const menu = el.nextElementSibling
+        const willOpen = !menu.classList.contains("open")
+        list.querySelectorAll(".add-dd-menu.open").forEach(m => m.classList.remove("open"))
+        list.querySelectorAll(".add-dd-btn.open").forEach(b => b.classList.remove("open"))
+        menu.classList.remove("up")
+        if (willOpen) {
+          menu.classList.add("open"); el.classList.add("open")
+          // flip upward if it would spill past the viewport bottom
+          const r = menu.getBoundingClientRect()
+          if (r.bottom > window.innerHeight - 8) menu.classList.add("up")
+        }
+      }
+    })
   }
 
   document.getElementById("addSectionBtn").onclick = () => { addSection(); scheduleSave() }
-  document.getElementById("freeDate").oninput    = () => { updatePreview(); scheduleSave() }
-  document.getElementById("reporter").oninput    = () => scheduleSave()
-  document.getElementById("freeText").oninput    = () => scheduleSave()
   document.getElementById("fmtDate").oninput     = () => { updatePreview(); scheduleSave() }
   document.getElementById("fmtReporter").oninput = () => { updatePreview(); scheduleSave() }
 
@@ -862,46 +1074,18 @@ function initApp() {
   function updatePreview() {
     const msg = buildFormattedMessage() || "Fill in the form to see preview..."
     document.getElementById("preview").textContent = msg
-    if (flexCardEnabled) updateFlexCardPreview()
-  }
-
-  function buildFlexCardPayload(message) {
-    const calUrl = "https://tas-33.netlify.app/calendar/"
-    const gcUrl  = "https://classroom.google.com/"
-    const lines  = message.split("\n")
-    const dateLine  = lines[0] || ""
-    const restLines = lines.slice(1)
-    const bodyContents = []
-    if (dateLine) bodyContents.push({ type:"text", text:dateLine, wrap:true, size:"xl", weight:"bold", color:"#1a1a1a", margin:"none" })
-    if (restLines.length > 0) bodyContents.push({ type:"separator", margin:"md" })
-    restLines.forEach(line => { bodyContents.push({ type:"text", text:line||" ", wrap:true, size:"sm", color:"#333333", margin:"sm" }) })
-    return {
-      type: "flex", altText: message.substring(0, 400),
-      contents: {
-        type: "bubble",
-        hero: { type:"image", url:"https://i.ibb.co/V08nTBMD/banner.png", size:"full", aspectRatio:"13:4", aspectMode:"cover" },
-        body: { type:"box", layout:"vertical", contents:bodyContents, paddingTop:"16px", paddingBottom:"8px", paddingStart:"16px", paddingEnd:"16px", spacing:"none" },
-        footer: {
-          type:"box", layout:"vertical", spacing:"sm",
-          contents: [
-            { type:"button", style:"primary", color:"#2563eb", height:"sm", action:{ type:"uri", label:"📅 ดูปฏิทิน", uri:calUrl } },
-            { type:"button", style:"secondary", height:"sm", action:{ type:"uri", label:"🎓 Google Classroom", uri:gcUrl } }
-          ], paddingAll:"12px"
-        }
-      }
-    }
+    document.getElementById("taskCount").textContent = collectCalendarTasks().length
   }
 
   function collectCalendarTasks() {
     const tasks = []
     sections.forEach(sec => {
       sec.subjects.forEach(subj => {
-        // ── Per-bullet markers ──────────────────────────────────
         subj.bullets.forEach(b => {
           if (!b.markerMode || !b.text.trim()) return
           tasks.push({
-            name:       subj.title.trim() || b.text.trim(),  // subject title is the event name
-            subject:    b.text.trim(),                        // bullet text is the topic/subject shown in modal
+            name:       subj.title.trim() || b.text.trim(),
+            subject:    b.text.trim(),
             type:       "marker",
             markerType: b.markerType || "quiz",
             date:       b.markerDate,
@@ -910,10 +1094,8 @@ function initApp() {
             note:       subj.note.trim() || ""
           })
         })
-
-        // ── Normal calendar sync ────────────────────────────────
         if (!subj.syncToCalendar) return
-        const today     = new Date().toISOString().split("T")[0]
+        const today      = new Date().toISOString().split("T")[0]
         const bulletNote = subj.bullets.filter(b=>b.text.trim()).map(b=>`- ${b.text}`).join("\n")
         const note       = subj.note.trim()
         tasks.push({
@@ -939,109 +1121,66 @@ function initApp() {
     return results
   }
 
-  function loadTargets() {
-    try { return JSON.parse(localStorage.getItem("tas_targets") || "null") || [{ name: "Test Group", id: "C78b60ef77ecc8ba6beca7d431ef55d52" }] }
-    catch(e) { return [] }
-  }
-  function saveTargets(t) { localStorage.setItem("tas_targets", JSON.stringify(t)) }
-  function getInitials(name) { return name.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2) }
-
-  function renderTargets() {
-    const targets = loadTargets()
-    const list    = document.getElementById("targetList")
-    list.innerHTML = ""
-    targets.forEach((t, i) => {
-      const item = document.createElement("div")
-      item.className = "target-item"
-      item.innerHTML = `
-        <input type="checkbox" data-id="${t.id}" />
-        <div class="target-avatar">${getInitials(t.name)}</div>
-        <div class="target-info">
-          <div class="target-name">${t.name}</div>
-          <div class="target-id">${t.id}</div>
-        </div>
-        <button class="action-btn btn-delete" data-idx="${i}">🗑️ Remove</button>`
-      item.querySelector("input[type='checkbox']").onchange = function() { item.classList.toggle("checked", this.checked) }
-      item.querySelector(".btn-delete").onclick = () => { const tgts = loadTargets(); tgts.splice(i, 1); saveTargets(tgts); renderTargets() }
-      list.appendChild(item)
-    })
-  }
-
-  document.getElementById("toggleAddFormBtn").onclick = () => document.getElementById("addForm").classList.toggle("open")
-  document.getElementById("saveTargetBtn").onclick = () => {
-    const name = document.getElementById("newName").value.trim()
-    const id   = document.getElementById("newId").value.trim()
-    if (!name || !id) return alert("Please fill in both fields.")
-    const targets = loadTargets(); targets.push({ name, id }); saveTargets(targets)
-    document.getElementById("newName").value = ""
-    document.getElementById("newId").value   = ""
-    document.getElementById("addForm").classList.remove("open")
-    renderTargets()
-  }
-
   function setStatus(cls, text) {
     const el = document.getElementById("status")
     el.className = "status " + cls; el.style.display = "block"; el.textContent = text
   }
 
-  document.getElementById("sendBtn").onclick = async function() {
-    const btn     = this
-    const checked = [...document.querySelectorAll("#targetList input[type='checkbox']:checked")]
-    const selectedIds = checked.map(c => c.dataset.id)
-    if (selectedIds.length === 0) { setStatus("s-error", "⚠️ Please select at least one target."); return }
-
-    let message = "", payload = null
-    if (currentMode === "free") {
-      const date     = thaiDate(document.getElementById("freeDate").value)
-      const text     = document.getElementById("freeText").value.trim()
-      const reporter = document.getElementById("reporter").value.trim()
-      if (!text) { setStatus("s-error", "⚠️ Please write a message."); return }
-      message = `${date}${reporter?"\n👤 "+reporter:""}\n\n${text}`
-    } else {
-      message = buildFormattedMessage()
-      if (!message || message.length < 5) { setStatus("s-error", "⚠️ Please fill in the report."); return }
-      if (flexCardEnabled) payload = buildFlexCardPayload(message)
+  // ── Copy formatted text (the "printer") ───────────────────────
+  let copyResetTimer = null
+  document.getElementById("copyBtn").onclick = async function() {
+    const btn = this
+    const msg = buildFormattedMessage()
+    if (!msg) { setStatus("s-info", "ℹ️ Nothing to copy yet."); return }
+    try {
+      await navigator.clipboard.writeText(msg)
+      const lbl = btn.querySelector(".copy-label")
+      btn.classList.add("copied")
+      if (lbl) lbl.textContent = "Copied"
+      clearTimeout(copyResetTimer)
+      copyResetTimer = setTimeout(() => { btn.classList.remove("copied"); if (lbl) lbl.textContent = "Copy" }, 2000)
+    } catch(e) {
+      setStatus("s-error", "Couldn't copy — select the preview text manually.")
     }
+  }
+
+  // ── Save flagged tasks to Firestore ───────────────────────────
+  document.getElementById("saveBtn").onclick = async function() {
+    const btn = this
+    const tasks = collectCalendarTasks()
+    if (tasks.length === 0) {
+      setStatus("s-info", "ℹ️ No tasks flagged yet. Toggle 📍 on a bullet, or + Add → Add to calendar on a subject.")
+      return
+    }
+    const markers = tasks.filter(t => t.type === "marker")
+    const normal  = tasks.filter(t => t.type !== "marker")
+    const label   = markers.length && normal.length
+      ? `${normal.length} task(s) + ${markers.length} marker(s)`
+      : markers.length ? `${markers.length} marker(s)` : `${normal.length} task(s)`
+
+    const ok = await openConfirm({ icon: "📅", title: "Save to calendar?", message: `This adds ${label} to the shared calendar.`, okText: "Save", danger: false })
+    if (!ok) return
 
     btn.disabled = true
-    setStatus("s-info", "⏳ Sending LINE message...")
+    setStatus("s-info", `⏳ Saving ${label} to calendar...`)
     try {
-      await Promise.all(selectedIds.map(groupId => {
-        const body = flexCardEnabled && payload ? { groupId, flexMessage: payload } : { groupId, message }
-        return fetch(`${SERVER_URL}/send`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
-      }))
-      let syncNote = ""
-      if (currentMode === "formatted") {
-        const calTasks = collectCalendarTasks()
-        if (calTasks.length > 0) {
-          const markers = calTasks.filter(t => t.type === "marker")
-          const normal  = calTasks.filter(t => t.type !== "marker")
-          const label   = markers.length && normal.length
-            ? `${normal.length} task(s) + ${markers.length} marker(s)`
-            : markers.length ? `${markers.length} marker(s)` : `${normal.length} task(s)`
-          setStatus("s-info", `⏳ Saving ${label} to calendar...`)
-          const results = await syncToFirestore(calTasks)
-          const ok = results.filter(r => r.ok).length, fail = results.filter(r => !r.ok).length
-          syncNote = fail > 0
-            ? ` · ⚠️ ${ok}/${calTasks.length} saved (${fail} failed)`
-            : ` · 📅 ${label} added to calendar`
-        }
-      }
-      setStatus("s-success", `✅ Sent to ${selectedIds.length} group(s)${flexCardEnabled?" (Flex Card)":""}!${syncNote}`)
+      const results = await syncToFirestore(tasks)
+      const okN = results.filter(r => r.ok).length, fail = results.filter(r => !r.ok).length
+      if (fail > 0) setStatus("s-error", `⚠️ Saved ${okN}/${tasks.length} — ${fail} failed.`)
+      else          setStatus("s-success", `✅ Saved ${label} to the calendar!`)
     } catch(e) {
       setStatus("s-error", "❌ Failed: " + e.message)
     } finally { btn.disabled = false }
   }
 
+  // ── Boot ──────────────────────────────────────────────────────
   const today = new Date().toISOString().split("T")[0]
-  document.getElementById("freeDate").value = today
-  document.getElementById("fmtDate").value  = today
-  renderTargets()
+  document.getElementById("fmtDate").value = today
   setSaveIndicator("saved")
 
   const draft = loadDraft()
   if (draft) restoreDraft(draft)
-  else { setMode("free", false); renderSections() }
+  else { addSection(); updatePreview() }
 
 } // end initApp
 </script>
