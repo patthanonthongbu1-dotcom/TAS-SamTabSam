@@ -1,32 +1,70 @@
 /**
- * Import function triggers from their respective submodules:
+ * TAS Calendar — cloud push sender.
  *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
+ * When a moderator posts a shared task, fan a Web Push notification out to
+ * every device that turned notifications on in the calendar (their FCM
+ * tokens live in the `fcmTokens` collection, written by calendar.html).
+ * Tokens that FCM reports as dead are pruned so the list stays clean.
  */
 
 const {setGlobalOptions} = require("firebase-functions");
-const {onRequest} = require("firebase-functions/https");
+const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 const logger = require("firebase-functions/logger");
+const admin = require("firebase-admin");
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
-setGlobalOptions({ maxInstances: 10 });
+admin.initializeApp();
+setGlobalOptions({maxInstances: 10});
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+const THAI_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+function shortDate(iso) {
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d)) return iso;
+  return `${d.getDate()} ${THAI_MONTHS[d.getMonth()]}`;
+}
+
+exports.notifyNewTask = onDocumentCreated("tasks/{taskId}", async (event) => {
+  const t = event.data && event.data.data();
+  if (!t || !t.name) return;
+
+  const snap = await admin.firestore().collection("fcmTokens").get();
+  if (snap.empty) return;
+  const tokens = snap.docs.map((d) => d.id);
+
+  const title = t.type === "marker" ?
+    `📍 New event: ${t.name}` :
+    `🆕 New task: ${t.name}`;
+  const body = [t.subject, t.end ? `due ${shortDate(t.end)}` : ""]
+      .filter(Boolean).join(" · ");
+
+  const dead = [];
+  // sendEachForMulticast takes at most 500 tokens per call
+  for (let i = 0; i < tokens.length; i += 500) {
+    const chunk = tokens.slice(i, i + 500);
+    const res = await admin.messaging().sendEachForMulticast({
+      tokens: chunk,
+      webpush: {
+        notification: {
+          title,
+          body,
+          icon: "TASLogo.png",
+          tag: "tas-new-" + event.params.taskId,
+        },
+        fcmOptions: {link: "/calendar.html"},
+      },
+    });
+    res.responses.forEach((r, j) => {
+      if (r.success) return;
+      const code = (r.error && r.error.code) || "";
+      if (code.includes("registration-token-not-registered") ||
+          code.includes("invalid-argument")) dead.push(chunk[j]);
+    });
+    logger.info(`Task ${event.params.taskId}: pushed to ${chunk.length} ` +
+      `tokens, ${res.failureCount} failed`);
+  }
+
+  await Promise.all(dead.map((tk) =>
+    admin.firestore().doc("fcmTokens/" + tk).delete()));
+  if (dead.length) logger.info(`Pruned ${dead.length} dead tokens`);
+});

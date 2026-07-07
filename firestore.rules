@@ -29,5 +29,14 @@ service cloud.firestore {
     match /userDone/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+
+    // ── Push notification tokens ──────────────────────────────
+    // Doc id = the device's FCM token; written by the calendar when a
+    // signed-in user turns notifications on. Only the Cloud Function
+    // (admin SDK, bypasses rules) ever needs to read the list.
+    match /fcmTokens/{token} {
+      allow read: if false;
+      allow create, update, delete: if request.auth != null;
+    }
   }
 }

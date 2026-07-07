@@ -16,6 +16,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TAS Calendar</title>
   <link rel="icon" type="image/x-icon" href="TASLogo.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b1c3d">
+  <link rel="apple-touch-icon" href="TASLogo.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TAS Calendar">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script>
     // Apply the saved theme before first paint (dark is the default)
@@ -268,6 +275,36 @@
     .empty-state p{font-size:15px;margin-bottom:8px}
     .empty-state small{font-size:13px;font-weight:300}
     .loading{text-align:center;padding:4rem;color:var(--muted);font-size:14px}
+    /* ── Toasts — save errors, undo, small confirmations ── */
+    #toastWrap{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:21000;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:max-content;max-width:calc(100vw - 32px)}
+    .toast{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:400;color:var(--text);
+      background:rgba(20,30,54,0.97);border:1px solid var(--glass-brd);box-shadow:0 8px 28px rgba(0,0,0,0.45);
+      backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);pointer-events:auto;
+      opacity:0;transform:translateY(8px);transition:opacity 0.25s ease,transform 0.25s ease;max-width:100%}
+    .toast.show{opacity:1;transform:translateY(0)}
+    .toast.error{border-color:rgba(229,62,62,0.55)}
+    .toast-action{flex-shrink:0;border:none;cursor:pointer;font:inherit;font-weight:600;padding:5px 12px;border-radius:8px;
+      color:#fff;background:var(--accent-grad,linear-gradient(180deg,#ff5fac,#c02e7e))}
+    html[data-theme="light"] .toast{background:rgba(255,255,255,0.98);color:#1f2933;border-color:rgba(0,0,0,0.12);box-shadow:0 8px 28px rgba(0,0,0,0.18)}
+    /* ── Skeleton loading — shimmering ghost of the calendar while tasks load ── */
+    .cal-skeleton{padding:14px 0 6px;opacity:0;animation:skelIn 0.3s ease forwards}
+    @keyframes skelIn{to{opacity:1}}
+    .skel-row{display:flex;align-items:center;min-height:var(--row-h);margin-bottom:5px}
+    .skel-cell-left{width:var(--label-w);flex-shrink:0;padding:0 14px;display:flex;flex-direction:column;gap:7px}
+    .skel-cell-track{flex:1;min-width:0;padding:0 6px}
+    .skel-cell-right{width:var(--check-w);flex-shrink:0;display:flex;justify-content:center}
+    .skel-bone{position:relative;overflow:hidden;background:rgba(255,255,255,0.07);border-radius:6px}
+    .skel-bone::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,0.10),transparent);
+      animation:skelSweep 1.5s ease-in-out infinite}
+    @keyframes skelSweep{100%{transform:translateX(100%)}}
+    .skel-line{height:11px;width:var(--sk-nw,70%)}
+    .skel-line.sub{height:9px;width:var(--sk-sw,45%);opacity:0.7}
+    .skel-bar{height:26px;border-radius:13px;margin-left:var(--sk-l,4%);width:var(--sk-w,30%)}
+    .skel-check{width:17px;height:17px;border-radius:5px}
+    html[data-theme="light"] .skel-bone{background:rgba(0,0,0,0.07)}
+    html[data-theme="light"] .skel-bone::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent)}
+    @media (prefers-reduced-motion: reduce){.skel-bone::after{animation:none}}
 
     /* FLOATING CONTROLS — glass FABs */
     .fab-container{position:fixed;bottom:1.5rem;left:1.5rem;right:1.5rem;display:flex;justify-content:space-between;align-items:flex-end;z-index:500;pointer-events:none}
@@ -755,6 +792,13 @@
     .set-section{margin-bottom:1.2rem}
     .set-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--label);margin-bottom:8px}
     .set-hint{font-size:11px;color:var(--muted);font-weight:300;margin:-4px 0 9px;line-height:1.5}
+    .set-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--field-bg);border:1px solid var(--glass-brd);border-radius:10px;padding:10px 12px;cursor:pointer;transition:background 0.15s}
+    .set-toggle-row:hover{background:rgba(255,255,255,0.12)}
+    .set-toggle-title{font-size:13px;font-weight:500;color:var(--text)}
+    .set-toggle-sub{font-size:10.5px;color:var(--muted);font-weight:300;margin-top:1px;line-height:1.4}
+    .pt-switch.accent.on{background:var(--pink)}
+    html[data-theme="light"] .set-toggle-row{background:rgba(0,0,0,0.04)}
+    html[data-theme="light"] .set-toggle-row:hover{background:rgba(0,0,0,0.07)}
     .theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .theme-opt{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 8px;border-radius:12px;border:1.5px solid var(--field-brd);background:var(--field-bg);color:var(--text);font-family:'Kanit',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:border-color 0.15s,background 0.15s,transform 0.12s}
     .theme-opt span{font-size:10px;color:var(--muted);font-weight:300}
@@ -916,7 +960,8 @@
 </div>
 
 <div class="cal-wrap" id="calWrap">
-  <div class="loading">Loading tasks...</div>
+  <!-- Skeleton loading is injected here on init (see skeletonHTML) -->
+
 </div>
 
 <!-- FLOATING CONTROLS -->
@@ -1094,7 +1139,9 @@
   <div class="pw-box">
     <h2>🔒 Mod mode</h2>
     <p>Enter the mod password to enable editing</p>
-    <input type="password" id="pwInput" placeholder="Password" onkeydown="if(event.key==='Enter')checkPw()" />
+    <form onsubmit="event.preventDefault();checkPw()">
+      <input type="password" id="pwInput" placeholder="Password" autocomplete="off" />
+    </form>
     <div class="pw-error" id="pwError">Incorrect password</div>
     <button class="pw-submit" onclick="checkPw()">Unlock</button>
     <button class="pw-cancel" onclick="closePw()">Cancel</button>
@@ -1159,6 +1206,18 @@
     </div>
 
     <div class="set-section">
+      <div class="set-label">Notifications</div>
+      <div class="set-hint">Get notified when a new task is posted, plus one reminder a day for tasks due today or tomorrow. Works while the site is open — even in a background tab. On phones, add the site to your home screen for best results.</div>
+      <div class="set-toggle-row" onclick="toggleNotify()">
+        <div>
+          <div class="set-toggle-title">🔔 Notify me</div>
+          <div class="set-toggle-sub" id="notifyStateHint">Off</div>
+        </div>
+        <div class="pt-switch accent" id="notifySwitch"></div>
+      </div>
+    </div>
+
+    <div class="set-section">
       <div class="set-label">Rush zones</div>
       <div class="set-hint">Pick when tasks change colour, by days left until the due date. Saved on this device.</div>
       <div class="zone-row">
@@ -1193,6 +1252,9 @@ import {
   getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
   onSnapshot, setDoc, getDoc, query, orderBy
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
+import {
+  getMessaging, getToken, deleteToken, isSupported as messagingSupported
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-messaging.js"
 
 const firebaseConfig = {
   apiKey:"AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18",
@@ -1207,6 +1269,10 @@ const auth = getAuth(app)
 const db   = getFirestore(app)
 
 const LOGIN_URL = "index.html"
+// Web Push certificate ("key pair") from Firebase console →
+// Project settings → Cloud Messaging → Web Push certificates.
+// Leave empty to run without cloud push (in-page notifications still work).
+const VAPID_KEY = "BNx_eIfYD9DPw-RNyIgwucdBjkoNQ5AodZzBG-TtGNobOScx7a8uTEG3XHJw6nnWv0D1omVzr7wwmkHe3f2jvkY"
 const MOD_PASSWORD_HASH = "4710ce735963a78ed12d2348a6ddd4e45a0f75cce94d78b3d81d077274e8c8fa"
 const RANGE_STORAGE_KEY = "tas_calendar_range"
 
@@ -1216,10 +1282,44 @@ async function hashInput(str){
 }
 
 const TODAY = new Date(); TODAY.setHours(0,0,0,0)
+// A tab left open overnight must roll to the new day — otherwise urgency
+// colours, "days left" and the archive all go stale until a manual refresh
+setInterval(()=>{
+  const mid=new Date(); mid.setHours(0,0,0,0)
+  if(mid.getTime()!==TODAY.getTime()){
+    TODAY.setTime(mid.getTime())
+    animateRows=true
+    if(currentView==="archive")renderArchive(); else renderCalendar()
+    renderPtList()
+    if(tasksLoaded) queueDueReminders()
+  }
+},60000)
 const thaiMonths = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."]
 function shortDate(d){ return `${d.getDate()} ${thaiMonths[d.getMonth()]}` }
 function parseDate(s){ return new Date(s+"T00:00:00") }
 function daysLeft(e){ return Math.round((e-TODAY)/(24*60*60*1000)) }
+
+// Escape user-entered text before dropping it into innerHTML templates —
+// a task name like <img onerror=…> or a stray " must never break the page
+function esc(s){
+  return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))
+}
+
+// ── Toasts — errors, undo, small confirmations ────────────────
+function toast(msg,{action,onAction,duration=4000,error=false}={}){
+  let wrap=document.getElementById("toastWrap")
+  if(!wrap){wrap=document.createElement("div");wrap.id="toastWrap";document.body.appendChild(wrap)}
+  const el=document.createElement("div")
+  el.className="toast"+(error?" error":"")
+  el.innerHTML=`<span>${esc(msg)}</span>${action?`<button class="toast-action">${esc(action)}</button>`:""}`
+  wrap.appendChild(el)
+  requestAnimationFrame(()=>el.classList.add("show"))
+  const dismiss=()=>{el.classList.remove("show");setTimeout(()=>el.remove(),300)}
+  if(action&&onAction)el.querySelector(".toast-action").onclick=()=>{onAction();dismiss()}
+  setTimeout(dismiss,duration)
+  return dismiss
+}
+const saveFailToast=()=>toast("Couldn't save — check your connection and try again",{error:true})
 
 // ── Live countdowns — "1 Day 2 Hours 3 Minutes 4 Seconds" ─────
 function fmtCountdown(ms){
@@ -1262,6 +1362,7 @@ if(storedRange==="all") storedRange = "week"   // old "Unlimited" became the end
 if(!VALID_RANGES.includes(storedRange)) storedRange = "month"
 
 let tasks=[], personalTasks=[], isMod=false, editingId=null, currentRange=storedRange, hlPct=null, currentView="calendar"
+let tasksLoaded=false   // first shared-tasks snapshot received — until then, show skeletons
 let currentUser = null
 
 // ── Per-user done state ───────────────────────────────────────
@@ -1271,11 +1372,14 @@ let userDoneCache = {}
 let userHiddenCache = {}
 const savingIds = new Set()
 
+let userStateLoaded = false   // true only after the user's real doc was read
+
 async function loadUserDone(uid) {
   try {
     const snap = await getDoc(doc(db, "userDone", uid))
     userDoneCache   = snap.exists() ? (snap.data().done || {}) : {}
     userHiddenCache = snap.exists() ? (snap.data().archiveHidden || {}) : {}
+    userStateLoaded = true
   } catch(e) {
     console.warn("Could not load done state:", e)
     userDoneCache = {}
@@ -1283,21 +1387,24 @@ async function loadUserDone(uid) {
   }
 }
 
-async function persistUserDone(uid, taskId, checked) {
+// Write the whole doc (no merge): with {merge:true} Firestore keeps map keys
+// that were deleted locally, so un-ticking a task would come back on reload.
+// Both maps live in this one doc and are fully cached, so overwriting is safe.
+async function persistUserState(uid) {
+  // If the login-time load failed, the caches may be missing the user's real
+  // ticks — a no-merge write would wipe them all. Refuse; callers already
+  // roll back and show the save-failed toast.
+  if (!userStateLoaded) { console.warn("User state never loaded — refusing to overwrite it"); return false }
   try {
-    await setDoc(doc(db, "userDone", uid), { done: userDoneCache }, { merge: true })
+    await setDoc(doc(db, "userDone", uid), { done: userDoneCache, archiveHidden: userHiddenCache })
+    return true
   } catch(e) {
-    console.warn("Could not save done state:", e)
+    console.warn("Could not save user state:", e)
+    return false
   }
 }
-
-async function persistUserHidden(uid) {
-  try {
-    await setDoc(doc(db, "userDone", uid), { archiveHidden: userHiddenCache }, { merge: true })
-  } catch(e) {
-    console.warn("Could not save archive state:", e)
-  }
-}
+const persistUserDone   = (uid) => persistUserState(uid)
+const persistUserHidden = (uid) => persistUserState(uid)
 
 // ── Real role check: the moderator whitelist lives in Firestore ──
 // (same config/modWhitelist document the task formatter uses)
@@ -1332,6 +1439,7 @@ onAuthStateChanged(auth, async user => {
   applyStoredRangeToUI()
   startTasksListener()
   startPersonalTasksListener(user.uid)
+  if(notifyReady()) enableCloudPush()   // keep this device's push token fresh
   // First-time visitors get the walkthrough automatically
   try{ if(!localStorage.getItem("tas_cal_tour_seen")) setTimeout(()=>window.openTour(),700) }catch(e){}
 })
@@ -1340,11 +1448,13 @@ function renderUserPill(user) {
   const pill = document.getElementById("userPill")
   const av   = document.getElementById("pillAv")
   document.getElementById("pillName").textContent = (user.displayName || user.email).split(" ")[0]
+  const init = (user.displayName||user.email).split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2)
   if (user.photoURL) {
-    av.innerHTML = `<img src="${user.photoURL}" alt="" />`
+    // no-referrer: Google avatar URLs 403 when sent a referrer; fall back to initials if it still fails
+    av.innerHTML = `<img src="${esc(user.photoURL)}" alt="" referrerpolicy="no-referrer" />`
+    av.querySelector("img").onerror = () => { av.innerHTML = `<div class="user-pill-fb">${esc(init)}</div>` }
   } else {
-    const init = (user.displayName||user.email).split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2)
-    av.innerHTML = `<div class="user-pill-fb">${init}</div>`
+    av.innerHTML = `<div class="user-pill-fb">${esc(init)}</div>`
   }
   pill.classList.add("visible")
   document.getElementById("dropdownName").textContent  = user.displayName || user.email
@@ -1414,7 +1524,7 @@ document.getElementById("tourClose").onclick=()=>window.closeTour()
 document.getElementById("tourOverlay").addEventListener("click",e=>{if(e.target.id==="tourOverlay")window.closeTour()})
 
 // ── Settings (placeholder for now) ────────────────────────────
-window.openSettings=function(){syncZoneInputs();document.getElementById("settingsOverlay").classList.add("open")}
+window.openSettings=function(){syncZoneInputs();updateNotifyUI();document.getElementById("settingsOverlay").classList.add("open")}
 window.closeSettings=function(){animCloseOverlay(document.getElementById("settingsOverlay"))}
 document.getElementById("settingsOverlay").addEventListener("click",e=>{if(e.target.id==="settingsOverlay")window.closeSettings()})
 
@@ -1423,12 +1533,18 @@ let unsubTasks = null
 function startTasksListener() {
   if (unsubTasks) return
   unsubTasks = onSnapshot(collection(db,"tasks"), snap => {
+    tasksLoaded = true
     tasks = snap.docs.map(d=>({id:d.id,...d.data()}))
+    notifyNewTasks(tasks)
+    queueDueReminders()
     updateLatestPill()
     if (savingIds.size === 0) {
       if (currentView==="archive") renderArchive()
       else renderCalendar()
     }
+  }, err => {
+    console.warn("Tasks listener error:", err)
+    toast("Lost connection to the task list — trying to reconnect…",{error:true,duration:6000})
   })
 }
 
@@ -1439,12 +1555,15 @@ function startPersonalTasksListener(uid) {
   const col = collection(db, "userTasks", uid, "tasks")
   unsubPersonal = onSnapshot(col, snap => {
     personalTasks = snap.docs.map(d=>({id:d.id, _personal:true, ...d.data()}))
+    queueDueReminders()
     renderPtList()
     updatePtCount()
     if (savingIds.size === 0) {
       if (currentView==="calendar") renderCalendar()
       else renderArchive()
     }
+  }, err => {
+    console.warn("Personal tasks listener error:", err)
   })
 }
 
@@ -1500,6 +1619,172 @@ window.resetZones = function(){
   if(currentView==="archive") renderArchive(); else renderCalendar()
 }
 
+// ── 🔔 Native notifications (Notification API) ────────────────
+// While the site is open (foreground or background tab) the OS shows real
+// notifications for newly posted tasks and a once-a-day due-soon reminder.
+const NOTIFY_PREF_KEY = "tas_notify"
+const NOTIFY_REMINDED_KEY = "tas_notify_reminded"
+let notifyPref = false
+try{ notifyPref = localStorage.getItem(NOTIFY_PREF_KEY)==="on" }catch(e){}
+
+function notifySupported(){ return "Notification" in window }
+function notifyReady(){ return notifySupported() && Notification.permission==="granted" && notifyPref }
+
+// ── Home-screen install (PWA) ─────────────────────────────────
+// Android Chrome can only show notifications through a service worker, and
+// iOS only allows web notifications at all for apps added to the Home Screen.
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+              (navigator.userAgent.includes("Mac") && navigator.maxTouchPoints > 1)
+const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true
+
+let swReg = null
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js")
+    .then(r => { swReg = r })
+    .catch(e => console.warn("Service worker registration failed:", e))
+}
+
+// Chrome fires this when the site qualifies for install; stash it so the
+// notification toggle can offer "Add to Home screen" at the right moment
+let installPrompt = null
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installPrompt = e })
+window.addEventListener("appinstalled", () => { installPrompt = null })
+
+function offerInstall(){
+  if(isStandalone()) return
+  if(installPrompt){
+    toast("Add TAS to your home screen for more reliable notifications",{
+      action:"Add", duration:8000,
+      onAction: async ()=>{ const p=installPrompt; installPrompt=null; try{ await p.prompt() }catch(e){} }
+    })
+  } else if(isIOS){
+    toast("iPhone: tap Share ⬆️ then “Add to Home Screen”, and turn notifications on from the installed app",{duration:9000})
+  }
+}
+
+// ── Cloud push (FCM) — notifications even with the site closed ─
+// Registers this device's push token in Firestore; the notifyNewTask Cloud
+// Function fans new-task pushes out to every registered token.
+async function enableCloudPush(){
+  if(!VAPID_KEY || !currentUser) return
+  try{
+    if(!(await messagingSupported())) return
+    const reg = swReg || await navigator.serviceWorker.ready
+    const tok = await getToken(getMessaging(app), { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg })
+    if(!tok) return
+    await setDoc(doc(db, "fcmTokens", tok), {
+      uid: currentUser.uid, ua: navigator.userAgent.slice(0,140), updatedAt: Date.now()
+    })
+  }catch(e){ console.warn("Cloud push setup failed:", e) }
+}
+async function disableCloudPush(){
+  if(!VAPID_KEY) return
+  try{
+    if(!(await messagingSupported())) return
+    const messaging = getMessaging(app)
+    const reg = swReg || await navigator.serviceWorker.ready
+    const tok = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg }).catch(()=>null)
+    if(tok) await deleteDoc(doc(db, "fcmTokens", tok)).catch(()=>{})
+    await deleteToken(messaging)
+  }catch(e){ console.warn("Cloud push teardown failed:", e) }
+}
+
+function updateNotifyUI(){
+  const sw=document.getElementById("notifySwitch"), hint=document.getElementById("notifyStateHint")
+  if(!sw) return
+  sw.classList.toggle("on", notifyReady())
+  if(!notifySupported()) hint.textContent = isIOS && !isStandalone()
+    ? "iPhone: add this site to your Home Screen first (Share ⬆️ → Add to Home Screen)"
+    : "Not supported in this browser"
+  else if(Notification.permission==="denied") hint.textContent="Blocked — allow notifications for this site in your browser settings"
+  else hint.textContent = notifyReady() ? "On — you'll be notified on this device" : "Off"
+}
+
+window.toggleNotify = async function(){
+  if(!notifySupported()){
+    if(isIOS && !isStandalone()) offerInstall()
+    else toast("This browser doesn't support notifications",{error:true})
+    return
+  }
+  if(notifyReady()){
+    notifyPref = false
+    disableCloudPush()
+  } else {
+    if(Notification.permission==="denied"){
+      toast("Notifications are blocked — allow them for this site in your browser settings",{error:true})
+      updateNotifyUI(); return
+    }
+    const perm = await Notification.requestPermission()
+    updateNotifyUI()   // permission state may have changed even on dismiss
+    if(perm!=="granted") return
+    notifyPref = true
+    sendNotification("🔔 Notifications are on","You'll hear about new tasks and due-soon reminders.","tas-hello")
+    enableCloudPush()
+    offerInstall()   // phones get notifications most reliably from the installed app
+  }
+  try{ localStorage.setItem(NOTIFY_PREF_KEY, notifyPref?"on":"off") }catch(e){}
+  updateNotifyUI()
+  if(notifyPref) sendDueReminders()
+}
+
+function sendNotification(title, body, tag){
+  if(!notifyReady()) return
+  // Android Chrome throws on `new Notification()` — the service worker path
+  // is the one that works everywhere it's registered
+  if(swReg && swReg.showNotification){
+    swReg.showNotification(title,{ body, tag, icon:"TASLogo.png", badge:"TASLogo.png" })
+      .catch(e => console.warn("Could not show notification:", e))
+    return
+  }
+  try{
+    const n = new Notification(title, { body, tag, icon:"TASLogo.png" })
+    n.onclick = () => { window.focus(); n.close() }
+  }catch(e){ console.warn("Could not show notification:", e) }
+}
+
+// New shared tasks: the first snapshot is catch-up, not news — only diffs
+// against it (tasks added while we're listening) get announced.
+let knownTaskIds = null
+function notifyNewTasks(list){
+  const ids = new Set(list.map(t=>t.id))
+  const fresh = knownTaskIds===null ? [] : list.filter(t=>!knownTaskIds.has(t.id))
+  knownTaskIds = ids
+  if(!fresh.length || !notifyReady()) return
+  if(fresh.length===1){
+    const t=fresh[0]
+    const body=[t.subject, t.end?`due ${shortDate(parseDate(t.end))}`:""].filter(Boolean).join(" · ")
+    sendNotification(`🆕 New task: ${t.name}`, body, "tas-new-"+t.id)
+  } else {
+    sendNotification(`🆕 ${fresh.length} new tasks posted`,
+      fresh.slice(0,4).map(t=>t.name).join(", ")+(fresh.length>4?", …":""), "tas-new-multi")
+  }
+}
+
+// Once a day: everything not done that's due today or tomorrow.
+// The key is only written when a reminder actually fires, so a due-soon task
+// that appears later in the day still gets announced.
+function sendDueReminders(){
+  if(!notifyReady()) return
+  const todayStr = `${TODAY.getFullYear()}-${TODAY.getMonth()+1}-${TODAY.getDate()}`
+  try{ if(localStorage.getItem(NOTIFY_REMINDED_KEY)===todayStr) return }catch(e){}
+  const due = [...tasks,...personalTasks].filter(t=>{
+    if(t.type==="marker"||t.type==="prediction"||!t.end) return false
+    if(userDoneCache[t.id]) return false
+    const dl = daysLeft(parseDate(t.end))
+    return dl>=0 && dl<=1
+  })
+  if(!due.length) return
+  const lines = due.slice(0,4).map(t=>`${t.name} — ${daysLeft(parseDate(t.end))===0?"due today":"due tomorrow"}`)
+  sendNotification(`⏰ ${due.length} task${due.length===1?"":"s"} due soon`,
+    lines.join("\n")+(due.length>4?"\n…":""), "tas-due-"+todayStr)
+  try{ localStorage.setItem(NOTIFY_REMINDED_KEY, todayStr) }catch(e){}
+}
+// Debounced entry point for the listeners: the shared and personal snapshots
+// arrive moments apart, and the reminder should see both before it fires
+let dueReminderTimer=null
+function queueDueReminders(){ clearTimeout(dueReminderTimer); dueReminderTimer=setTimeout(sendDueReminders,1500) }
+updateNotifyUI()
+
 // Sync the range FAB UI (active option + label) to whatever currentRange is —
 // used on initial load so the device's last-chosen range is reflected immediately.
 function applyStoredRangeToUI(){
@@ -1544,6 +1829,10 @@ function getVisibleArchived(){
 
 function renderArchive() {
   const wrap = document.getElementById("calWrap")
+  if(!tasksLoaded){
+    if(!wrap.querySelector(".cal-skeleton")) wrap.innerHTML=skeletonHTML()
+    return
+  }
   wrap.classList.toggle("no-anim", !animateRows); animateRows = false
   const archived = getArchivedTasks()
 
@@ -1578,7 +1867,7 @@ function renderArchive() {
     ` : `
       <select class="archive-fselect" onchange="setArchiveSubjectFilter(this.value)">
         <option value="">📚 All subjects</option>
-        ${subjects.map(s=>`<option value="${s}"${s===archiveFilterSubject?" selected":""}>${s}</option>`).join("")}
+        ${subjects.map(s=>`<option value="${esc(s)}"${s===archiveFilterSubject?" selected":""}>${esc(s)}</option>`).join("")}
       </select>
       <div class="archive-fchips">${chip("","All")}${chip("normal","🟢 Send On")}${chip("deadline","🔴 Send Before")}</div>
     `}
@@ -1592,10 +1881,10 @@ function renderArchive() {
       <span class="archive-strip ${t.type==="deadline"?"deadline":"normal"}"></span>
       <input type="checkbox" class="archive-cb" ${checked?"checked":""} onclick="event.stopPropagation()" onchange="toggleArchiveSelect('${t.id}',this.checked)">
       <div class="archive-main">
-        <span class="archive-name${isDone?" done":""}">${t._personal?"👤 ":""}${t.name}</span>
-        <span class="archive-subj">${t.subject||""}</span>
-        <span class="archive-chip ${t.type==="deadline"?"deadline":"normal"}">${TYPE_LABEL[t.type]||t.type}</span>
-        <span class="archive-desc">${t.note||""}</span>
+        <span class="archive-name${isDone?" done":""}">${t._personal?"👤 ":""}${esc(t.name)}</span>
+        <span class="archive-subj">${esc(t.subject||"")}</span>
+        <span class="archive-chip ${t.type==="deadline"?"deadline":"normal"}">${TYPE_LABEL[t.type]||esc(t.type)}</span>
+        <span class="archive-desc">${esc(t.note||"")}</span>
       </div>
       <div class="archive-right">
         <div class="archive-due">📅 ${shortDate(end)}</div>
@@ -1632,17 +1921,38 @@ window.toggleArchiveSelectAll = el => {
 }
 
 async function archiveRemoveIds(ids){
-  if(!currentUser) return
-  let hiddenChanged = false
-  for(const id of ids){
-    if(personalTasks.some(t=>t.id===id)){
-      await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",id))
-    } else {
-      userHiddenCache[id] = true
-      hiddenChanged = true
+  if(!currentUser) return []
+  const hiddenIds = []
+  try{
+    for(const id of ids){
+      if(personalTasks.some(t=>t.id===id)){
+        await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",id))
+      } else {
+        userHiddenCache[id] = true
+        hiddenIds.push(id)
+      }
     }
+    if(hiddenIds.length && !await persistUserHidden(currentUser.uid)) throw new Error("persist failed")
+  }catch(e){
+    console.warn("Archive remove failed:",e)
+    hiddenIds.forEach(id=>delete userHiddenCache[id])
+    toast("Couldn't update the archive — try again",{error:true})
+    return []
   }
-  if(hiddenChanged) await persistUserHidden(currentUser.uid)
+  return hiddenIds
+}
+
+// Hiding shared tasks is offered an Undo — there's no other way back
+function offerArchiveUndo(hiddenIds){
+  if(!hiddenIds.length) return
+  toast(`${hiddenIds.length===1?"Task":hiddenIds.length+" tasks"} removed from your archive`,{
+    action:"Undo", duration:6000,
+    onAction:async ()=>{
+      hiddenIds.forEach(id=>delete userHiddenCache[id])
+      if(!await persistUserHidden(currentUser.uid)) saveFailToast()
+      if(currentView==="archive") renderArchive()
+    }
+  })
 }
 
 window.archiveDeleteOne = async function(e,id){
@@ -1650,8 +1960,9 @@ window.archiveDeleteOne = async function(e,id){
   const isPersonal = personalTasks.some(t=>t.id===id)
   if(isPersonal && !confirm("This is a personal task — it will be deleted permanently. Continue?")) return
   archiveSelected.delete(id)
-  await archiveRemoveIds([id])
+  const hidden = await archiveRemoveIds([id])
   renderArchive()
+  offerArchiveUndo(hidden)
 }
 
 window.archiveDeleteSelected = async function(){
@@ -1660,8 +1971,9 @@ window.archiveDeleteSelected = async function(){
   const nPersonal = ids.filter(id=>personalTasks.some(t=>t.id===id)).length
   if(nPersonal && !confirm(`${nPersonal} personal task${nPersonal===1?"":"s"} will be deleted permanently. Continue?`)) return
   archiveSelected.clear()
-  await archiveRemoveIds(ids)
+  const hidden = await archiveRemoveIds(ids)
   renderArchive()
+  offerArchiveUndo(hidden)
 }
 
 // ↻ Extend: reopen an archived task as a personal task — name/details are
@@ -1828,8 +2140,8 @@ function openMarkerModal(markers, dateStr){
       : [m.subject || m.name]
     bullets.forEach(b=>{
       rows.push(`<div class="marker-table-row">
-        <div class="marker-table-name"><span class="marker-table-dot"></span>${b}</div>
-        <div class="marker-table-type">${label}</div>
+        <div class="marker-table-name"><span class="marker-table-dot"></span>${esc(b)}</div>
+        <div class="marker-table-type">${esc(label)}</div>
       </div>`)
     })
   })
@@ -1869,10 +2181,28 @@ window.closeMarkerModal=function(e){
 }
 function closeMarkerModalKey(e){ if(e.key==="Escape") closeMarkerModal() }
 
+// Shimmering ghost rows shown until the first tasks snapshot arrives
+function skeletonHTML(){
+  const rows=[[74,48,3,22],[56,38,10,34],[82,52,6,27],[63,42,18,30],[70,35,26,24]]
+  return `<div class="cal-skeleton" role="status" aria-label="Loading tasks…">`+rows.map(([nw,sw,l,w])=>`
+    <div class="skel-row" style="--sk-nw:${nw}%;--sk-sw:${sw}%;--sk-l:${l}%;--sk-w:${w}%">
+      <div class="skel-cell-left"><div class="skel-bone skel-line"></div><div class="skel-bone skel-line sub"></div></div>
+      <div class="skel-cell-track"><div class="skel-bone skel-bar"></div></div>
+      <div class="skel-cell-right"><div class="skel-bone skel-check"></div></div>
+    </div>`).join("")+`</div>`
+}
+document.getElementById("calWrap").innerHTML=skeletonHTML()
+
 function renderCalendar(){
   const wrap=document.getElementById("calWrap")
+  if(!tasksLoaded){
+    // Keep the skeleton (and don't consume animateRows) until real data lands
+    if(!wrap.querySelector(".cal-skeleton")) wrap.innerHTML=skeletonHTML()
+    return
+  }
   wrap.classList.toggle("no-anim", !animateRows); animateRows=false
-  if(!tasks.length){
+  // Personal tasks count too — a student with only their own tasks still has a calendar
+  if(!tasks.length&&!personalTasks.length){
     wrap.innerHTML=`<div class="empty-state"><p>No tasks yet 📭</p><small>${isMod?"Click ➕ Add task to get started":"Check back later!"}</small></div>`
     return
   }
@@ -1961,7 +2291,7 @@ function renderCalendar(){
     const markerClass=coincidentMarkers.length?" marker-tick":""
     const nameTag=coincidentMarkers.length
       ? (coincidentMarkers.length===1
-          ? (()=>{ const info=MARKER_INFO[coincidentMarkers[0].markerType]||MARKER_INFO.date; return `<div class="marker-name-tag">${info.emoji} ${coincidentMarkers[0].name}</div>` })()
+          ? (()=>{ const info=MARKER_INFO[coincidentMarkers[0].markerType]||MARKER_INFO.date; return `<div class="marker-name-tag">${info.emoji} ${esc(coincidentMarkers[0].name)}</div>` })()
           : `<div class="marker-name-tag multi-tag">… ${coincidentMarkers.length} Events</div>`)
       : ""
     const markerClick=coincidentMarkers.length
@@ -1980,7 +2310,7 @@ function renderCalendar(){
     .filter(mt=>!mt.hasRegularTick)
     .map(({p,markers})=>{
       const nameTag=markers.length===1
-        ? (()=>{ const info=MARKER_INFO[markers[0].markerType]||MARKER_INFO.date; return `<div class="marker-name-tag">${info.emoji} ${markers[0].name}</div>` })()
+        ? (()=>{ const info=MARKER_INFO[markers[0].markerType]||MARKER_INFO.date; return `<div class="marker-name-tag">${info.emoji} ${esc(markers[0].name)}</div>` })()
         : `<div class="marker-name-tag multi-tag">… ${markers.length} Events</div>`
       const ids2=markers.map(m=>m.id)
       const idsStr2=ids2.map(id=>`'${id}'`).join(",")
@@ -2034,8 +2364,8 @@ function renderCalendar(){
 
     leftHTML+=`<div class="label-row" style="animation-delay:${delay}s">
       <div style="overflow:hidden;width:100%">
-        <div class="row-name" title="${t.name}">${t.name}</div>
-        <div class="row-subject" title="${t.subject}">${t.subject}</div>
+        <div class="row-name" title="${esc(t.name)}">${esc(t.name)}</div>
+        <div class="row-subject" title="${esc(t.subject)}">${esc(t.subject)}</div>
       </div>
     </div>`
 
@@ -2047,7 +2377,7 @@ function renderCalendar(){
         <div class="gantt-bar${isOverdue?" overdue-pulse":""}${isDone?" done":""}${isPersonal?" personal":""}"
           style="left:${left}%;width:${width}%;background:${color};animation-delay:${delay}s"
           onclick="showDetail(event,'${t.id}')">
-          <span class="gantt-bar-text">${t.name} · ${shortDate(end)}</span>
+          <span class="gantt-bar-text">${esc(t.name)} · ${shortDate(end)}</span>
           ${isPersonal?'<span class="personal-badge">👤</span>':''}
         </div>
         ${outRight}
@@ -2093,11 +2423,78 @@ function renderCalendar(){
   so.addEventListener("scroll",()=>{hs.scrollLeft=so.scrollLeft})
 }
 
+// ── 🎉 Confetti — celebrate marking a task done ───────────────
+// Tiny self-contained canvas burst (no libraries, works offline).
+let cfCanvas=null, cfCtx=null, cfParts=[], cfRAF=null
+function cfColors(){
+  const accent=getComputedStyle(document.documentElement).getPropertyValue("--pink").trim()
+  return [accent||"#ff4fa3","#34d399","#fbbf24","#a78bfa","#60a5fa","#f87171","#ffffff"]
+}
+function cfEnsureCanvas(){
+  if(cfCanvas)return
+  cfCanvas=document.createElement("canvas")
+  cfCanvas.style.cssText="position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:20000"
+  document.body.appendChild(cfCanvas)
+  cfCtx=cfCanvas.getContext("2d")
+}
+function confettiBurst(x,y,count=70){
+  if(window.matchMedia("(prefers-reduced-motion: reduce)").matches)return
+  cfEnsureCanvas()
+  const dpr=window.devicePixelRatio||1
+  const W=Math.round(innerWidth*dpr),H=Math.round(innerHeight*dpr)
+  if(cfCanvas.width!==W||cfCanvas.height!==H){cfCanvas.width=W;cfCanvas.height=H}
+  const colors=cfColors()
+  for(let i=0;i<count;i++){
+    // Launch upward in a fan; gravity brings the pieces fluttering back down
+    const ang=-Math.PI/2+(Math.random()-0.5)*1.9
+    const spd=5+Math.random()*8
+    cfParts.push({
+      x,y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,
+      w:4+Math.random()*5,h:6+Math.random()*6,
+      color:colors[i%colors.length],
+      rot:Math.random()*Math.PI*2,vr:(Math.random()-0.5)*0.3,
+      spin:Math.random()*Math.PI*2,vspin:0.15+Math.random()*0.25,
+      life:0,ttl:110+Math.random()*50
+    })
+  }
+  if(!cfRAF)cfRAF=requestAnimationFrame(cfTick)
+}
+function cfTick(){
+  const dpr=window.devicePixelRatio||1
+  cfCtx.setTransform(dpr,0,0,dpr,0,0)
+  cfCtx.clearRect(0,0,innerWidth,innerHeight)
+  cfParts=cfParts.filter(p=>{
+    p.life++
+    p.vy+=0.16; p.vx*=0.985; p.vy*=0.985
+    p.x+=p.vx+Math.sin(p.spin)*0.6; p.y+=p.vy
+    p.rot+=p.vr; p.spin+=p.vspin
+    if(p.life>=p.ttl||p.y>innerHeight+30)return false
+    const fade=Math.min(1,(p.ttl-p.life)/30)
+    cfCtx.save()
+    cfCtx.globalAlpha=fade
+    cfCtx.translate(p.x,p.y)
+    cfCtx.rotate(p.rot)
+    cfCtx.scale(1,Math.abs(Math.cos(p.spin))*0.85+0.15)  // flutter
+    cfCtx.fillStyle=p.color
+    cfCtx.fillRect(-p.w/2,-p.h/2,p.w,p.h)
+    cfCtx.restore()
+    return true
+  })
+  if(cfParts.length)cfRAF=requestAnimationFrame(cfTick)
+  else{cfRAF=null;cfCtx.setTransform(1,0,0,1,0,0);cfCtx.clearRect(0,0,cfCanvas.width,cfCanvas.height)}
+}
+function confettiFromEl(el){
+  if(!el||!el.getBoundingClientRect)return confettiBurst(innerWidth/2,innerHeight/2)
+  const r=el.getBoundingClientRect()
+  confettiBurst(r.left+r.width/2,r.top+r.height/2)
+}
+
 // ── toggleDone ─────────────────────────────────────────────────
 window.toggleDone = async function(id, checked, checkbox) {
   if (!currentUser) return
   if (checked) userDoneCache[id] = true
   else delete userDoneCache[id]
+  if (checked) confettiFromEl(checkbox)
 
   const calRow = document.querySelector(`.cal-row[data-id="${id}"]`)
   if (calRow) {
@@ -2108,10 +2505,16 @@ window.toggleDone = async function(id, checked, checkbox) {
   const row = document.getElementById("cr-"+id)
   if (row) row.classList.add("saving")
   savingIds.add(id)
-  await persistUserDone(currentUser.uid, id, checked)
+  const ok = await persistUserDone(currentUser.uid)
   savingIds.delete(id)
   if (row) row.classList.remove("saving")
 
+  if (!ok) {
+    // Roll the tick back so the UI never lies about what's saved
+    if (checked) delete userDoneCache[id]
+    else userDoneCache[id] = true
+    saveFailToast()
+  }
   if (savingIds.size === 0) {
     if (currentView === "archive") renderArchive()
     else renderCalendar()
@@ -2122,12 +2525,17 @@ let detailTaskId=null, detailTaskIsPersonal=false
 window.deleteFromDetail=async function(){
   if(!detailTaskId||!currentUser)return
   if(!confirm("Delete this task permanently?"))return
-  if(detailTaskIsPersonal){
-    await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",detailTaskId))
-  } else {
-    await deleteDoc(doc(db,"tasks",detailTaskId))
+  try{
+    if(detailTaskIsPersonal){
+      await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",detailTaskId))
+    } else {
+      await deleteDoc(doc(db,"tasks",detailTaskId))
+    }
+    closeDetail()
+  }catch(e){
+    console.warn("Could not delete task:",e)
+    toast("Couldn't delete the task — try again",{error:true})
   }
-  closeDetail()
 }
 
 // Latest update pill — shows how long ago the most recently created/edited
@@ -2136,9 +2544,10 @@ function updateLatestPill(){
   const pill=document.getElementById("latestPill")
   if(!pill)return
   if(!tasks.length){pill.style.display="none";return}
-  const newest=tasks.reduce((a,b)=>((b.createdAt||0)>(a.createdAt||0)?b:a),tasks[0])
-  if(!newest||!newest.createdAt){pill.style.display="none";return}
-  const diff=Date.now()-(newest.createdAt||0)
+  const stamp=t=>Math.max(t.createdAt||0,t.updatedAt||0)
+  const newest=tasks.reduce((a,b)=>(stamp(b)>stamp(a)?b:a),tasks[0])
+  if(!newest||!stamp(newest)){pill.style.display="none";return}
+  const diff=Date.now()-stamp(newest)
   const mins=Math.floor(diff/60000),hrs=Math.floor(diff/3600000),days=Math.floor(diff/86400000)
   let timeStr
   if(mins<1) timeStr="just now"
@@ -2151,10 +2560,13 @@ function updateLatestPill(){
 
 window.markDoneFromDetail=async function(){
   if(!detailTaskId||!currentUser)return
-  userDoneCache[detailTaskId]=true
-  savingIds.add(detailTaskId)
-  await persistUserDone(currentUser.uid,detailTaskId,true)
-  savingIds.delete(detailTaskId)
+  const id=detailTaskId
+  userDoneCache[id]=true
+  confettiFromEl(document.getElementById("dp-mark-done"))
+  savingIds.add(id)
+  const ok=await persistUserDone(currentUser.uid)
+  savingIds.delete(id)
+  if(!ok){delete userDoneCache[id];saveFailToast()}
   closeDetail()
   // Re-render whichever view is active — archive re-sorts after marking done
   if(currentView==="archive") renderArchive()
@@ -2304,6 +2716,7 @@ window.openAddModal=function(){
   document.getElementById("t-end").value=""
   document.getElementById("t-note").value=""
   document.getElementById("modal-delete-btn").style.display="none"
+  syncDateMins()
   document.getElementById("taskModal").classList.add("open")
 }
 function openEditModal(t){
@@ -2316,11 +2729,14 @@ function openEditModal(t){
   document.getElementById("t-end").value=t.end
   document.getElementById("t-note").value=t.note||""
   document.getElementById("modal-delete-btn").style.display="block"
+  syncDateMins()
   document.getElementById("taskModal").classList.add("open")
 }
 window.closeModal=function(){animCloseOverlay(document.getElementById("taskModal"))}
 
+let taskSaving=false   // one write at a time — a double-tapped Save must not create duplicates
 window.saveTask=async function(){
+  if(taskSaving)return
   const name=document.getElementById("t-name").value.trim()
   const subject=document.getElementById("t-subject").value.trim()
   const type=document.getElementById("t-type").value
@@ -2330,13 +2746,21 @@ window.saveTask=async function(){
   if(!name||!subject||!start||!end){alert("Please fill in name, subject, and dates.");return}
   if(new Date(start)>new Date(end)){alert("Start date must be before end date.");return}
   const data={name,subject,type,start,end,note}
-  if(editingId)await updateDoc(doc(db,"tasks",editingId),data)
-  else await addDoc(collection(db,"tasks"),{...data,createdAt:Date.now()})
-  closeModal()
+  taskSaving=true
+  try{
+    // updatedAt keeps the "Latest update" pill honest for edits, not just new tasks
+    if(editingId)await updateDoc(doc(db,"tasks",editingId),{...data,updatedAt:Date.now()})
+    else await addDoc(collection(db,"tasks"),{...data,createdAt:Date.now()})
+    closeModal()
+  }catch(e){
+    console.warn("Could not save task:",e)
+    saveFailToast()   // keep the modal open so nothing typed is lost
+  }finally{taskSaving=false}
 }
 window.deleteTask=async function(){
   if(!editingId)return;if(!confirm("Delete this task?"))return
-  await deleteDoc(doc(db,"tasks",editingId));closeModal()
+  try{await deleteDoc(doc(db,"tasks",editingId));closeModal()}
+  catch(e){console.warn("Could not delete task:",e);toast("Couldn't delete the task — try again",{error:true})}
 }
 
 // ── Personal Task Panel ───────────────────────────────────────
@@ -2376,14 +2800,6 @@ window.togglePtMarker = function(){
   document.getElementById("ptMarkerFields").style.display  = ptMarkerMode ? "flex" : "none"
   updatePtPreview()
 }
-window.togglePtMarker = function() {
-  ptMarkerMode = !ptMarkerMode;
-  document.getElementById("ptMarkerSwitch").classList.toggle("on", ptMarkerMode);
-  document.getElementById("ptMarkerToggleRow").classList.toggle("active", ptMarkerMode);
-  document.getElementById("ptRegularFields").style.display = ptMarkerMode ? "none" : "flex";
-  document.getElementById("ptMarkerFields").style.display  = ptMarkerMode ? "flex" : "none";
-  updatePtPreview();
-};
 
 window.setPtMarkerType = function(type) {
   ptMarkerType = type;
@@ -2434,34 +2850,42 @@ window.updatePtPreview = function(){
   if(el) el.addEventListener("input", updatePtPreview)
 })
 
+let ptSaving=false
 window.savePtTask = async function(){
-  if(!currentUser) return
+  if(!currentUser||ptSaving) return
   const col = collection(db,"userTasks",currentUser.uid,"tasks")
 
-  if(ptMarkerMode){
-    const name    = document.getElementById("pt-m-name").value.trim()
-    const subject = document.getElementById("pt-m-subject").value.trim()
-    const date    = document.getElementById("pt-m-date").value
-    const note    = document.getElementById("pt-m-note").value.trim()
-    if(!name||!date){ alert("Please fill in event name and date."); return }
-    await addDoc(col,{ name, subject, type:"marker", markerType:ptMarkerType, date, start:date, end:date, note, createdAt:Date.now() })
-  } else {
-    const name    = document.getElementById("pt-name").value.trim()
-    const subject = document.getElementById("pt-subject").value.trim()
-    const type    = document.getElementById("pt-type").value
-    const start   = document.getElementById("pt-start").value
-    const end     = document.getElementById("pt-end").value
-    const note    = document.getElementById("pt-note").value.trim()
-    if(!name||!subject||!start||!end){ alert("Please fill in name, subject, and dates."); return }
-    if(new Date(start)>new Date(end)){ alert("Start date must be before end date."); return }
-    await addDoc(col,{ name, subject, type, start, end, note, createdAt:Date.now() })
-    // Extended from the archive: remove the original so it doesn't show twice
-    if(extendSource){
-      if(extendSource._personal) await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",extendSource.id))
-      else { userHiddenCache[extendSource.id] = true; await persistUserHidden(currentUser.uid) }
-      if(currentView==="archive") renderArchive()
+  ptSaving=true
+  try{
+    if(ptMarkerMode){
+      const name    = document.getElementById("pt-m-name").value.trim()
+      const subject = document.getElementById("pt-m-subject").value.trim()
+      const date    = document.getElementById("pt-m-date").value
+      const note    = document.getElementById("pt-m-note").value.trim()
+      if(!name||!date){ alert("Please fill in event name and date."); return }
+      await addDoc(col,{ name, subject, type:"marker", markerType:ptMarkerType, date, start:date, end:date, note, createdAt:Date.now() })
+    } else {
+      const name    = document.getElementById("pt-name").value.trim()
+      const subject = document.getElementById("pt-subject").value.trim()
+      const type    = document.getElementById("pt-type").value
+      const start   = document.getElementById("pt-start").value
+      const end     = document.getElementById("pt-end").value
+      const note    = document.getElementById("pt-note").value.trim()
+      if(!name||!subject||!start||!end){ alert("Please fill in name, subject, and dates."); return }
+      if(new Date(start)>new Date(end)){ alert("Start date must be before end date."); return }
+      await addDoc(col,{ name, subject, type, start, end, note, createdAt:Date.now() })
+      // Extended from the archive: remove the original so it doesn't show twice
+      if(extendSource){
+        if(extendSource._personal) await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",extendSource.id))
+        else { userHiddenCache[extendSource.id] = true; await persistUserHidden(currentUser.uid) }
+        if(currentView==="archive") renderArchive()
+      }
     }
-  }
+  }catch(e){
+    console.warn("Could not save personal task:",e)
+    saveFailToast()   // leave the form filled in so nothing typed is lost
+    return
+  }finally{ptSaving=false}
   resetPtForm()
   switchPtTab("list")
 }
@@ -2485,20 +2909,19 @@ function resetPtForm(){
   const pm=document.getElementById("pt-m-date"); if(pm) pm.value=today
   document.querySelectorAll(".pt-mtype-btn").forEach(b=>b.classList.toggle("active",b.dataset.type==="quiz"))
   document.getElementById("pt-type").value="normal"
+  syncDateMins()
   updatePtPreview()
 }
 
 function updatePtCount(){
-  const badge = document.getElementById("ptCount")
-  if(!badge) return
-  const active = personalTasks.filter(t=>t.type!=="marker"&&daysLeft(parseDate(t.end||t.date))>=0||t.type==="prediction"||t.type==="marker")
-  if(active.length){ badge.textContent=personalTasks.length; badge.style.display="inline-block" }
-  else badge.style.display="none"
-  const top = document.getElementById("ptTopCount")
-  if(top){
-    if(personalTasks.length){ top.textContent=personalTasks.length; top.style.display="inline-block" }
-    else top.style.display="none"
-  }
+  // Both badges show the "My list" length, so total count keeps them honest
+  const n = personalTasks.length
+  ;["ptCount","ptTopCount"].forEach(id=>{
+    const el = document.getElementById(id)
+    if(!el) return
+    if(n){ el.textContent=n; el.style.display="inline-block" }
+    else el.style.display="none"
+  })
 }
 
 function renderPtList(){
@@ -2523,8 +2946,8 @@ function renderPtList(){
     return `<div class="pt-list-card">
       <div class="pt-list-dot" style="background:${color}"></div>
       <div class="pt-list-info">
-        <div class="pt-list-name">${t.name}</div>
-        <div class="pt-list-sub">${t.subject} · ${typeTag}</div>
+        <div class="pt-list-name">${esc(t.name)}</div>
+        <div class="pt-list-sub">${esc(t.subject)} · ${typeTag}</div>
       </div>
       <div class="pt-list-right">
         <div class="pt-list-due" style="color:${color}">${shortDate(parseDate(dateVal))}</div>
@@ -2539,11 +2962,44 @@ function renderPtList(){
 window.deletePtTask = async function(e,id){
   e.stopPropagation()
   if(!currentUser||!confirm("Delete this personal task?")) return
-  await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",id))
+  try{ await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",id)) }
+  catch(err){ console.warn("Could not delete personal task:",err); toast("Couldn't delete the task — try again",{error:true}) }
 }
 
 document.getElementById("taskModal").addEventListener("click",function(e){if(e.target===this)closeModal()})
-window.addEventListener("resize",()=>{if(currentView==="calendar")renderCalendar()})
+
+// Re-render on resize, debounced — dragging a window edge shouldn't rebuild
+// the whole calendar dozens of times per second
+let resizeTimer=null
+window.addEventListener("resize",()=>{
+  clearTimeout(resizeTimer)
+  resizeTimer=setTimeout(()=>{if(currentView==="calendar")renderCalendar()},150)
+})
+
+// ── Escape closes whatever is open (marker modal & My Tasks handle their own) ──
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Escape")return
+  const open=id=>document.getElementById(id).classList.contains("open")
+  if(document.getElementById("pwOverlay").classList.contains("active")) return closePw()
+  if(open("detailPopup")) return closeDetail()
+  if(open("taskModal"))   return closeModal()
+  if(open("settingsOverlay")) return closeSettings()
+  if(open("tourOverlay"))     return closeTour()
+  if(open("legendPanel")||open("rangePanel")) closeFabs()
+})
+
+// ── End date can never sit before the start date ──────────────
+const dateMinSyncs=[]
+function bindDateMin(startId,endId){
+  const s=document.getElementById(startId),el=document.getElementById(endId)
+  if(!s||!el)return
+  const sync=()=>{el.min=s.value||""}
+  s.addEventListener("change",sync);s.addEventListener("input",sync)
+  dateMinSyncs.push(sync);sync()
+}
+function syncDateMins(){dateMinSyncs.forEach(f=>f())}
+bindDateMin("t-start","t-end")
+bindDateMin("pt-start","pt-end")
 </script>
 </body>
 </html>
