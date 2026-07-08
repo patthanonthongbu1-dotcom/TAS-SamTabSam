@@ -31,6 +31,16 @@
   </script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    /* ── Touch polish: no blue flash/box on tap ──
+       tap-highlight kills the overlay, user-select stops the long-press text
+       selection on interactive chrome, touch-callout stops the iOS preview,
+       and focus rings only show for keyboard users (:focus-visible) */
+    button,.label-row,.gantt-bar,.check-row,.date-tick,.view-tab,.user-pill,
+    .pt-tab,.pt-list-card,.archive-row,.archive-cb,.legend-toggle,.range-toggle,
+    .pt-marker-toggle,.set-toggle-row,.theme-opt,.marker-vline,.out-indicator{
+      -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+    }
+    :focus:not(:focus-visible){outline:none}
     :focus:not(:focus-visible){outline:none}
     :root{
       /* Task-type semantic colors (bars keep their saturated fills) */
