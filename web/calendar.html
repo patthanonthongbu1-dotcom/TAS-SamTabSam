@@ -286,13 +286,19 @@
     .toast-action{flex-shrink:0;border:none;cursor:pointer;font:inherit;font-weight:600;padding:5px 12px;border-radius:8px;
       color:#fff;background:var(--accent-grad,linear-gradient(180deg,#ff5fac,#c02e7e))}
     html[data-theme="light"] .toast{background:rgba(255,255,255,0.98);color:#1f2933;border-color:rgba(0,0,0,0.12);box-shadow:0 8px 28px rgba(0,0,0,0.18)}
-    /* ── Skeleton loading — shimmering ghost of the calendar while tasks load ── */
-    .cal-skeleton{padding:14px 0 6px;opacity:0;animation:skelIn 0.3s ease forwards}
+    /* ── Skeleton loading — shimmering ghost of the calendar while tasks load ──
+       Mirrors the real layout (same header, columns, row height and gaps) so the
+       page doesn't jump when the data lands — incl. mobile weekly view */
+    .cal-skeleton{opacity:0;animation:skelIn 0.3s ease forwards}
     @keyframes skelIn{to{opacity:1}}
-    .skel-row{display:flex;align-items:center;min-height:var(--row-h);margin-bottom:5px}
-    .skel-cell-left{width:var(--label-w);flex-shrink:0;padding:0 14px;display:flex;flex-direction:column;gap:7px}
-    .skel-cell-track{flex:1;min-width:0;padding:0 6px}
-    .skel-cell-right{width:var(--check-w);flex-shrink:0;display:flex;justify-content:center}
+    .cal-skeleton .cal-inner,.cal-skeleton .cal-dates-header{min-width:0}
+    .skel-tick{position:absolute;top:0;display:flex;flex-direction:column;align-items:center;gap:5px;transform:translateX(-50%)}
+    .skel-tick-line{width:2px;height:9px;border-radius:1px}
+    .skel-tick-label{width:26px;height:9px}
+    .skel-lrow{display:flex;align-items:center;min-height:var(--row-h);margin-bottom:5px;padding:0 10px 0 16px}
+    .skel-lrow-inner{display:flex;flex-direction:column;gap:7px;width:100%}
+    .skel-trow{min-height:var(--row-h);margin-bottom:5px;display:flex;align-items:center;padding:0 6px}
+    .skel-crow{display:flex;align-items:center;justify-content:center;min-height:var(--row-h);margin-bottom:5px}
     .skel-bone{position:relative;overflow:hidden;background:rgba(255,255,255,0.07);border-radius:6px}
     .skel-bone::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
       background:linear-gradient(90deg,transparent,rgba(255,255,255,0.10),transparent);
@@ -301,7 +307,13 @@
     .skel-line{height:11px;width:var(--sk-nw,70%)}
     .skel-line.sub{height:9px;width:var(--sk-sw,45%);opacity:0.7}
     .skel-bar{height:26px;border-radius:13px;margin-left:var(--sk-l,4%);width:var(--sk-w,30%)}
-    .skel-check{width:17px;height:17px;border-radius:5px}
+    .skel-check{width:17px;height:17px;border-radius:5px;flex-shrink:0}
+    /* Archive ghost — matches the Gmail-style rows */
+    .skel-arow{display:flex;align-items:center;gap:11px;padding:13px 14px 13px 18px;border-bottom:1px solid var(--glass-brd)}
+    .skel-arow:last-child{border-bottom:none}
+    .skel-a-name{height:12px;width:var(--sk-nw,40%)}
+    .skel-a-chip{height:14px;width:64px;border-radius:10px;flex-shrink:0}
+    .skel-a-right{height:11px;width:52px;margin-left:auto;flex-shrink:0}
     html[data-theme="light"] .skel-bone{background:rgba(0,0,0,0.07)}
     html[data-theme="light"] .skel-bone::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent)}
     @media (prefers-reduced-motion: reduce){.skel-bone::after{animation:none}}
@@ -466,12 +478,25 @@
     .detail-delete-btn{background:none;border:none;font-size:13px;color:var(--red-text);cursor:pointer;font-family:'Kanit',sans-serif;font-weight:500;padding:0;display:none;margin-bottom:1rem;opacity:0.8;transition:opacity 0.15s}
     .detail-delete-btn:hover{opacity:1}
     .detail-delete-btn.visible{display:block}
-    .detail-footer{padding:0.75rem 1.25rem 1rem;display:flex;flex-direction:column;gap:6px}
-    .days-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:500;width:fit-content}
-    .days-chip.soon{background:var(--amber-light);color:var(--amber)}
-    .days-chip.overdue-chip{background:var(--red-light);color:var(--red-text)}
-    .days-chip.ok{background:var(--green-light);color:var(--green-text)}
-    .days-chip.marker-chip{background:var(--marker-light);color:var(--marker-dark);border:1px solid var(--marker-border)}
+    .detail-footer{padding:0.75rem 1.25rem 1rem;display:flex;flex-direction:column;gap:10px}
+    /* Big due-date takeaway — the headline answer, larger than the countdown */
+    .dp-due-label{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+    .dp-due-date{font-size:19px;font-weight:700;color:var(--text);line-height:1.25;letter-spacing:-0.2px}
+    .dp-due-date.overdue{color:var(--red-text)}
+    /* Spotify-style countdown: one box per unit */
+    .cd-caption{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+    .cd-boxes{display:flex;gap:6px}
+    .cd-box{flex:1;min-width:0;background:rgba(255,255,255,0.07);border:1px solid var(--glass-brd);border-radius:11px;padding:8px 2px 6px;text-align:center}
+    .cd-num{font-size:16px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;line-height:1.1}
+    .cd-lab{font-size:8px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+    .cd-wrap.overdue .cd-box{background:var(--red-light);border-color:var(--red-mid)}
+    .cd-wrap.overdue .cd-num{color:var(--red-text)}
+    .cd-wrap.marker .cd-box{background:var(--marker-light);border-color:var(--marker-border)}
+    .cd-wrap.marker .cd-num{color:var(--marker-dark)}
+    .cd-today{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:500;width:fit-content;background:var(--marker-light);color:var(--marker-dark);border:1px solid var(--marker-border)}
+    html[data-theme="light"] .cd-box{background:#f8faf8;border-color:#dde3dd}
+    html[data-theme="light"] .cd-wrap.overdue .cd-box{background:var(--red-light);border-color:var(--red-mid)}
+    html[data-theme="light"] .cd-wrap.marker .cd-box{background:var(--marker-light);border-color:var(--marker-border)}
     .detail-dates{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
     .detail-edit-btn{margin-top:6px;width:100%;padding:9px;background:var(--accent-grad);color:white;border:none;border-radius:10px;font-family:'Kanit',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:none;transition:filter 0.15s;box-shadow:0 10px 24px -10px var(--accent-shadow)}
     .detail-edit-btn:hover{filter:brightness(1.07)}
@@ -632,6 +657,7 @@
       .view-tab{padding:4px 6px;font-size:10px}
       .row-subject{display:none}
       .label-row{padding-left:8px}
+      .skel-lrow{padding-left:8px}
       .cal-header-left{padding-left:8px}
       .cal-header-row{top:90px}
     }
@@ -764,8 +790,20 @@
     .no-anim .gantt-bar.overdue-pulse{animation:overdueGlow 2s ease-in-out infinite}
 
     /* ── Live countdown text sizing ─────────────────────────────── */
-    .days-chip{font-size:12.5px;line-height:1.45;flex-wrap:wrap;max-width:100%}
     .marker-days-btn{font-size:14px;line-height:1.5;padding:12px 16px}
+
+    /* ── Mod quick-delete: trash icon on every row while mod mode is on ── */
+    .row-del{flex-shrink:0;width:24px;height:24px;margin-left:2px;display:grid;place-items:center;background:transparent;border:none;border-radius:8px;color:var(--label);font-size:12px;cursor:pointer;padding:0;transition:background 0.15s,color 0.15s,transform 0.1s}
+    .row-del:hover{background:var(--red-light);color:var(--red-text)}
+    .row-del:active{transform:scale(0.85)}
+
+    /* ── Delete confirmation — replaces the browser confirm() ──── */
+    .confirm-modal{max-width:340px;text-align:center}
+    .confirm-emoji{font-size:38px;margin-bottom:8px}
+    .confirm-modal h2{margin-bottom:6px}
+    .confirm-msg{font-size:13px;color:var(--muted);font-weight:300;line-height:1.6;word-break:break-word}
+    .confirm-danger-btn{flex:1;padding:10px;background:linear-gradient(180deg,#f05252,#c81e1e);color:#fff;border:none;border-radius:10px;font-family:'Kanit',sans-serif;font-size:14px;font-weight:500;cursor:pointer;box-shadow:0 10px 24px -10px rgba(229,62,62,0.5);transition:filter 0.15s}
+    .confirm-danger-btn:hover{filter:brightness(1.08)}
 
     /* ── "How to use" tour modal (matches announce) ─────────────── */
     .modal.tour-modal{max-width:370px;text-align:center;border-radius:22px;padding:1.75rem 1.6rem 1.5rem;position:relative;overflow:visible}
@@ -1011,6 +1049,10 @@
     <button class="detail-delete-btn" id="dp-delete-btn" onclick="deleteFromDetail()">🗑️ Delete task</button>
   </div>
   <div class="detail-footer">
+    <div>
+      <div class="dp-due-label" id="dp-due-label">🗓 Due</div>
+      <div class="dp-due-date" id="dp-due-date"></div>
+    </div>
     <div id="dp-days"></div>
     <div class="detail-dates" id="dp-dates"></div>
     <button class="detail-edit-btn" id="dp-edit-btn">✏️ Edit task</button>
@@ -1148,6 +1190,19 @@
   </div>
 </div>
 
+<!-- DELETE CONFIRMATION -->
+<div class="modal-overlay" id="confirmOverlay" style="z-index:950">
+  <div class="modal confirm-modal">
+    <div class="confirm-emoji">🗑️</div>
+    <h2 id="confirmTitle">Delete this task?</h2>
+    <p class="confirm-msg" id="confirmMsg"></p>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="resolveConfirm(false)">Cancel</button>
+      <button class="confirm-danger-btn" id="confirmOkBtn" onclick="resolveConfirm(true)">Delete</button>
+    </div>
+  </div>
+</div>
+
 <!-- MULTI-MARKER MODAL -->
 <div class="marker-modal-overlay" id="markerModal" onclick="closeMarkerModal(event)">
   <div class="marker-modal" onclick="event.stopPropagation()">
@@ -1169,6 +1224,10 @@
     </div>
     <div class="marker-modal-footer">
       <div class="marker-days-btn" id="mm-days-btn"></div>
+      <div class="cd-wrap marker" id="mm-cd" style="display:none">
+        <div class="cd-caption">📍 Time until</div>
+        <div class="cd-boxes" id="mm-cd-boxes"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1321,30 +1380,46 @@ function toast(msg,{action,onAction,duration=4000,error=false}={}){
 }
 const saveFailToast=()=>toast("Couldn't save — check your connection and try again",{error:true})
 
-// ── Live countdowns — "1 Day 2 Hours 3 Minutes 4 Seconds" ─────
-function fmtCountdown(ms){
+// ── Quick-takeaway date — "Friday 10th July, 2026" ────────────
+const EN_DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
+const EN_MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"]
+function ordinal(n){const v=n%100;if(v>=11&&v<=13)return n+"th";return n+(["th","st","nd","rd"][n%10]||"th")}
+function longDate(d){return `${EN_DAYS[d.getDay()]} ${ordinal(d.getDate())} ${EN_MONTHS[d.getMonth()]}, ${d.getFullYear()}`}
+
+// ── Live countdowns — Spotify-style unit boxes (Days·Hours·Min·Sec) ──
+function cdParts(ms){
   const t=Math.max(0,Math.floor(ms/1000))
-  const d=Math.floor(t/86400),h=Math.floor(t%86400/3600),m=Math.floor(t%3600/60),s=t%60
-  const pl=(n,w)=>`${n} ${w}${n===1?"":"s"}`
-  return `${pl(d,"Day")} ${pl(h,"Hour")} ${pl(m,"Minute")} ${pl(s,"Second")}`
+  return [Math.floor(t/86400),Math.floor(t%86400/3600),Math.floor(t%3600/60),t%60]
+}
+const CD_LABELS=["Days","Hours","Min","Sec"]
+function cdBoxesHTML(){
+  return CD_LABELS.map((lab,i)=>`<div class="cd-box"><div class="cd-num" data-cd="${i}">0</div><div class="cd-lab">${lab}</div></div>`).join("")
+}
+// Refresh a .cd-wrap in place — numbers, caption and overdue tint
+function cdUpdate(wrapEl,cd){
+  if(!wrapEl||!cd)return
+  const diff=cd.target-Date.now()
+  const parts=cdParts(Math.abs(diff))
+  wrapEl.querySelectorAll(".cd-num").forEach((el,i)=>{
+    const v=String(parts[i])
+    if(el.textContent!==v)el.textContent=v
+  })
+  const over=diff<0
+  const cap=wrapEl.querySelector(".cd-caption")
+  if(cd.mode==="marker"){
+    if(cap)cap.textContent=over?"📍 Time since":"📍 Time until"
+  }else{
+    wrapEl.classList.toggle("overdue",over)
+    if(cap)cap.textContent=over?"⚠️ Overdue by":"⏱ Time left"
+  }
 }
 let dpCountdown=null   // {target:ms, mode:"task"|"marker"} for the detail popup
-let mmCountdown=null   // {target:ms} for the marker modal
-function dpCountdownText(){
-  const diff=dpCountdown.target-Date.now()
-  if(dpCountdown.mode==="marker")
-    return diff>=0?`📍 In ${fmtCountdown(diff)}`:`📍 ${fmtCountdown(-diff)} Ago`
-  return diff>=0?`⏱ ${fmtCountdown(diff)} Left`:`⚠️ ${fmtCountdown(-diff)} Overdue`
-}
+let mmCountdown=null   // {target:ms, mode:"marker"} for the marker modal
 setInterval(()=>{
-  if(dpCountdown&&document.getElementById("detailPopup").classList.contains("open")){
-    const chip=document.querySelector("#dp-days .days-chip")
-    if(chip) chip.textContent=dpCountdownText()
-  }
-  if(mmCountdown&&document.getElementById("markerModal").classList.contains("open")){
-    const diff=mmCountdown.target-Date.now()
-    if(diff>0) document.getElementById("mm-days-btn").textContent=`In ${fmtCountdown(diff)}`
-  }
+  if(dpCountdown&&document.getElementById("detailPopup").classList.contains("open"))
+    cdUpdate(document.querySelector("#dp-days .cd-wrap"),dpCountdown)
+  if(mmCountdown&&document.getElementById("markerModal").classList.contains("open"))
+    cdUpdate(document.getElementById("mm-cd"),mmCountdown)
 },1000)
 
 // Marker type display info
@@ -1468,6 +1543,24 @@ function animCloseOverlay(el, cls="open"){
   el.classList.add("closing")
   setTimeout(()=>el.classList.remove("closing"), 260)
 }
+
+// ── Styled delete confirmation — replaces the browser confirm() ──
+let confirmResolve=null
+function confirmDialog({title="Delete this task?",message="",confirmLabel="Delete"}={}){
+  return new Promise(res=>{
+    if(confirmResolve)confirmResolve(false)   // a stray open dialog counts as cancelled
+    confirmResolve=res
+    document.getElementById("confirmTitle").textContent=title
+    document.getElementById("confirmMsg").textContent=message
+    document.getElementById("confirmOkBtn").textContent=confirmLabel
+    document.getElementById("confirmOverlay").classList.add("open")
+  })
+}
+window.resolveConfirm=function(ok){
+  animCloseOverlay(document.getElementById("confirmOverlay"))
+  const r=confirmResolve;confirmResolve=null;if(r)r(ok)
+}
+document.getElementById("confirmOverlay").addEventListener("click",e=>{if(e.target.id==="confirmOverlay")resolveConfirm(false)})
 
 // Keep the sticky calendar header flush with the real topbar height
 // (the mobile topbar is content-sized, so 96px is only an estimate)
@@ -1830,7 +1923,7 @@ function getVisibleArchived(){
 function renderArchive() {
   const wrap = document.getElementById("calWrap")
   if(!tasksLoaded){
-    if(!wrap.querySelector(".cal-skeleton")) wrap.innerHTML=skeletonHTML()
+    if(!wrap.querySelector('.cal-skeleton[data-skel="archive"]')) wrap.innerHTML=archiveSkeletonHTML()
     return
   }
   wrap.classList.toggle("no-anim", !animateRows); animateRows = false
@@ -1958,7 +2051,11 @@ function offerArchiveUndo(hiddenIds){
 window.archiveDeleteOne = async function(e,id){
   e.stopPropagation()
   const isPersonal = personalTasks.some(t=>t.id===id)
-  if(isPersonal && !confirm("This is a personal task — it will be deleted permanently. Continue?")) return
+  if(isPersonal){
+    const t=personalTasks.find(x=>x.id===id)
+    const ok=await confirmDialog({title:"Delete personal task?",message:`"${t?t.name:"This task"}" is a personal task — it will be deleted permanently.`})
+    if(!ok) return
+  }
   archiveSelected.delete(id)
   const hidden = await archiveRemoveIds([id])
   renderArchive()
@@ -1969,7 +2066,10 @@ window.archiveDeleteSelected = async function(){
   if(!archiveSelected.size) return
   const ids = [...archiveSelected]
   const nPersonal = ids.filter(id=>personalTasks.some(t=>t.id===id)).length
-  if(nPersonal && !confirm(`${nPersonal} personal task${nPersonal===1?"":"s"} will be deleted permanently. Continue?`)) return
+  if(nPersonal){
+    const ok=await confirmDialog({title:"Delete selected tasks?",message:`${nPersonal} personal task${nPersonal===1?"":"s"} will be deleted permanently.`})
+    if(!ok) return
+  }
   archiveSelected.clear()
   const hidden = await archiveRemoveIds(ids)
   renderArchive()
@@ -2151,16 +2251,21 @@ function openMarkerModal(markers, dateStr){
   const totalTopics = rows.length
   document.getElementById("mm-count").textContent = `${totalTopics} Topic${totalTopics===1?"":"s"} Total`
 
-  // Days chip — future dates get a live countdown
+  // Days footer — future dates get the live boxed countdown
   const btn = document.getElementById("mm-days-btn")
+  const cdEl = document.getElementById("mm-cd")
   mmCountdown=null
-  if(dl===0){
-    btn.textContent="Today";btn.className="marker-days-btn today"
-  } else if(dl>0){
-    mmCountdown={target:+date}
-    btn.textContent=`In ${fmtCountdown(mmCountdown.target-Date.now())}`;btn.className="marker-days-btn future"
+  if(dl>0){
+    mmCountdown={target:+date,mode:"marker"}
+    btn.style.display="none"
+    cdEl.style.display="block"
+    document.getElementById("mm-cd-boxes").innerHTML=cdBoxesHTML()
+    cdUpdate(cdEl,mmCountdown)
   } else {
-    btn.textContent=`${Math.abs(dl)} Day${Math.abs(dl)===1?"":"s"} Ago`;btn.className="marker-days-btn past"
+    cdEl.style.display="none"
+    btn.style.display="block"
+    if(dl===0){btn.textContent="Today";btn.className="marker-days-btn today"}
+    else{btn.textContent=`${Math.abs(dl)} Day${Math.abs(dl)===1?"":"s"} Ago`;btn.className="marker-days-btn past"}
   }
 
   document.getElementById("markerModal").classList.add("open")
@@ -2168,8 +2273,8 @@ function openMarkerModal(markers, dateStr){
 }
 
 function formatFullDate(d){
-  // e.g. "10/6/2026"
-  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`
+  // e.g. "Friday 10th July, 2026" — same takeaway format as the detail popup
+  return longDate(d)
 }
 
 window.closeMarkerModal=function(e){
@@ -2181,23 +2286,71 @@ window.closeMarkerModal=function(e){
 }
 function closeMarkerModalKey(e){ if(e.key==="Escape") closeMarkerModal() }
 
-// Shimmering ghost rows shown until the first tasks snapshot arrives
+// Shimmering ghost of the whole calendar shown until the first tasks snapshot.
+// Mirrors the real render (header + three columns, same row heights and gaps)
+// and drops one date bone per visible tick for the current range — 7 for the
+// weekly view — so nothing shifts when the data lands, desktop or mobile.
 function skeletonHTML(){
+  const tickCount = currentRange==="week"?7 : currentRange==="2weeks"?8 : currentRange==="month"?7 : 9
+  const ticks=Array.from({length:tickCount},(_,i)=>
+    `<div class="skel-tick" style="left:${(((i+0.5)/tickCount)*100).toFixed(2)}%">
+      <div class="skel-bone skel-tick-line"></div>
+      <div class="skel-bone skel-tick-label"></div>
+    </div>`).join("")
   const rows=[[74,48,3,22],[56,38,10,34],[82,52,6,27],[63,42,18,30],[70,35,26,24]]
-  return `<div class="cal-skeleton" role="status" aria-label="Loading tasks…">`+rows.map(([nw,sw,l,w])=>`
-    <div class="skel-row" style="--sk-nw:${nw}%;--sk-sw:${sw}%;--sk-l:${l}%;--sk-w:${w}%">
-      <div class="skel-cell-left"><div class="skel-bone skel-line"></div><div class="skel-bone skel-line sub"></div></div>
-      <div class="skel-cell-track"><div class="skel-bone skel-bar"></div></div>
-      <div class="skel-cell-right"><div class="skel-bone skel-check"></div></div>
-    </div>`).join("")+`</div>`
+  let left="",track="",right=""
+  rows.forEach(([nw,sw,l,w])=>{
+    left+=`<div class="skel-lrow"><div class="skel-lrow-inner" style="--sk-nw:${nw}%;--sk-sw:${sw}%">
+      <div class="skel-bone skel-line"></div><div class="skel-bone skel-line sub"></div>
+    </div></div>`
+    track+=`<div class="skel-trow"><div class="skel-bone skel-bar" style="--sk-l:${l}%;--sk-w:${w}%"></div></div>`
+    right+=`<div class="skel-crow"><div class="skel-bone skel-check"></div></div>`
+  })
+  return `<div class="cal-skeleton" data-skel="cal" data-range="${currentRange}" role="status" aria-label="Loading tasks…">
+    <div class="cal-header-row">
+      <div class="cal-header-left">TASK</div>
+      <div class="cal-header-scroll"><div class="cal-dates-header">${ticks}</div></div>
+      <div class="cal-header-right"></div>
+    </div>
+    <div class="cal-layout">
+      <div class="cal-left">${left}</div>
+      <div class="cal-scroll-outer"><div class="cal-inner">
+        <div class="baseline-track-row"><div class="baseline-track"></div></div>
+        ${track}
+      </div></div>
+      <div class="cal-right">${right}</div>
+    </div>
+  </div>`
+}
+
+// Archive gets its own ghost — Gmail-style rows instead of calendar bars
+function archiveSkeletonHTML(){
+  const rows=[38,52,30,46,40,34].map(w=>`<div class="skel-arow" style="--sk-nw:${w}%">
+    <div class="skel-bone skel-check"></div>
+    <div class="skel-bone skel-a-name"></div>
+    <div class="skel-bone skel-a-chip"></div>
+    <div class="skel-bone skel-a-right"></div>
+  </div>`).join("")
+  return `<div class="cal-skeleton" data-skel="archive" role="status" aria-label="Loading archive…">
+    <div class="archive-wrap">
+      <div class="archive-head"><div class="skel-bone" style="height:18px;width:150px"></div></div>
+      <div class="archive-toolbar">
+        <div class="skel-bone skel-check"></div>
+        <div class="skel-bone" style="height:24px;width:130px;border-radius:20px"></div>
+        <div class="skel-bone" style="height:22px;width:170px;border-radius:20px"></div>
+      </div>
+      <div class="archive-list">${rows}</div>
+    </div>
+  </div>`
 }
 document.getElementById("calWrap").innerHTML=skeletonHTML()
 
 function renderCalendar(){
   const wrap=document.getElementById("calWrap")
   if(!tasksLoaded){
-    // Keep the skeleton (and don't consume animateRows) until real data lands
-    if(!wrap.querySelector(".cal-skeleton")) wrap.innerHTML=skeletonHTML()
+    // Keep the skeleton (and don't consume animateRows) until real data lands —
+    // rebuild it if the view or range changed so tick count and gaps stay true
+    if(!wrap.querySelector(`.cal-skeleton[data-skel="cal"][data-range="${currentRange}"]`)) wrap.innerHTML=skeletonHTML()
     return
   }
   wrap.classList.toggle("no-anim", !animateRows); animateRows=false
@@ -2367,6 +2520,7 @@ function renderCalendar(){
         <div class="row-name" title="${esc(t.name)}">${esc(t.name)}</div>
         <div class="row-subject" title="${esc(t.subject)}">${esc(t.subject)}</div>
       </div>
+      ${isMod?`<button class="row-del" title="Delete task" onclick="quickDeleteTask(event,'${t.id}')">🗑</button>`:""}
     </div>`
 
     trackHTML+=`<div class="cal-row" data-id="${t.id}" style="animation-delay:${delay}s">
@@ -2524,14 +2678,20 @@ window.toggleDone = async function(id, checked, checkbox) {
 let detailTaskId=null, detailTaskIsPersonal=false
 window.deleteFromDetail=async function(){
   if(!detailTaskId||!currentUser)return
-  if(!confirm("Delete this task permanently?"))return
+  const id=detailTaskId, isPersonal=detailTaskIsPersonal
+  const t=tasks.find(x=>x.id===id)||personalTasks.find(x=>x.id===id)
+  const ok=await confirmDialog({
+    message:`"${t?t.name:"This task"}" will be ${isPersonal?"deleted permanently.":"removed for the whole class."}`
+  })
+  if(!ok)return
   try{
-    if(detailTaskIsPersonal){
-      await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",detailTaskId))
+    if(isPersonal){
+      await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",id))
     } else {
-      await deleteDoc(doc(db,"tasks",detailTaskId))
+      await deleteDoc(doc(db,"tasks",id))
     }
     closeDetail()
+    toast("Task deleted")
   }catch(e){
     console.warn("Could not delete task:",e)
     toast("Couldn't delete the task — try again",{error:true})
@@ -2586,12 +2746,21 @@ window.showDetail=function(e,id){
     const dl=daysLeft(markerDate)
     const info=MARKER_INFO[t.markerType]||MARKER_INFO.date
     dpCountdown=dl===0?null:{target:+markerDate,mode:"marker"}
-    let chipText=dl===0?"📍 Today":dpCountdownText()
 
     document.getElementById("dp-name").textContent=t.name
-    document.getElementById("dp-subject").innerHTML=`${t.subject} · <span class="type-badge badge-marker">${info.emoji} ${info.label}</span>`
-    document.getElementById("dp-days").innerHTML=`<span class="days-chip marker-chip">${chipText}</span>`
-    document.getElementById("dp-dates").innerHTML=`<span>📅 Date: ${shortDate(markerDate)}</span>`
+    document.getElementById("dp-subject").innerHTML=`${esc(t.subject)} · <span class="type-badge badge-marker">${info.emoji} ${info.label}</span>`
+    document.getElementById("dp-due-label").textContent="📍 Date"
+    const dd=document.getElementById("dp-due-date")
+    dd.textContent=longDate(markerDate)
+    dd.classList.remove("overdue")
+    const days=document.getElementById("dp-days")
+    if(dl===0){
+      days.innerHTML=`<span class="cd-today">📍 Today</span>`
+    }else{
+      days.innerHTML=`<div class="cd-wrap marker"><div class="cd-caption"></div><div class="cd-boxes">${cdBoxesHTML()}</div></div>`
+      cdUpdate(days.querySelector(".cd-wrap"),dpCountdown)
+    }
+    document.getElementById("dp-dates").innerHTML=""
 
     const ns=document.getElementById("dp-note-section")
     if(t.note){document.getElementById("dp-note").textContent=t.note;ns.style.display="block"}else ns.style.display="none"
@@ -2613,13 +2782,18 @@ window.showDetail=function(e,id){
   // Live countdown runs to the end of the due day
   dpCountdown={target:+end+864e5,mode:"task"}
   const overdueNow=dpCountdown.target-Date.now()<0
-  let chipClass=overdueNow?"overdue-chip":dl<=rushZones.red?"soon":"ok"
-  let chipText=dpCountdownText()
 
   document.getElementById("dp-name").textContent=t.name
-  document.getElementById("dp-subject").innerHTML=`${t.subject} · <span class="type-badge badge-${t.type}">${TYPE_LABEL[t.type]||t.type}</span>`
-  document.getElementById("dp-days").innerHTML=`<span class="days-chip ${chipClass}">${chipText}</span>`
-  document.getElementById("dp-dates").innerHTML=`<span>📅 Start: ${shortDate(parseDate(t.start))}</span><span>🗓 Due: ${shortDate(end)}</span>`
+  document.getElementById("dp-subject").innerHTML=`${esc(t.subject)} · <span class="type-badge badge-${t.type}">${TYPE_LABEL[t.type]||t.type}</span>`
+  // Big takeaway date first, boxed countdown under it
+  document.getElementById("dp-due-label").textContent="🗓 Due"
+  const dd=document.getElementById("dp-due-date")
+  dd.textContent=longDate(end)
+  dd.classList.toggle("overdue",overdueNow)
+  const days=document.getElementById("dp-days")
+  days.innerHTML=`<div class="cd-wrap"><div class="cd-caption"></div><div class="cd-boxes">${cdBoxesHTML()}</div></div>`
+  cdUpdate(days.querySelector(".cd-wrap"),dpCountdown)
+  document.getElementById("dp-dates").innerHTML=`<span>📅 Start: ${shortDate(parseDate(t.start))}</span>`
 
   const ns=document.getElementById("dp-note-section")
   if(t.note){document.getElementById("dp-note").textContent=t.note;ns.style.display="block"}else ns.style.display="none"
@@ -2656,7 +2830,11 @@ function _positionAndShowDetail(e){
   setTimeout(()=>document.addEventListener("click",closeDetailOutside),0)
 }
 
-function closeDetailOutside(e){if(!document.getElementById("detailPopup").contains(e.target))closeDetail()}
+function closeDetailOutside(e){
+  // Clicks inside the delete-confirmation dialog must not dismiss the popup
+  if(document.getElementById("confirmOverlay").classList.contains("open"))return
+  if(!document.getElementById("detailPopup").contains(e.target))closeDetail()
+}
 window.closeDetail=function(){
   dpCountdown=null
   const popup=document.getElementById("detailPopup")
@@ -2704,6 +2882,27 @@ function updateModUI(){
   updateRoleUI()
   if(currentView==="archive") renderArchive()
   else renderCalendar()
+}
+
+// Mod quick-delete — the 🗑 on each row while mod mode is on
+window.quickDeleteTask=async function(e,id){
+  e.stopPropagation()
+  if(!currentUser)return
+  const t=tasks.find(x=>x.id===id)||personalTasks.find(x=>x.id===id)
+  if(!t)return
+  const isPersonal=!!t._personal
+  const ok=await confirmDialog({
+    message:`"${t.name}" will be ${isPersonal?"deleted permanently.":"removed for the whole class."}`
+  })
+  if(!ok)return
+  try{
+    if(isPersonal)await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",id))
+    else await deleteDoc(doc(db,"tasks",id))
+    toast("Task deleted")
+  }catch(err){
+    console.warn("Could not delete task:",err)
+    toast("Couldn't delete the task — try again",{error:true})
+  }
 }
 
 window.openAddModal=function(){
@@ -2758,8 +2957,11 @@ window.saveTask=async function(){
   }finally{taskSaving=false}
 }
 window.deleteTask=async function(){
-  if(!editingId)return;if(!confirm("Delete this task?"))return
-  try{await deleteDoc(doc(db,"tasks",editingId));closeModal()}
+  if(!editingId)return
+  const t=tasks.find(x=>x.id===editingId)
+  const ok=await confirmDialog({message:`"${t?t.name:"This task"}" will be removed for the whole class.`})
+  if(!ok)return
+  try{await deleteDoc(doc(db,"tasks",editingId));closeModal();toast("Task deleted")}
   catch(e){console.warn("Could not delete task:",e);toast("Couldn't delete the task — try again",{error:true})}
 }
 
@@ -2961,8 +3163,11 @@ function renderPtList(){
 
 window.deletePtTask = async function(e,id){
   e.stopPropagation()
-  if(!currentUser||!confirm("Delete this personal task?")) return
-  try{ await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",id)) }
+  if(!currentUser) return
+  const t=personalTasks.find(x=>x.id===id)
+  const ok=await confirmDialog({title:"Delete personal task?",message:`"${t?t.name:"This task"}" will be deleted permanently.`})
+  if(!ok) return
+  try{ await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",id)); toast("Task deleted") }
   catch(err){ console.warn("Could not delete personal task:",err); toast("Couldn't delete the task — try again",{error:true}) }
 }
 
@@ -2980,6 +3185,7 @@ window.addEventListener("resize",()=>{
 document.addEventListener("keydown",e=>{
   if(e.key!=="Escape")return
   const open=id=>document.getElementById(id).classList.contains("open")
+  if(open("confirmOverlay")) return resolveConfirm(false)
   if(document.getElementById("pwOverlay").classList.contains("active")) return closePw()
   if(open("detailPopup")) return closeDetail()
   if(open("taskModal"))   return closeModal()
