@@ -2,7 +2,7 @@
   "id": "tas-calendar",
   "lang": "th",
   "dir": "ltr",
-  "name": "TAS Calendar — 3/3 Academic System",
+  "name": "TAS 3/3",
   "short_name": "TAS Calendar",
   "description": "Class task calendar for 3/3 — deadlines, quizzes and personal tasks",
   "start_url": "calendar.html?src=pwa",
@@ -19,7 +19,7 @@
       "purpose": "any"
     },
     {
-      "src": "TASLogoLIGHT.png",
+      "src": "TASLogo.png",
       "sizes": "500x500",
       "type": "image/png",
       "purpose": "maskable"

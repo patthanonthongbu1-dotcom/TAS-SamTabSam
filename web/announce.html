@@ -19,6 +19,9 @@
   </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    /* No visible scrollbars anywhere — scrolling still works via wheel/touch */
+    * { scrollbar-width: none; -ms-overflow-style: none; }
+    *::-webkit-scrollbar { display: none; }
     :root {
       --navy: #182848; --navy-dark: #0d1526; --navy-mid: #2f6fed;
       --pink: #ff4fa3; --pink-dark: #8e1c63; --pink-soft: #ffd6ea;
@@ -308,6 +311,17 @@
     /* ── Preview ────────────────────────────────────────────────── */
     .preview-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; }
     .preview-head .section-label { margin-bottom: 0; }
+    .link-toggles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .link-chip {
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; font-size: 12px; font-weight: 500;
+      font-family: 'Kanit', sans-serif; border-radius: 999px; border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06); color: var(--label);
+      cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s; touch-action: manipulation;
+    }
+    .link-chip:hover { background: rgba(255,255,255,0.12); }
+    .link-chip .chip-check { display: none; font-weight: 600; }
+    .link-chip.active { background: rgba(255,79,163,0.16); border-color: rgba(255,79,163,0.42); color: var(--pink-soft); }
+    .link-chip.active .chip-check { display: inline; }
     .preview-box { background: rgba(0,0,0,0.24); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 1rem 1.1rem; font-size: 13px; line-height: 1.9; white-space: pre-wrap; color: rgba(255,255,255,0.9); font-family: 'Kanit', sans-serif; font-weight: 300; min-height: 80px; word-break: break-word; }
     .divider { height: 1px; background: rgba(255,255,255,0.1); margin: 1.35rem 0; }
 
@@ -461,6 +475,10 @@
         <svg class="ico-check" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
         <span class="copy-label">Copy</span>
       </button>
+    </div>
+    <div class="link-toggles">
+      <button class="link-chip" id="lnkClassroom" title="Append the Google Classroom link to the message">🔗 Classroom link <span class="chip-check">✓</span></button>
+      <button class="link-chip" id="lnkCalendar" title="Append the TAS calendar link to the message">📅 Calendar link <span class="chip-check">✓</span></button>
     </div>
     <div class="preview-box" id="preview">Fill in the form to see preview...</div>
 
@@ -731,6 +749,7 @@ function initApp() {
     const draft = {
       date:     document.getElementById("fmtDate").value,
       reporter: document.getElementById("fmtReporter").value,
+      links:    { ...linkPrefs },
       sections: JSON.parse(JSON.stringify(sections)),
     }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(draft)) } catch(e) {}
@@ -755,6 +774,10 @@ function initApp() {
     if (!draft) return
     if (draft.date)     document.getElementById("fmtDate").value     = draft.date
     if (draft.reporter) document.getElementById("fmtReporter").value = draft.reporter
+    if (draft.links) {
+      linkPrefs = { classroom: draft.links.classroom !== false, calendar: draft.links.calendar !== false }
+      syncLinkChips()
+    }
     if (draft.sections && draft.sections.length > 0) {
       sections = draft.sections.map(sec => ({
         ...sec,
@@ -905,7 +928,7 @@ function initApp() {
                   data-si="${si}" data-sj="${sj}" data-bk="${bk}" class="bullet-inp" />
                 <button class="bullet-marker-btn${isMarker?" active":""} toggle-bullet-marker"
                   data-si="${si}" data-sj="${sj}" data-bk="${bk}" title="Toggle marker for this bullet">
-                  📍${isMarker?" ✓":""}
+                📍${isMarker?" ✓":""}
                 </button>
                 <button class="action-btn btn-delete icon-only rm-bullet" data-si="${si}" data-sj="${sj}" data-bk="${bk}" title="Remove bullet" aria-label="Remove bullet">${ICON_X}</button>
               </div>
@@ -1054,6 +1077,18 @@ function initApp() {
   document.getElementById("fmtDate").oninput     = () => { updatePreview(); scheduleSave() }
   document.getElementById("fmtReporter").oninput = () => { updatePreview(); scheduleSave() }
 
+  const LINK_CLASSROOM = "https://classroom.google.com"   // ← replace with the class's own Classroom link if you have one
+  const LINK_CALENDAR  = "https://tas-33.netlify.app/calendar"
+  let linkPrefs = { classroom: true, calendar: true }
+
+  function syncLinkChips() {
+    document.getElementById("lnkClassroom").classList.toggle("active", linkPrefs.classroom)
+    document.getElementById("lnkCalendar").classList.toggle("active", linkPrefs.calendar)
+  }
+  document.getElementById("lnkClassroom").onclick = () => { linkPrefs.classroom = !linkPrefs.classroom; syncLinkChips(); updatePreview(); scheduleSave() }
+  document.getElementById("lnkCalendar").onclick  = () => { linkPrefs.calendar  = !linkPrefs.calendar;  syncLinkChips(); updatePreview(); scheduleSave() }
+  syncLinkChips()
+
   function buildFormattedMessage() {
     const date     = thaiDate(document.getElementById("fmtDate").value)
     const reporter = document.getElementById("fmtReporter").value.trim()
@@ -1068,7 +1103,14 @@ function initApp() {
         if (subj.note.trim()) msg += `\n📌 ${subj.note}`
       })
     })
-    return msg.trim()
+    msg = msg.trim()
+    if (msg) {
+      const links = []
+      if (linkPrefs.classroom) links.push(`🔗 Google Classroom: ${LINK_CLASSROOM}`)
+      if (linkPrefs.calendar)  links.push(`📅 Calendar: ${LINK_CALENDAR}`)
+      if (links.length) msg += `\n\n${links.join("\n")}`
+    }
+    return msg
   }
 
   function updatePreview() {
@@ -1128,20 +1170,24 @@ function initApp() {
 
   // ── Copy formatted text (the "printer") ───────────────────────
   let copyResetTimer = null
-  document.getElementById("copyBtn").onclick = async function() {
-    const btn = this
+  async function copyFormatted() {
     const msg = buildFormattedMessage()
-    if (!msg) { setStatus("s-info", "ℹ️ Nothing to copy yet."); return }
+    if (!msg) return false
     try {
       await navigator.clipboard.writeText(msg)
+      const btn = document.getElementById("copyBtn")
       const lbl = btn.querySelector(".copy-label")
       btn.classList.add("copied")
       if (lbl) lbl.textContent = "Copied"
       clearTimeout(copyResetTimer)
       copyResetTimer = setTimeout(() => { btn.classList.remove("copied"); if (lbl) lbl.textContent = "Copy" }, 2000)
-    } catch(e) {
-      setStatus("s-error", "Couldn't copy — select the preview text manually.")
-    }
+      return true
+    } catch(e) { return false }
+  }
+  document.getElementById("copyBtn").onclick = async function() {
+    if (!buildFormattedMessage()) { setStatus("s-info", "ℹ️ Nothing to copy yet."); return }
+    const ok = await copyFormatted()
+    if (!ok) setStatus("s-error", "Couldn't copy — select the preview text manually.")
   }
 
   // ── Save flagged tasks to Firestore ───────────────────────────
@@ -1158,16 +1204,19 @@ function initApp() {
       ? `${normal.length} task(s) + ${markers.length} marker(s)`
       : markers.length ? `${markers.length} marker(s)` : `${normal.length} task(s)`
 
-    const ok = await openConfirm({ icon: "📅", title: "Save to calendar?", message: `This adds ${label} to the shared calendar.`, okText: "Save", danger: false })
+    const ok = await openConfirm({ icon: "📅", title: "Save to calendar?", message: `This adds ${label} to the shared calendar and copies the formatted text.`, okText: "Save", danger: false })
     if (!ok) return
 
     btn.disabled = true
+    // Copy right away, while the confirm click still counts as a user gesture.
+    // Race with a timeout so a stalled clipboard call can never block the save.
+    const copied = await Promise.race([copyFormatted(), new Promise(r => setTimeout(() => r(false), 1500))])
     setStatus("s-info", `⏳ Saving ${label} to calendar...`)
     try {
       const results = await syncToFirestore(tasks)
       const okN = results.filter(r => r.ok).length, fail = results.filter(r => !r.ok).length
       if (fail > 0) setStatus("s-error", `⚠️ Saved ${okN}/${tasks.length} — ${fail} failed.`)
-      else          setStatus("s-success", `✅ Saved ${label} to the calendar!`)
+      else          setStatus("s-success", `✅ Saved ${label} to the calendar!${copied ? " 📋 Text copied." : ""}`)
     } catch(e) {
       setStatus("s-error", "❌ Failed: " + e.message)
     } finally { btn.disabled = false }

@@ -31,6 +31,9 @@
   </script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    /* No visible scrollbars anywhere — scrolling still works via wheel/touch */
+    *{scrollbar-width:none;-ms-overflow-style:none}
+    *::-webkit-scrollbar{display:none}
     /* ── Touch polish: no blue flash/box on tap ──
        tap-highlight kills the overlay, user-select stops the long-press text
        selection on interactive chrome, touch-callout stops the iOS preview,
@@ -173,9 +176,7 @@
     .cal-layout{display:flex;flex-direction:row;align-items:stretch;flex:1;min-height:0}
     .cal-left{width:var(--label-w);flex-shrink:0;background:var(--col);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-right:2px solid var(--glass-brd);box-shadow:4px 0 14px -4px rgba(0,0,0,0.35);position:relative;z-index:30;align-self:stretch}
     .cal-right{width:var(--check-w);flex-shrink:0;background:var(--col);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-left:2px solid var(--glass-brd);box-shadow:-4px 0 14px -4px rgba(0,0,0,0.35);position:relative;z-index:30;align-self:stretch}
-    .cal-scroll-outer{flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.2) transparent}
-    .cal-scroll-outer::-webkit-scrollbar{height:4px}
-    .cal-scroll-outer::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:2px}
+    .cal-scroll-outer{flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch}
     .cal-inner{min-width:500px}
 
     /* STICKY HEADER */
@@ -718,8 +719,6 @@
     /* Single-column add layout: scrolling form, save pinned at the bottom */
     .pt-pane-add{gap:10px}
     .pt-form-scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding-right:4px}
-    .pt-form-scroll::-webkit-scrollbar{width:3px}
-    .pt-form-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:2px}
 
     .pt-field{display:flex;flex-direction:column;gap:4px}
     .pt-field label{font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
@@ -956,7 +955,6 @@
     html[data-theme="light"] .pt-tab.active{background:#ffffff;box-shadow:0 -2px 8px rgba(0,0,0,0.06)}
     html[data-theme="light"] .pt-preview-card{background:#f8faf8}
     html[data-theme="light"] .pt-panel::before{background:#dde3dd}
-    html[data-theme="light"] .pt-form-scroll::-webkit-scrollbar-thumb{background:#dde3dd}
     html[data-theme="light"] .archive-row:hover{background:#f4f7f4}
     html[data-theme="light"] .archive-fchip:hover{background:rgba(0,0,0,0.05)}
     html[data-theme="light"] .archive-act:hover{background:rgba(0,0,0,0.06);color:#1a1a1a}
@@ -967,8 +965,6 @@
     html[data-theme="light"] .archive-strip.deadline{background:#e53e3e}
     html[data-theme="light"] .archive-toolbar,html[data-theme="light"] .archive-list{backdrop-filter:none;-webkit-backdrop-filter:none}
     html[data-theme="light"] .pt-list-card:hover{background:#ffffff;border-color:#c8d4c8;box-shadow:0 2px 10px rgba(0,0,0,0.08)}
-    html[data-theme="light"] .cal-scroll-outer{scrollbar-color:#dde3dd transparent}
-    html[data-theme="light"] .cal-scroll-outer::-webkit-scrollbar-thumb{background:#dde3dd}
     @media(max-width:480px){
       html[data-theme="light"] .detail-popup::before{background:#dde3dd}
     }

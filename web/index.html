@@ -18,6 +18,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    /* No visible scrollbars anywhere — scrolling still works via wheel/touch */
+    * { scrollbar-width: none; -ms-overflow-style: none; }
+    *::-webkit-scrollbar { display: none; }
     :root {
       --navy: #182848; --navy-dark: #0d1526; --navy-mid: #2f6fed;
       --pink: #ff4fa3; --pink-dark: #8e1c63; --pink-soft: #ffd6ea;
