@@ -184,6 +184,17 @@
     .btn-copy.copied .ico-check { display: inline-flex; animation: popCheck 0.3s cubic-bezier(0.34,1.56,0.64,1); }
     @keyframes popCheck { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
+    /* Discord send button (blurple) — mirrors the copy button's state pattern */
+    .btn-discord { background: rgba(88,101,242,0.16); color: #b9c0f8; border-color: rgba(88,101,242,0.4); gap: 6px; transition: background 0.2s, color 0.2s, border-color 0.2s; }
+    .btn-discord:hover:not(:disabled) { background: rgba(88,101,242,0.28); }
+    .btn-discord:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-discord .ico-check { display: none; }
+    .btn-discord.sending .ico-discord { animation: dcSpin 0.8s linear infinite; }
+    @keyframes dcSpin { to { transform: rotate(360deg); } }
+    .btn-discord.sent { background: rgba(29,158,117,0.2); color: var(--green); border-color: rgba(29,158,117,0.42); }
+    .btn-discord.sent .ico-discord { display: none; }
+    .btn-discord.sent .ico-check { display: inline-flex; animation: popCheck 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+
     /* Distinct hierarchy: SECTION (top, dashed, full-width) vs SUBJECT (nested chip) */
     .btn-add-section {
       width: 100%; justify-content: center; gap: 7px; display: inline-flex; align-items: center;
@@ -470,11 +481,18 @@
 
     <div class="preview-head">
       <span class="section-label">Formatted preview</span>
-      <button class="action-btn btn-copy" id="copyBtn" aria-label="Copy formatted text">
-        <svg class="ico-clip" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-        <svg class="ico-check" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
-        <span class="copy-label">Copy</span>
-      </button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="action-btn btn-copy" id="copyBtn" aria-label="Copy formatted text">
+          <svg class="ico-clip" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+          <svg class="ico-check" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+          <span class="copy-label">Copy</span>
+        </button>
+        <button class="action-btn btn-discord" id="discordBtn" aria-label="Send announcement to Discord">
+          <svg class="ico-discord" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.211.375-.444.864-.608 1.249a18.27 18.27 0 0 0-5.487 0 12.6 12.6 0 0 0-.617-1.25.077.077 0 0 0-.079-.036A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.245.198.372.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.056c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.331c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+          <svg class="ico-check" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>
+          <span class="discord-label">Send to Discord</span>
+        </button>
+      </div>
     </div>
     <div class="link-toggles">
       <button class="link-chip" id="lnkClassroom" title="Append the Google Classroom link to the message">🔗 Classroom link <span class="chip-check">✓</span></button>
@@ -544,6 +562,12 @@ const firebaseConfig = {
 
 const MOD_PASSWORD_HASH = "4710ce735963a78ed12d2348a6ddd4e45a0f75cce94d78b3d81d077274e8c8fa"
 const LOGIN_URL = "index.html"
+
+// Base URL of the Discord bot server (server/discord.js). Its POST /send takes
+// { embed } and forwards it to the Discord channel via the webhook configured
+// server-side (DISCORD_WEBHOOK env var). Netlify only hosts the static site, so
+// this must point at wherever discord.js is deployed (the old Render instance).
+const DISCORD_SERVER_URL = "https://tas-samtabsam.onrender.com"
 
 const app  = initializeApp(firebaseConfig)
 const auth = getAuth(app)
@@ -1188,6 +1212,63 @@ function initApp() {
     if (!buildFormattedMessage()) { setStatus("s-info", "ℹ️ Nothing to copy yet."); return }
     const ok = await copyFormatted()
     if (!ok) setStatus("s-error", "Couldn't copy — select the preview text manually.")
+  }
+
+  // ── Send announcement to Discord (the "broadcaster") ──────────
+  const discordBtn = document.getElementById("discordBtn")
+  let discordResetTimer = null
+  function setDiscordBtn(state) {
+    const lbl = discordBtn.querySelector(".discord-label")
+    discordBtn.classList.remove("sending", "sent")
+    if (state === "sending")   { discordBtn.classList.add("sending"); discordBtn.disabled = true;  if (lbl) lbl.textContent = "Sending…" }
+    else if (state === "sent") { discordBtn.classList.add("sent");    discordBtn.disabled = false; if (lbl) lbl.textContent = "Sent" }
+    else                       { discordBtn.disabled = false;         if (lbl) lbl.textContent = "Send to Discord" }
+  }
+
+  // Turn the formatted announcement into a Discord embed (the rich card the bot
+  // forwards). Description mirrors the preview 1:1; bare URLs auto-link in Discord.
+  function buildDiscordEmbed() {
+    const description = buildFormattedMessage()
+    if (!description) return null
+    const reporter = document.getElementById("fmtReporter").value.trim()
+    const embed = {
+      title:       "📢 อัปเดตงาน · TAS",
+      description: description.length > 4096 ? description.slice(0, 4093) + "…" : description,
+      color:       0xff4fa3,                 // brand pink, matches the app accent
+      timestamp:   new Date().toISOString(),
+    }
+    if (reporter) embed.footer = { text: `รายงานโดย ${reporter}` }
+    return embed
+  }
+
+  discordBtn.onclick = async function() {
+    const embed = buildDiscordEmbed()
+    if (!embed) { setStatus("s-info", "ℹ️ Nothing to send yet — fill in the form first."); return }
+    const ok = await openConfirm({
+      icon: "📣", title: "Send to Discord?",
+      message: "This posts the announcement to the Discord channel — everyone there will see it.",
+      okText: "Send", danger: false,
+    })
+    if (!ok) return
+
+    clearTimeout(discordResetTimer)
+    setDiscordBtn("sending")
+    setStatus("s-info", "⏳ Sending to Discord…")
+    try {
+      const res  = await fetch(`${DISCORD_SERVER_URL}/send`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ embed }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || data.ok === false) throw new Error(data.error || `Server responded ${res.status}`)
+      setDiscordBtn("sent")
+      setStatus("s-success", "✅ Announcement sent to Discord!")
+      discordResetTimer = setTimeout(() => setDiscordBtn("idle"), 2500)
+    } catch(e) {
+      setDiscordBtn("idle")
+      setStatus("s-error", "❌ Couldn't reach the Discord bot: " + e.message)
+    }
   }
 
   // ── Save flagged tasks to Firestore ───────────────────────────
