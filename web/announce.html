@@ -569,6 +569,11 @@ const LOGIN_URL = "index.html"
 // this must point at wherever discord.js is deployed (the old Render instance).
 const DISCORD_SERVER_URL = "https://tas-samtabsam.onrender.com"
 
+// Header banner for the Discord embed — the same hero image the old LINE flex
+// card used. Discord renders embed images full-width at the BOTTOM of the card
+// (there is no top-hero slot in embeds like LINE had). Must be a public URL.
+const DISCORD_BANNER_URL = "https://i.ibb.co/V08nTBMD/banner.png"
+
 const app  = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 let db = null, fbReady = false
@@ -1236,6 +1241,7 @@ function initApp() {
       description: description.length > 4096 ? description.slice(0, 4093) + "…" : description,
       color:       0xff4fa3,                 // brand pink, matches the app accent
       timestamp:   new Date().toISOString(),
+      image:       { url: DISCORD_BANNER_URL },   // the flex-card header banner
     }
     if (reporter) embed.footer = { text: `รายงานโดย ${reporter}` }
     return embed
