@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    // Force external browser if opened in LINE
+    (function() {
+      if (/Line\//i.test(navigator.userAgent || '')) {
+        const url = location.href;
+        if (!url.includes('openExternalBrowser=1')) {
+          location.replace(url + (url.includes('?') ? '&' : '?') + 'openExternalBrowser=1');
+        }
+      }
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Link Shortener — TAS Tools</title>
+  <link rel="icon" type="image/x-icon" href="TASLogo.png">
+  <meta name="theme-color" content="#0b1c3d">
+  <link rel="apple-touch-icon" href="TASLogo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    try{document.documentElement.dataset.theme=localStorage.getItem("tas_theme")||"dark"}
+    catch(e){document.documentElement.dataset.theme="dark"}
+  </script>
+  <link rel="stylesheet" href="tools-shell.css">
+  <style>
+    .alias-row{display:grid;grid-template-columns:1fr auto;gap:11px;align-items:end}
+    @media (max-width:520px){ .alias-row{grid-template-columns:1fr} }
+
+    /* Result panel — the freshly made link */
+    .result{
+      display:none;margin-top:14px;padding:15px 16px;border-radius:14px;
+      background:var(--accent-soft);border:1px solid var(--accent-brd);
+      animation:fadeInUp 0.35s cubic-bezier(0.34,1.4,0.64,1) both;
+    }
+    .result.show{display:block}
+    .result-label{font-size:10px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--pink);margin-bottom:7px}
+    .result-url{
+      font-family:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+      font-size:15px;font-weight:600;color:var(--text);word-break:break-all;line-height:1.45;
+    }
+    .result-orig{font-size:11px;font-weight:300;color:var(--muted);margin-top:7px;word-break:break-all}
+
+    /* Saved links list */
+    .link-list{display:flex;flex-direction:column;gap:9px}
+    .link-card{
+      display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;
+      padding:12px 14px;border-radius:13px;
+      background:var(--glass-2);border:1px solid var(--glass-brd);
+      transition:border-color 0.15s,background 0.15s;
+      animation:fadeInUp 0.35s ease both;
+    }
+    .link-card:hover{border-color:var(--accent-brd);background:var(--glass)}
+    .lc-main{min-width:0}
+    .lc-code{
+      font-family:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+      font-size:14px;font-weight:600;color:var(--text);
+    }
+    .lc-code .pre{color:var(--label);font-weight:400}
+    .lc-orig{font-size:11.5px;font-weight:300;color:var(--muted);margin-top:3px;
+             white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .lc-meta{display:flex;gap:12px;margin-top:5px;font-size:10.5px;color:var(--label);font-weight:300}
+    .lc-clicks{color:var(--pink);font-weight:500}
+    .lc-actions{display:flex;gap:4px;flex-shrink:0}
+    .icon-btn{
+      width:32px;height:32px;border-radius:9px;border:1px solid transparent;
+      background:transparent;color:var(--muted);font-size:14px;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;text-decoration:none;
+      transition:background 0.13s,color 0.13s,transform 0.12s;
+    }
+    .icon-btn:hover{background:var(--accent-soft);color:var(--accent-soft-text)}
+    .icon-btn:active{transform:scale(0.92)}
+    .icon-btn.danger:hover{background:var(--red-light);color:var(--red-text)}
+
+    .list-head{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+    .list-head .count{
+      font-size:10.5px;font-weight:600;color:var(--pink);
+      background:var(--accent-soft);border:1px solid var(--accent-brd);
+      border-radius:20px;padding:1px 9px;
+    }
+    .skel{height:64px;border-radius:13px;background:var(--glass-2);position:relative;overflow:hidden}
+    .skel::after{content:"";position:absolute;inset:0;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent);
+      animation:sweep 1.3s linear infinite}
+    @keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+
+    html[data-theme="light"] .skel::after{background:linear-gradient(90deg,transparent,rgba(0,0,0,0.05),transparent)}
+    html[data-theme="light"] .link-card{background:#f8faf8}
+    html[data-theme="light"] .link-card:hover{background:#ffffff}
+  </style>
+</head>
+<body>
+
+<div id="authGate">
+  <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffc73f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+  <div class="gate-spin"></div>
+  <div class="gate-msg">Checking sign-in...</div>
+</div>
+
+<div id="appWrap" style="display:none">
+  <div class="page">
+    <a class="back-link" href="tools.html"><span data-ico="back"></span> Back to Tools</a>
+    <div class="page-head">
+      <h2><span data-ico="link" data-size="26"></span> Link Shortener</h2>
+      <p>Turn a long Drive, Docs or Classroom URL into a short link that's easy to type or read out in class.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Shorten a link</div>
+      <div class="field">
+        <label class="fl" for="longUrl">Long URL</label>
+        <input type="url" id="longUrl" placeholder="https://docs.google.com/document/d/…" spellcheck="false" autocomplete="off">
+      </div>
+      <div class="alias-row">
+        <div class="field" style="margin-bottom:0">
+          <label class="fl" for="alias">Custom code <span style="text-transform:none;letter-spacing:0;font-weight:300">(optional)</span></label>
+          <input type="text" id="alias" placeholder="leave blank for a random one" spellcheck="false" autocomplete="off" maxlength="24">
+        </div>
+        <button class="btn primary" id="shortenBtn"><span data-ico="scissors" data-size="15"></span> Shorten</button>
+      </div>
+
+      <div class="result" id="result">
+        <div class="result-label">Your short link</div>
+        <div class="result-url" id="resultUrl"></div>
+        <div class="result-orig" id="resultOrig"></div>
+        <div class="btn-row">
+          <button class="btn primary" id="copyBtn"><span data-ico="copy" data-size="15"></span> Copy</button>
+          <button class="btn ghost" id="shareBtn" style="display:none"><span data-ico="share" data-size="15"></span> Share</button>
+          <a class="btn ghost" id="qrBtn" href="#"><span data-ico="qr" data-size="15"></span> QR code</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="list-head">
+        <div class="card-title" style="margin-bottom:0">My links</div>
+        <span class="count" id="linkCount" style="display:none">0</span>
+      </div>
+      <div class="link-list" id="linkList">
+        <div class="skel"></div><div class="skel"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initShell, db, esc, toast, copyText, icon, paintIcons } from "./tools-shell.js"
+import { collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where }
+  from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
+import { customAlphabet } from "https://esm.sh/nanoid@5.0.9"
+
+const user = await initShell({ title:"Link Shortener", active:"link" })
+
+const $ = id => document.getElementById(id)
+
+// No 0/o/1/l/i — these links get read out loud and copied off a screen,
+// so ambiguous glyphs cost more than the extra entropy is worth.
+const nanoid = customAlphabet("23456789abcdefghjkmnpqrstuvwxyz", 6)
+const CODE_RE = /^[a-z0-9-]{3,24}$/
+// Codes that would collide with a real page or the redirect route itself
+const RESERVED = new Set(["r","index","tools","calendar","announce","admin","api","new","login","static"])
+
+const shortBase = () => location.origin + "/r/"
+
+/* Accept what a student will realistically paste: bare domains get https://,
+   anything that isn't http(s) is rejected so we never store a javascript: URL. */
+function normalizeUrl(raw){
+  let v = raw.trim()
+  if(!v) return { error:"Paste a link first." }
+  if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(v)) v = "https://" + v
+  let u
+  try{ u = new URL(v) }catch(e){ return { error:"That doesn't look like a valid link." } }
+  if(u.protocol !== "http:" && u.protocol !== "https:") return { error:"Only http:// and https:// links can be shortened." }
+  if(!u.hostname.includes(".")) return { error:"That doesn't look like a valid link." }
+  if(v.length > 2000) return { error:"That link is too long to store (2000 characters max)." }
+  return { url: u.href }
+}
+
+/* Random codes collide roughly never at this scale, but "roughly never"
+   silently overwrites someone else's link, so check before writing. */
+async function freeCode(){
+  for(let i=0;i<6;i++){
+    const code = nanoid()
+    const snap = await getDoc(doc(db,"links",code))
+    if(!snap.exists()) return code
+  }
+  throw new Error("Couldn't find a free code")
+}
+
+let creating = false
+async function createLink(){
+  if(creating) return
+  const { url, error } = normalizeUrl($("longUrl").value)
+  if(error){ toast(error,{error:true}); paintIcons()
+$("longUrl").focus(); return }
+
+  let code = $("alias").value.trim().toLowerCase()
+  if(code){
+    if(!CODE_RE.test(code)){
+      toast("Custom codes use 3–24 letters, numbers or dashes.",{error:true}); return
+    }
+    if(RESERVED.has(code)){ toast(`"${code}" is reserved — pick another code.`,{error:true}); return }
+  }
+
+  creating = true
+  $("shortenBtn").disabled = true
+  try{
+    if(code){
+      const taken = await getDoc(doc(db,"links",code))
+      if(taken.exists()){ toast(`"${code}" is already taken — try another.`,{error:true}); return }
+    }else{
+      code = await freeCode()
+    }
+
+    await setDoc(doc(db,"links",code), {
+      shortCode:   code,
+      originalURL: url,
+      createdBy:   user.uid,
+      createdAt:   Date.now(),
+      clicks:      0,
+    })
+
+    showResult(code, url)
+    $("longUrl").value = ""
+    $("alias").value = ""
+    toast("Short link created")
+  }catch(e){
+    console.warn("Could not create link:", e)
+    toast("Couldn't create the link — check your connection and try again",{error:true})
+  }finally{
+    creating = false
+    $("shortenBtn").disabled = false
+  }
+}
+
+function showResult(code, url){
+  const short = shortBase() + code
+  $("resultUrl").textContent  = short
+  $("resultOrig").textContent = "→ " + url
+  $("qrBtn").href = "tools-qr.html?url=" + encodeURIComponent(short)
+  $("copyBtn").onclick  = () => copyText(short, "Short link copied")
+  const shareBtn = $("shareBtn")
+  if(navigator.share){
+    shareBtn.style.display = "inline-flex"
+    shareBtn.onclick = () => navigator.share({ title:"TAS short link", url:short }).catch(()=>{})
+  }
+  $("result").classList.add("show")
+}
+
+$("shortenBtn").onclick = createLink
+$("longUrl").addEventListener("keydown", e => { if(e.key==="Enter") createLink() })
+$("alias").addEventListener("keydown", e => { if(e.key==="Enter") createLink() })
+
+// ── My links ────────────────────────────────────────────────
+// Sorted client-side on purpose: where(createdBy) + orderBy(createdAt)
+// would need a composite index in the Firebase console, and the per-user
+// list is far too small for that to matter.
+function fmtWhen(ms){
+  if(!ms) return ""
+  const d = new Date(ms), now = new Date()
+  const days = Math.round((now.setHours(0,0,0,0) - new Date(ms).setHours(0,0,0,0)) / 86400000)
+  if(days === 0) return "today"
+  if(days === 1) return "yesterday"
+  if(days < 7)  return days + " days ago"
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`
+}
+
+function renderList(links){
+  const box = $("linkList")
+  const countEl = $("linkCount")
+  countEl.textContent = links.length
+  countEl.style.display = links.length ? "inline-block" : "none"
+
+  if(!links.length){
+    box.innerHTML = `<div class="empty"><span class="ico" style="width:32px;height:32px;display:block;margin:0 auto 10px" data-ico="link" data-size="32"></span>No links yet.<br>Shorten one above and it'll show up here.</div>`
+    return
+  }
+
+  const base = esc(shortBase())
+  box.innerHTML = links.map((l,i) => `
+    <div class="link-card" style="animation-delay:${Math.min(i,8)*0.04}s">
+      <div class="lc-main">
+        <div class="lc-code"><span class="pre">${base}</span>${esc(l.shortCode)}</div>
+        <div class="lc-orig" title="${esc(l.originalURL)}">${esc(l.originalURL)}</div>
+        <div class="lc-meta">
+          <span class="lc-clicks">${l.clicks||0} click${(l.clicks||0)===1?"":"s"}</span>
+          <span>${esc(fmtWhen(l.createdAt))}</span>
+        </div>
+      </div>
+      <div class="lc-actions">
+        <button class="icon-btn" data-copy="${esc(l.shortCode)}" title="Copy">${icon("copy",15)}</button>
+        <a class="icon-btn" href="tools-qr.html?url=${encodeURIComponent(shortBase()+l.shortCode)}" title="QR code">${icon("qr",15)}</a>
+        <a class="icon-btn" href="${esc(l.originalURL)}" target="_blank" rel="noopener noreferrer" title="Open original">${icon("external",15)}</a>
+        <button class="icon-btn danger" data-del="${esc(l.shortCode)}" title="Delete">${icon("trash",15)}</button>
+      </div>
+    </div>`).join("")
+
+  paintIcons(box)
+  box.querySelectorAll("[data-copy]").forEach(b =>
+    b.onclick = () => copyText(shortBase() + b.dataset.copy, "Short link copied"))
+  box.querySelectorAll("[data-del]").forEach(b =>
+    b.onclick = () => removeLink(b.dataset.del))
+}
+
+async function removeLink(code){
+  try{
+    await deleteDoc(doc(db,"links",code))
+    toast("Link deleted — it will stop working straight away")
+  }catch(e){
+    console.warn("Could not delete link:", e)
+    toast("Couldn't delete that link",{error:true})
+  }
+}
+
+onSnapshot(
+  query(collection(db,"links"), where("createdBy","==",user.uid)),
+  snap => {
+    const links = snap.docs.map(d => ({ id:d.id, ...d.data() }))
+                           .sort((a,b) => (b.createdAt||0) - (a.createdAt||0))
+    renderList(links)
+  },
+  err => {
+    console.warn("Links listener error:", err)
+    $("linkList").innerHTML = `<div class="empty"><span class="ico" style="width:32px;height:32px;display:block;margin:0 auto 10px">${icon("refresh",32)}</span>Couldn't load your links.<br>Check your connection and refresh.</div>`
+  }
+)
+
+$("longUrl").focus()
+</script>
+</body>
+</html>

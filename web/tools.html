@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    // Force external browser if opened in LINE
+    (function() {
+      if (/Line\//i.test(navigator.userAgent || '')) {
+        const url = location.href;
+        if (!url.includes('openExternalBrowser=1')) {
+          location.replace(url + (url.includes('?') ? '&' : '?') + 'openExternalBrowser=1');
+        }
+      }
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TAS Tools</title>
+  <link rel="icon" type="image/x-icon" href="TASLogo.png">
+  <meta name="theme-color" content="#0b1c3d">
+  <link rel="apple-touch-icon" href="TASLogo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    // Apply the saved theme before first paint (dark is the default)
+    try{document.documentElement.dataset.theme=localStorage.getItem("tas_theme")||"dark"}
+    catch(e){document.documentElement.dataset.theme="dark"}
+  </script>
+  <link rel="stylesheet" href="tools-shell.css">
+  <style>
+    .tool-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.1rem}
+    .tool-card{
+      position:relative;overflow:hidden;
+      display:flex;flex-direction:column;gap:11px;
+      padding:1.5rem 1.4rem;border-radius:20px;
+      background:var(--card);border:1px solid var(--glass-brd);
+      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+      color:var(--text);text-decoration:none;
+      box-shadow:0 12px 30px -18px rgba(0,0,0,0.65);
+      transition:transform 0.18s cubic-bezier(.2,.7,.3,1),box-shadow 0.18s,border-color 0.18s;
+      animation:fadeInUp 0.5s ease both;
+    }
+    .tool-card:nth-child(1){animation-delay:0.10s}
+    .tool-card:nth-child(2){animation-delay:0.18s}
+    .tool-card:nth-child(3){animation-delay:0.26s}
+    .tool-card:hover{transform:translateY(-5px);border-color:var(--accent-brd);box-shadow:0 22px 40px -20px rgba(0,0,0,0.75)}
+    .tool-card:active{transform:translateY(-1px) scale(0.995)}
+    /* Shine sweep, same gesture as the menu pills on index.html */
+    .tool-card::after{
+      content:"";position:absolute;top:0;left:-60%;width:45%;height:100%;
+      background:linear-gradient(100deg,transparent,rgba(255,255,255,0.22),transparent);
+      transform:skewX(-20deg);opacity:0;pointer-events:none;
+    }
+    .tool-card:hover::after{animation:shine 0.75s ease}
+    @keyframes shine{0%{left:-60%;opacity:0.6}100%{left:130%;opacity:0}}
+
+    .tc-icon{
+      width:52px;height:52px;border-radius:15px;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      color:#fff;
+      box-shadow:0 8px 20px -10px rgba(0,0,0,0.7);
+    }
+    .tc-icon .ico{width:25px;height:25px}
+    .tc-icon svg{stroke-width:1.7}
+    .tc-qr{background:linear-gradient(180deg,#093c80 0%,#0b1c3d 100%)}
+    .tc-link{background:linear-gradient(180deg,#d675b1 0%,#74163e 100%)}
+    /* Yellow tile needs dark ink to stay legible */
+    .tc-card{background:linear-gradient(180deg,#ffd45c 0%,#e0952a 100%);color:#3a2a05}
+    .tc-title{font-size:18px;font-weight:600;letter-spacing:-0.2px}
+    .tc-sub{font-size:9px;font-weight:600;letter-spacing:0.24em;text-transform:uppercase;color:var(--pink);margin-top:-7px}
+    .tc-desc{font-size:12.5px;font-weight:300;color:var(--muted);line-height:1.65}
+    .tc-go{margin-top:auto;padding-top:6px;font-size:12px;font-weight:500;color:var(--pink);display:flex;align-items:center;gap:5px;transition:gap 0.18s}
+    .tool-card:hover .tc-go{gap:10px}
+
+    html[data-theme="light"] .tool-card{box-shadow:0 6px 20px -12px rgba(0,0,0,0.22)}
+    html[data-theme="light"] .tool-card:hover{box-shadow:0 16px 30px -16px rgba(0,0,0,0.28)}
+    html[data-theme="light"] .tc-icon{box-shadow:0 6px 16px -9px rgba(0,0,0,0.45)}
+  </style>
+</head>
+<body>
+
+<div id="authGate">
+  <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffc73f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9a1 1 0 0 1 1-1Z"/><path d="M9 9V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v3"/><path d="M3 14h18"/></svg>
+  <div class="gate-spin"></div>
+  <div class="gate-msg">Checking sign-in...</div>
+</div>
+
+<div id="appWrap" style="display:none">
+  <div class="page">
+    <a class="back-link" href="index.html"><span data-ico="back"></span> Back to menu</a>
+    <div class="page-head">
+      <h2><span data-ico="tools" data-size="26"></span> Tools</h2>
+      <p>Small utilities for class — make a QR code, shorten a link, or turn today's homework into an image.</p>
+    </div>
+
+    <div class="tool-grid">
+      <a class="tool-card" href="tools-qr.html">
+        <div class="tc-icon tc-qr" data-ico="qr" data-size="25"></div>
+        <div class="tc-title">QR Code Generator</div>
+        <div class="tc-sub">Offline</div>
+        <div class="tc-desc">Paste any link and get a QR code you can download as PNG or SVG. Pick your own colours and size — it all runs in your browser.</div>
+        <div class="tc-go">Open <span data-ico="next" data-size="14"></span></div>
+      </a>
+
+      <a class="tool-card" href="tools-link.html">
+        <div class="tc-icon tc-link" data-ico="link" data-size="25"></div>
+        <div class="tc-title">Link Shortener</div>
+        <div class="tc-sub">Shareable</div>
+        <div class="tc-desc">Turn a long Drive or Docs URL into a short tas-33 link you can read out loud. Keeps a list of your links and counts the clicks.</div>
+        <div class="tc-go">Open <span data-ico="next" data-size="14"></span></div>
+      </a>
+
+      <a class="tool-card" href="tools-card.html">
+        <div class="tc-icon tc-card" data-ico="card" data-size="25"></div>
+        <div class="tc-title">Daily Homework Card</div>
+        <div class="tc-sub">Image</div>
+        <div class="tc-desc">Renders the day's homework announcement as a shareable card image — the same layout that goes out to Discord.</div>
+        <div class="tc-go">Open <span data-ico="next" data-size="14"></span></div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initShell } from "./tools-shell.js"
+await initShell({ title:"Tools", active:"hub" })
+</script>
+</body>
+</html>

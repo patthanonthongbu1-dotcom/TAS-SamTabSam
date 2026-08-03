@@ -257,6 +257,10 @@
     .nav-pill:active { transform: scale(0.99); }
     .pill-announce { background: linear-gradient(180deg, #093c80 0%, #0b1c3d 100%); }
     .pill-calendar { background: linear-gradient(180deg, #d675b1 0%, #74163e 100%); }
+    /* Yellow, but deepened toward amber at the bottom so the white pill
+       text still reads — same bright-to-dark shape as the other two. */
+    .pill-tools    { background: linear-gradient(180deg, #f5b52e 0%, #6b4207 100%); }
+    .pill-icon svg { display: block; }
     .pill-icon { position: relative; z-index: 1; font-size: 28px; line-height: 1; flex-shrink: 0; display: flex; align-items: center; }
     .pill-labels { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; }
     .pill-title { font-size: 21px; font-weight: 700; letter-spacing: 0.2px; }
@@ -370,6 +374,7 @@
     .nav-pill     { animation: fadeInUp 0.55s ease both; }
     .nav-pill:nth-of-type(1) { animation-delay: 0.18s; }
     .nav-pill:nth-of-type(2) { animation-delay: 0.26s; }
+    .nav-pill:nth-of-type(3) { animation-delay: 0.34s; }
     .rp-bottom    { animation: fadeIn 0.8s ease both 0.34s; }
 
     /* Richer nav-pill hover — lift, deepen shadow, slide chevron, shine sweep */
@@ -488,6 +493,13 @@
           <a class="nav-pill pill-calendar" id="calendarBtn" href="calendar.html">
             <span class="pill-icon">📅</span>
             <span class="pill-labels"><span class="pill-title">Calendar</span><span class="pill-sub">SYSTEM</span></span>
+            <span class="pill-chevron">›</span>
+            <span class="pill-dot"></span>
+          </a>
+
+          <a class="nav-pill pill-tools" id="toolsBtn" href="tools.html">
+            <span class="pill-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9a1 1 0 0 1 1-1Z"/><path d="M9 9V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v3"/><path d="M3 14h18"/></svg></span>
+            <span class="pill-labels"><span class="pill-title">Tools</span><span class="pill-sub">UTILITIES</span></span>
             <span class="pill-chevron">›</span>
             <span class="pill-dot"></span>
           </a>

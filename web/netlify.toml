@@ -1,0 +1,19 @@
+# Netlify config for tas-33.netlify.app
+#
+# This lives in web/ because the site's base directory is set to "web" in
+# the Netlify UI — with a base directory set, Netlify reads netlify.toml
+# from there, not from the repo root.
+#
+# Deliberately no [build] section: publish directory, functions directory
+# and build command are all configured in the Netlify UI and the defaults
+# are already right (publish = the base dir, functions = netlify/functions
+# inside it). Adding them here would silently override the UI.
+
+# Short links: /r/<code> is served by the redirect function, which does the
+# Firestore lookup and issues its own 302. status 200 (a rewrite) keeps the
+# pretty URL in the address bar until the function redirects.
+[[redirects]]
+  from = "/r/*"
+  to = "/.netlify/functions/redirect/:splat"
+  status = 200
+  force = true

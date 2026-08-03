@@ -30,6 +30,31 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // ── Short links (Tools → Link shortener) ──────────────────
+    // Doc id = the short code. Publicly readable because the /r/<code>
+    // Netlify Function resolves links for signed-out visitors.
+    match /links/{code} {
+      allow read: if true;
+
+      // Only signed-in students, only under their own uid, and the code
+      // in the document must match the doc id the client wrote to.
+      allow create: if request.auth != null
+                    && request.resource.data.createdBy == request.auth.uid
+                    && request.resource.data.shortCode == code
+                    && request.resource.data.originalURL is string
+                    && request.resource.data.originalURL.matches('https?://.*')
+                    && request.resource.data.originalURL.size() <= 2000
+                    && request.resource.data.clicks == 0;
+
+      // The click counter is bumped by the unauthenticated redirect
+      // Function, so this update is open — but it can ONLY set clicks,
+      // and only to exactly one more than the stored value.
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicks'])
+                    && request.resource.data.clicks == resource.data.clicks + 1;
+
+      allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
+    }
+
     // ── Push notification tokens ──────────────────────────────
     // Doc id = the device's FCM token; written by the calendar when a
     // signed-in user turns notifications on. Only the Cloud Function

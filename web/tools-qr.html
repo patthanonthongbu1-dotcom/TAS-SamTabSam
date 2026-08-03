@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    // Force external browser if opened in LINE
+    (function() {
+      if (/Line\//i.test(navigator.userAgent || '')) {
+        const url = location.href;
+        if (!url.includes('openExternalBrowser=1')) {
+          location.replace(url + (url.includes('?') ? '&' : '?') + 'openExternalBrowser=1');
+        }
+      }
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code Generator — TAS Tools</title>
+  <link rel="icon" type="image/x-icon" href="TASLogo.png">
+  <meta name="theme-color" content="#0b1c3d">
+  <link rel="apple-touch-icon" href="TASLogo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    try{document.documentElement.dataset.theme=localStorage.getItem("tas_theme")||"dark"}
+    catch(e){document.documentElement.dataset.theme="dark"}
+  </script>
+  <link rel="stylesheet" href="tools-shell.css">
+  <style>
+    .qr-layout{display:grid;grid-template-columns:1fr 360px;gap:1.1rem;align-items:start}
+    @media (max-width:860px){ .qr-layout{grid-template-columns:1fr} }
+
+    /* ── Preview: a true 1:1 stage, and the code fills it square ──
+       aspect-ratio keeps the box exactly square at every width, so the
+       preview matches the shape of the exported file. */
+    .qr-stage{
+      position:relative;width:100%;aspect-ratio:1/1;
+      display:flex;align-items:center;justify-content:center;
+      border-radius:14px;padding:14px;
+      background:
+        linear-gradient(45deg,rgba(255,255,255,0.05) 25%,transparent 25%,transparent 75%,rgba(255,255,255,0.05) 75%),
+        linear-gradient(45deg,rgba(255,255,255,0.05) 25%,transparent 25%,transparent 75%,rgba(255,255,255,0.05) 75%);
+      background-size:18px 18px;background-position:0 0,9px 9px;
+      border:1px dashed var(--glass-brd);
+    }
+    html[data-theme="light"] .qr-stage{
+      background:
+        linear-gradient(45deg,rgba(0,0,0,0.05) 25%,transparent 25%,transparent 75%,rgba(0,0,0,0.05) 75%),
+        linear-gradient(45deg,rgba(0,0,0,0.05) 25%,transparent 25%,transparent 75%,rgba(0,0,0,0.05) 75%);
+      background-size:18px 18px;background-position:0 0,9px 9px;
+    }
+    /* The canvas is square by construction — cap it to the stage on both
+       axes so it stays 1:1 no matter which is the tighter constraint. */
+    #qrCanvas{
+      display:none;max-width:100%;max-height:100%;width:auto;height:auto;
+      aspect-ratio:1/1;border-radius:8px;animation:fadeIn 0.3s ease both;
+    }
+    .qr-placeholder{text-align:center;color:var(--label);font-size:12.5px;font-weight:300;line-height:1.7}
+    .qr-placeholder .ico{display:block;margin:0 auto 10px;opacity:0.45}
+
+    .qr-meta{
+      display:none;margin-top:12px;font-size:11px;color:var(--label);
+      text-align:center;font-weight:300;line-height:1.7;word-break:break-all;
+    }
+    .qr-meta.show{display:block}
+    .qr-dim{
+      display:none;margin-top:8px;text-align:center;
+      font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
+      letter-spacing:0.08em;color:var(--pink);
+    }
+    .qr-dim.show{display:block}
+    .qr-err{display:none;margin-top:12px;padding:10px 12px;border-radius:10px;
+            background:var(--red-light);border:1px solid var(--red-mid);
+            color:var(--red-text);font-size:12px;line-height:1.6}
+    .qr-err.show{display:block}
+
+    .privacy-note{
+      display:flex;gap:9px;align-items:flex-start;margin-top:1.1rem;
+      font-size:11.5px;font-weight:300;color:var(--label);line-height:1.65;
+    }
+    .privacy-note .ico{margin-top:1px}
+
+    .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media (max-width:520px){ .two{grid-template-columns:1fr} }
+
+    .size-row{display:grid;grid-template-columns:1fr 96px;gap:8px;align-items:center}
+    .size-row input{text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+
+    /* Presets show the actual colours they'd apply */
+    .preset-row{display:flex;flex-wrap:wrap;gap:7px}
+    .preset{
+      width:34px;height:34px;border-radius:10px;cursor:pointer;
+      border:1.5px solid var(--field-brd);padding:3px;
+      display:flex;align-items:center;justify-content:center;
+      transition:transform 0.12s,border-color 0.15s;
+    }
+    .preset:hover{transform:scale(1.08)}
+    .preset.active{border-color:var(--pink);box-shadow:0 0 0 3px var(--accent-ring)}
+    .preset i{display:block;width:100%;height:100%;border-radius:6px}
+
+    .toggle-row{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      background:var(--field-bg);border:1.5px solid var(--field-brd);
+      border-radius:11px;padding:10px 13px;cursor:pointer;
+      transition:background 0.15s,border-color 0.15s;
+    }
+    .toggle-row:hover{background:rgba(255,255,255,0.15)}
+    .toggle-row.active{background:var(--accent-soft);border-color:var(--pink)}
+    .toggle-label{font-size:12.5px;font-weight:400}
+    .toggle-sub{font-size:10px;font-weight:300;color:var(--label);margin-top:2px}
+    .switch{width:34px;height:18px;border-radius:18px;background:rgba(255,255,255,0.25);position:relative;transition:background 0.2s;flex-shrink:0}
+    .switch::before{content:'';position:absolute;left:2px;top:2px;width:14px;height:14px;background:white;border-radius:50%;transition:transform 0.2s}
+    .toggle-row.active .switch{background:var(--pink)}
+    .toggle-row.active .switch::before{transform:translateX(16px)}
+    html[data-theme="light"] .toggle-row:hover{background:#f0f3f0}
+    html[data-theme="light"] .switch{background:#cdd5cd}
+  </style>
+</head>
+<body>
+
+<div id="authGate">
+  <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffc73f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM21 14v3M18 21h3M14 21h1"/></svg>
+  <div class="gate-spin"></div>
+  <div class="gate-msg">Checking sign-in...</div>
+</div>
+
+<div id="appWrap" style="display:none">
+  <div class="page">
+    <a class="back-link" href="tools.html"><span data-ico="back"></span> Back to Tools</a>
+    <div class="page-head">
+      <h2><span data-ico="qr" data-size="26"></span> QR Code Generator</h2>
+      <p>Paste a link (or any text) and download the QR code. Everything runs in your browser — nothing is sent anywhere.</p>
+    </div>
+
+    <div class="qr-layout">
+      <div>
+        <div class="card">
+          <div class="card-title">Content</div>
+          <div class="field">
+            <label class="fl" for="qrText">Link or text</label>
+            <textarea id="qrText" placeholder="https://tas-33.netlify.app/calendar.html" spellcheck="false"></textarea>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Colours</div>
+          <div class="field">
+            <label class="fl">Presets</label>
+            <div class="preset-row" id="presetRow"></div>
+          </div>
+          <div class="two">
+            <div class="field">
+              <label class="fl" for="fgColor">Code colour</label>
+              <div class="swatch-row">
+                <input type="color" id="fgColor" value="#000000">
+                <span class="swatch-hex" id="fgHex">#000000</span>
+              </div>
+            </div>
+            <div class="field">
+              <label class="fl" for="bgColor">Background</label>
+              <div class="swatch-row">
+                <input type="color" id="bgColor" value="#ffffff">
+                <span class="swatch-hex" id="bgHex">#ffffff</span>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <div class="toggle-row" id="transparentToggle">
+              <div>
+                <div class="toggle-label">Transparent background</div>
+                <div class="toggle-sub">Ignores the background colour — good for slides</div>
+              </div>
+              <div class="switch"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Shape &amp; size</div>
+
+          <div class="field">
+            <label class="fl">Download size (square)</label>
+            <div class="size-row">
+              <div class="seg-grid" style="--cols:4" id="segSize">
+                <button class="seg-btn" data-v="256">256</button>
+                <button class="seg-btn active" data-v="512">512</button>
+                <button class="seg-btn" data-v="1024">1024</button>
+                <button class="seg-btn" data-v="2048">2048</button>
+              </div>
+              <input type="number" id="sizeCustom" min="64" max="4096" step="16" placeholder="custom">
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="fl">Error correction</label>
+            <div class="seg-grid" style="--cols:4" id="segEcc">
+              <button class="seg-btn" data-v="L">L · 7%</button>
+              <button class="seg-btn active" data-v="M">M · 15%</button>
+              <button class="seg-btn" data-v="Q">Q · 25%</button>
+              <button class="seg-btn" data-v="H">H · 30%</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="fl">Quiet zone</label>
+            <div class="seg-grid" style="--cols:4" id="segMargin">
+              <button class="seg-btn" data-v="0">None</button>
+              <button class="seg-btn" data-v="2">Small</button>
+              <button class="seg-btn active" data-v="4">Standard</button>
+              <button class="seg-btn" data-v="8">Wide</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="toggle-row" id="logoToggle">
+              <div>
+                <div class="toggle-label">TAS logo in the centre</div>
+                <div class="toggle-sub">Forces high error correction so it still scans</div>
+              </div>
+              <div class="switch"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="privacy-note">
+          <span class="ico" data-ico="lock" data-size="14"></span>
+          <span>The QR code is drawn on this device. The link you paste never leaves your browser, so it's safe to use for private Drive files.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Preview <span class="hint" id="qrHint"></span></div>
+        <div class="qr-stage">
+          <canvas id="qrCanvas" width="400" height="400"></canvas>
+          <div class="qr-placeholder" id="qrPlaceholder">
+            <span class="ico" data-ico="qr" data-size="34"></span>
+            Your QR code shows up here<br>as you type.
+          </div>
+        </div>
+        <div class="qr-dim" id="qrDim"></div>
+        <div class="qr-meta" id="qrMeta"></div>
+        <div class="qr-err" id="qrErr"></div>
+        <div class="btn-row">
+          <button class="btn primary" id="dlPng" disabled><span data-ico="download" data-size="15"></span> PNG</button>
+          <button class="btn ghost" id="dlSvg" disabled><span data-ico="download" data-size="15"></span> SVG</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initShell, toast, download, paintIcons } from "./tools-shell.js"
+import QRCode from "https://esm.sh/qrcode@1.5.4"
+
+await initShell({ title:"QR Code", active:"qr" })
+
+const $ = id => document.getElementById(id)
+const textEl = $("qrText")
+const canvas = $("qrCanvas")
+
+// ── Option state ─────────────────────────────────────────────
+const state = {
+  size: 512, ecc: "M", margin: 4,
+  fg: "#000000", bg: "#ffffff",
+  transparent: false, logo: false,
+}
+
+const PRESETS = [
+  { name:"Classic",     fg:"#000000", bg:"#ffffff" },
+  { name:"TAS yellow",  fg:"#8a5a10", bg:"#fff6e0" },
+  { name:"TAS navy",    fg:"#0b1c3d", bg:"#ffffff" },
+  { name:"TAS pink",    fg:"#c02e7e", bg:"#ffffff" },
+  { name:"Inverted",    fg:"#ffffff", bg:"#0b1c3d" },
+  { name:"Forest",      fg:"#0F6E56", bg:"#f2fbf7" },
+]
+
+$("presetRow").innerHTML = PRESETS.map((p,i) =>
+  `<button class="preset" data-i="${i}" title="${p.name}" aria-label="${p.name}"
+     style="background:${p.bg}"><i style="background:${p.fg}"></i></button>`).join("")
+
+function syncPresetSelection(){
+  document.querySelectorAll(".preset").forEach(b => {
+    const p = PRESETS[Number(b.dataset.i)]
+    b.classList.toggle("active", p.fg.toLowerCase() === state.fg.toLowerCase()
+                              && p.bg.toLowerCase() === state.bg.toLowerCase())
+  })
+}
+
+document.querySelectorAll(".preset").forEach(b => b.onclick = () => {
+  const p = PRESETS[Number(b.dataset.i)]
+  state.fg = p.fg; state.bg = p.bg
+  $("fgColor").value = p.fg; $("bgColor").value = p.bg
+  syncSwatchLabels(); syncPresetSelection(); render()
+})
+
+function syncSwatchLabels(){
+  $("fgHex").textContent = state.fg.toUpperCase()
+  $("bgHex").textContent = state.transparent ? "none" : state.bg.toUpperCase()
+}
+
+$("fgColor").addEventListener("input", e => {
+  state.fg = e.target.value; syncSwatchLabels(); syncPresetSelection(); render()
+})
+$("bgColor").addEventListener("input", e => {
+  state.bg = e.target.value
+  // Picking a background implies you want one
+  if(state.transparent){ state.transparent = false; $("transparentToggle").classList.remove("active") }
+  syncSwatchLabels(); syncPresetSelection(); render()
+})
+
+// Generic segmented-group wiring: one active button per group.
+function segGroup(id, key, cast = String){
+  const box = $(id)
+  box.querySelectorAll(".seg-btn").forEach(b => b.onclick = () => {
+    box.querySelectorAll(".seg-btn").forEach(o => o.classList.remove("active"))
+    b.classList.add("active")
+    state[key] = cast(b.dataset.v)
+    if(id === "segSize") $("sizeCustom").value = ""
+    render()
+  })
+}
+segGroup("segSize","size",Number)
+segGroup("segEcc","ecc")
+segGroup("segMargin","margin",Number)
+
+$("sizeCustom").addEventListener("input", e => {
+  const v = Number(e.target.value)
+  if(!v) return
+  state.size = Math.max(64, Math.min(4096, v))
+  $("segSize").querySelectorAll(".seg-btn").forEach(o => o.classList.remove("active"))
+  render()
+})
+
+$("transparentToggle").onclick = () => {
+  state.transparent = !state.transparent
+  $("transparentToggle").classList.toggle("active", state.transparent)
+  syncSwatchLabels(); render()
+}
+
+$("logoToggle").onclick = () => {
+  state.logo = !state.logo
+  $("logoToggle").classList.toggle("active", state.logo)
+  // A centre logo punches a hole in the data; only H reliably survives it.
+  if(state.logo){
+    state.ecc = "H"
+    $("segEcc").querySelectorAll(".seg-btn").forEach(o => o.classList.toggle("active", o.dataset.v === "H"))
+  }
+  render()
+}
+
+// ── Rendering ────────────────────────────────────────────────
+function opts(width){
+  return {
+    width,
+    margin: state.margin,
+    errorCorrectionLevel: state.ecc,
+    // 8-digit hex gives us alpha for free — a trailing "00" means transparent.
+    color: { dark: state.fg + "ff", light: state.transparent ? "#00000000" : state.bg + "ff" },
+  }
+}
+
+let logoImg = null
+function loadLogo(){
+  if(logoImg) return Promise.resolve(logoImg)
+  return new Promise((resolve,reject) => {
+    const img = new Image()
+    img.onload  = () => { logoImg = img; resolve(img) }
+    img.onerror = reject
+    img.src = "TASLogo.png"
+  })
+}
+
+/* Draw the logo over a finished QR canvas: a rounded plate (so the logo
+   never sits on top of live modules) with the image inside it. */
+async function stampLogo(cv){
+  const img = await loadLogo()
+  const ctx = cv.getContext("2d")
+  const s = cv.width
+  const plate = Math.round(s * 0.24)
+  const pad   = Math.round(plate * 0.13)
+  const x = Math.round((s - plate) / 2)
+  const r = Math.round(plate * 0.22)
+
+  ctx.save()
+  ctx.beginPath()
+  ctx.moveTo(x+r,x); ctx.arcTo(x+plate,x,x+plate,x+plate,r)
+  ctx.arcTo(x+plate,x+plate,x,x+plate,r); ctx.arcTo(x,x+plate,x,x,r)
+  ctx.arcTo(x,x,x+plate,x,r); ctx.closePath()
+  ctx.fillStyle = state.transparent ? "#ffffff" : state.bg
+  ctx.fill()
+  ctx.clip()
+  ctx.drawImage(img, x+pad, x+pad, plate-pad*2, plate-pad*2)
+  ctx.restore()
+}
+
+let ready = false
+
+function setError(msg){
+  const box = $("qrErr")
+  if(msg){ box.textContent = msg; box.classList.add("show") }
+  else { box.textContent = ""; box.classList.remove("show") }
+}
+
+async function render(){
+  const text = textEl.value.trim()
+  ready = false
+  $("dlPng").disabled = $("dlSvg").disabled = true
+  $("qrDim").textContent = `${state.size} × ${state.size}`
+  $("qrDim").classList.toggle("show", !!text)
+
+  if(!text){
+    canvas.style.display = "none"
+    $("qrPlaceholder").style.display = "block"
+    $("qrMeta").classList.remove("show")
+    $("qrHint").textContent = ""
+    setError("")
+    return
+  }
+
+  try{
+    // 400px preview — square, same proportions as every export size.
+    await QRCode.toCanvas(canvas, text, opts(400))
+    if(state.logo) await stampLogo(canvas)
+    canvas.style.display = "block"
+    $("qrPlaceholder").style.display = "none"
+    setError("")
+    ready = true
+    $("dlPng").disabled = $("dlSvg").disabled = false
+
+    $("qrHint").textContent = text.length + " chars"
+    const meta = $("qrMeta")
+    meta.textContent = text.length > 90 ? text.slice(0,90) + "…" : text
+    meta.classList.add("show")
+  }catch(e){
+    canvas.style.display = "none"
+    $("qrPlaceholder").style.display = "block"
+    $("qrMeta").classList.remove("show")
+    // Usually "too much data" — a QR tops out near 2,900 bytes, far less at H.
+    setError("Couldn't make a QR code from this: " + (e && e.message ? e.message : e) +
+             ". Try shortening the text or lowering the error correction.")
+  }
+}
+
+function fileBase(){
+  const text = textEl.value.trim()
+  try{
+    const u = new URL(text)
+    return "qr-" + u.hostname.replace(/^www\./,"").replace(/[^a-z0-9.-]/gi,"-")
+  }catch(e){
+    return "qr-code"
+  }
+}
+
+$("dlPng").onclick = async () => {
+  if(!ready) return
+  try{
+    // Render off-screen at full resolution — the preview is only 400px.
+    const off = document.createElement("canvas")
+    await QRCode.toCanvas(off, textEl.value.trim(), opts(state.size))
+    if(state.logo) await stampLogo(off)
+    off.toBlob(blob => {
+      if(!blob){ toast("Couldn't export the PNG",{error:true}); return }
+      download(blob, fileBase() + ".png")
+      toast("PNG downloaded")
+    }, "image/png")
+  }catch(e){
+    console.warn("PNG export failed:", e)
+    toast("Couldn't export the PNG",{error:true})
+  }
+}
+
+/* SVG export. The logo has to be inlined as a data URI, because an <image>
+   pointing at TASLogo.png would break the moment the file moves. */
+async function logoDataURI(){
+  const img = await loadLogo()
+  const cv = document.createElement("canvas")
+  cv.width = cv.height = 256
+  cv.getContext("2d").drawImage(img, 0, 0, 256, 256)
+  return cv.toDataURL("image/png")
+}
+
+$("dlSvg").onclick = async () => {
+  if(!ready) return
+  try{
+    let svg = await QRCode.toString(textEl.value.trim(), { ...opts(state.size), type:"svg" })
+    if(state.logo){
+      const uri = await logoDataURI()
+      // qrcode emits a viewBox in module units; reuse it so the plate lands
+      // in the middle whatever the module count turns out to be.
+      const vb = svg.match(/viewBox="0 0 (\d+(?:\.\d+)?) /)
+      const units = vb ? Number(vb[1]) : 33
+      const plate = units * 0.24, pad = plate * 0.13, x = (units - plate) / 2
+      const plateFill = state.transparent ? "#ffffff" : state.bg
+      svg = svg.replace("</svg>",
+        `<rect x="${x}" y="${x}" width="${plate}" height="${plate}" rx="${plate*0.22}" fill="${plateFill}"/>` +
+        `<image x="${x+pad}" y="${x+pad}" width="${plate-pad*2}" height="${plate-pad*2}" href="${uri}"/></svg>`)
+    }
+    download(new Blob([svg],{type:"image/svg+xml"}), fileBase() + ".svg")
+    toast("SVG downloaded")
+  }catch(e){
+    console.warn("SVG export failed:", e)
+    toast("Couldn't export the SVG",{error:true})
+  }
+}
+
+let t = null
+textEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(render, 180) })
+
+// Prefill from ?url= so other pages can deep-link into the generator
+const seed = new URLSearchParams(location.search).get("url")
+if(seed) textEl.value = seed
+syncSwatchLabels(); syncPresetSelection(); paintIcons(); render()
+textEl.focus()
+</script>
+</body>
+</html>

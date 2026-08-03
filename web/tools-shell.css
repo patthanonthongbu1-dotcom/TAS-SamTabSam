@@ -1,0 +1,350 @@
+/* ─────────────────────────────────────────────────────────────
+   TAS Tools — shared shell.
+
+   The rest of the app keeps its CSS inline per page, but the four
+   Tools pages (hub + 3 features) are one section sharing one chrome,
+   so the theme lives here instead of being pasted four times.
+   Tokens are copied from calendar.html's :root so the section reads
+   as part of the same app, including the light theme.
+   ───────────────────────────────────────────────────────────── */
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+/* No visible scrollbars anywhere — scrolling still works via wheel/touch */
+*{scrollbar-width:none;-ms-overflow-style:none}
+*::-webkit-scrollbar{display:none}
+button,.user-pill,.tool-tab,.tool-card,.seg-btn{
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+}
+:focus:not(:focus-visible){outline:none}
+
+/* Tools runs YELLOW. The calendar/announce pages stay pink (green in their
+   light theme) — this section keeps the same token names so every rule
+   written against --pink / --accent-* just follows, and only the values
+   change. Light theme drops to a darker amber: bright yellow on white is
+   unreadable, so it can't simply reuse the dark-theme hue. */
+:root{
+  --navy:#16305e;--navy-dark:#0b1c3d;
+  --pink:#ffc73f;--pink-soft:#ffe9b8;
+  --accent-grad:linear-gradient(180deg,#ffd45c 0%,#e0952a 100%);
+  --accent-shadow:rgba(255,199,63,0.5);
+  --accent-soft:rgba(255,199,63,0.16);
+  --accent-soft-text:#ffe4a3;
+  --accent-ring:rgba(255,199,63,0.18);
+  --accent-brd:rgba(255,199,63,0.42);
+  /* White on yellow fails contrast — filled accent surfaces use dark ink. */
+  --on-accent:#3a2a05;
+  --glass:rgba(255,255,255,0.09);--glass-2:rgba(255,255,255,0.06);--glass-brd:rgba(255,255,255,0.16);
+  --field-bg:rgba(255,255,255,0.10);--field-brd:rgba(255,255,255,0.20);
+  --panel:rgba(30,45,79,0.97);--sheet:rgba(34,50,86,0.98);
+  --card:rgba(255,255,255,0.09);--border:rgba(255,255,255,0.18);
+  --text:#ffffff;--muted:rgba(255,255,255,0.72);--label:rgba(255,255,255,0.55);--surface:rgba(255,255,255,0.10);
+  --green:#1D9E75;--green-text:#6fe3bd;--green-light:rgba(29,158,117,0.16);--green-mid:rgba(29,158,117,0.35);
+  --red:#ff6b6b;--red-text:#ff9b8a;--red-light:rgba(229,62,62,0.18);--red-mid:rgba(229,62,62,0.4);
+  --topbar-h:56px;
+}
+
+html{min-height:100%;background:var(--navy-dark)}
+body{
+  font-family:'Kanit',sans-serif;min-height:100vh;color:var(--text);overflow-x:hidden;
+  background:var(--navy-dark);
+}
+
+/* ── Animated orb backdrop (matches index / announce / calendar) ── */
+.bg-orbs{position:fixed;inset:0;overflow:hidden;z-index:0;pointer-events:none}
+.orb{position:absolute;border-radius:50%;filter:blur(70px);will-change:transform}
+.orb-1{width:380px;height:380px;top:-100px;left:-80px;
+       background:radial-gradient(circle at 50% 50%,rgba(47,111,237,0.5),transparent 70%);
+       animation:drift1 20s ease-in-out infinite}
+.orb-2{width:320px;height:320px;bottom:-120px;right:-90px;
+       background:radial-gradient(circle at 50% 50%,var(--accent-brd),transparent 70%);
+       animation:drift2 24s ease-in-out infinite}
+.orb-3{width:260px;height:260px;top:45%;left:60%;
+       background:radial-gradient(circle at 50% 50%,rgba(214,117,177,0.34),transparent 70%);
+       animation:drift3 28s ease-in-out infinite}
+@keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(46px,54px) scale(1.08)}}
+@keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-52px,-40px) scale(1.1)}}
+@keyframes drift3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-38px,44px) scale(0.92)}}
+
+#appWrap{position:relative;z-index:1}
+
+/* ── Auth gate ─────────────────────────────────────────────── */
+#authGate{
+  position:fixed;inset:0;background:var(--navy-dark);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;flex-direction:column;gap:12px;font-family:'Kanit',sans-serif;
+}
+#authGate .gate-spin{width:28px;height:28px;border:3px solid rgba(255,255,255,0.18);border-top-color:var(--pink);border-radius:50%;animation:spin 0.7s linear infinite}
+#authGate .gate-msg{font-size:14px;color:var(--muted);font-weight:300}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Topbar — same lockup as the calendar ──────────────────── */
+.topbar{
+  background:rgba(30,48,84,0.72);backdrop-filter:blur(16px) saturate(1.1);-webkit-backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--glass-brd);
+  padding:0 1.25rem;display:flex;align-items:center;
+  height:var(--topbar-h);position:sticky;top:0;z-index:100;
+  animation:slideDown 0.4s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes slideDown{from{transform:translateY(-56px);opacity:0}to{transform:translateY(0);opacity:1}}
+.topbar-row1{display:contents}
+.topbar-brand{display:flex;align-items:center;gap:11px;min-width:0;order:0;text-decoration:none;color:inherit;
+              animation:brandIn 0.5s cubic-bezier(0.16,1,0.3,1) 0.05s backwards}
+@keyframes brandIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+.brand-chip{
+  width:40px;height:40px;border-radius:12px;flex-shrink:0;
+  background:rgba(255,255,255,0.10);border:1px solid var(--glass-brd);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 14px -6px rgba(0,0,0,0.5);
+}
+.brand-mini{width:31px;height:31px;object-fit:contain;display:block;animation:logoGlow 4.5s ease-in-out infinite}
+@keyframes logoGlow{
+  0%,100%{filter:drop-shadow(0 0 2px rgba(255,255,255,0.2))}
+  50%{filter:drop-shadow(0 0 9px rgba(255,255,255,0.7))}
+}
+.brand-text{min-width:0}
+.brand-text h1{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.2px;line-height:1.15;white-space:nowrap}
+.brand-sub{font-size:8.5px;font-weight:600;letter-spacing:0.34em;color:var(--pink);text-transform:uppercase;margin-top:1px;white-space:nowrap}
+
+/* Segmented control linking the four Tools pages */
+.tool-tabs{
+  order:1;margin-left:auto;margin-right:12px;display:flex;gap:2px;
+  background:rgba(255,255,255,0.07);border:1px solid var(--glass-brd);
+  border-radius:11px;padding:3px;flex-shrink:0;
+  animation:fadeDrop 0.45s cubic-bezier(0.16,1,0.3,1) 0.14s backwards;
+}
+@keyframes fadeDrop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.tool-tab{
+  border:none;background:transparent;border-radius:8px;padding:6px 12px;
+  font-family:'Kanit',sans-serif;font-size:12.5px;font-weight:500;
+  color:rgba(255,255,255,0.7);cursor:pointer;white-space:nowrap;
+  text-decoration:none;display:flex;align-items:center;gap:5px;
+  transition:background 0.15s,color 0.15s;
+}
+.tool-tab:hover:not(.active){background:rgba(255,255,255,0.08);color:#fff}
+.tool-tab.active{background:rgba(255,255,255,0.16);color:#fff;box-shadow:0 1px 5px rgba(0,0,0,0.25)}
+
+/* ── Profile pill + dropdown ───────────────────────────────── */
+.user-pill{
+  display:none;align-items:center;gap:7px;order:2;
+  background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);
+  border-radius:20px;padding:4px 10px 4px 4px;
+  font-size:12px;font-weight:500;color:#fff;
+  cursor:pointer;transition:background 0.15s,transform 0.12s;flex-shrink:0;
+}
+.user-pill:hover{background:rgba(255,255,255,0.14)}
+.user-pill:active{transform:scale(0.98)}
+.user-pill img{width:24px;height:24px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.25)}
+.user-pill-fb{width:24px;height:24px;border-radius:50%;background:var(--pink);color:white;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.user-pill.visible{display:flex;animation:popIn 0.35s cubic-bezier(0.34,1.56,0.64,1) 0.1s backwards}
+@keyframes popIn{from{transform:scale(0.6);opacity:0}to{transform:scale(1);opacity:1}}
+.pill-caret{opacity:0.5;font-size:9px;margin-left:2px}
+
+.user-dropdown{
+  position:absolute;top:calc(100% + 8px);right:12px;
+  background:var(--sheet);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,0.14);border-radius:14px;
+  box-shadow:0 18px 44px -12px rgba(0,0,0,0.7);
+  padding:8px;min-width:210px;z-index:1000;display:none;flex-direction:column;gap:3px;
+  animation:dropIn 0.18s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes dropIn{from{opacity:0;transform:translateY(-6px) scale(0.97)}to{opacity:1;transform:none}}
+.user-dropdown.open{display:flex}
+.user-dropdown-info{padding:8px 10px 11px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:3px}
+.user-dropdown-name{font-size:13px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-dropdown-email{font-size:11px;color:var(--muted);font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.user-dropdown-btn{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;border:none;background:transparent;font-family:'Kanit',sans-serif;font-size:13px;color:rgba(255,255,255,0.85);cursor:pointer;transition:background 0.13s,color 0.13s;text-align:left;width:100%;text-decoration:none}
+.user-dropdown-btn.menu:hover{background:var(--accent-soft);color:var(--accent-soft-text)}
+.user-dropdown-btn.signout:hover{background:rgba(192,57,43,0.18);color:var(--red-text)}
+
+/* ── Page frame ────────────────────────────────────────────── */
+.page{max-width:940px;margin:0 auto;padding:2rem 1.25rem 5rem}
+.page-head{margin-bottom:1.6rem;animation:fadeInUp 0.5s ease both 0.05s}
+.page-head h2{font-size:26px;font-weight:700;letter-spacing:-0.3px;display:flex;align-items:center;gap:10px}
+.page-head p{font-size:13px;font-weight:300;color:var(--muted);margin-top:5px;line-height:1.6}
+.back-link{
+  display:inline-flex;align-items:center;gap:6px;margin-bottom:14px;
+  font-size:12px;font-weight:400;color:var(--label);text-decoration:none;
+  transition:color 0.15s,transform 0.15s;
+}
+.back-link:hover{color:var(--pink);transform:translateX(-3px)}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* ── Glass card ────────────────────────────────────────────── */
+.card{
+  background:var(--card);border:1px solid var(--glass-brd);border-radius:18px;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  padding:1.4rem 1.5rem;box-shadow:0 12px 34px -18px rgba(0,0,0,0.6);
+  animation:fadeInUp 0.5s ease both 0.12s;
+}
+.card + .card{margin-top:1.1rem}
+.card-title{font-size:13px;font-weight:600;letter-spacing:0.02em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title .hint{font-size:11px;font-weight:300;color:var(--label);margin-left:auto}
+
+/* ── Fields ────────────────────────────────────────────────── */
+.field{margin-bottom:13px}
+.field:last-child{margin-bottom:0}
+label.fl{display:block;font-size:10.5px;font-weight:500;letter-spacing:0.13em;text-transform:uppercase;color:var(--label);margin-bottom:6px}
+input[type=text],input[type=url],input[type=number],input[type=date],input[type=time],textarea,select{
+  width:100%;padding:11px 13px;border-radius:11px;
+  background:var(--field-bg);border:1px solid var(--field-brd);
+  font-family:'Kanit',sans-serif;font-size:13.5px;color:var(--text);
+  transition:border-color 0.15s,box-shadow 0.15s,background 0.15s;
+}
+input::placeholder,textarea::placeholder{color:rgba(255,255,255,0.35);font-weight:300}
+input:focus,textarea:focus,select:focus{
+  outline:none;border-color:var(--accent-brd);box-shadow:0 0 0 3px var(--accent-ring);
+  background:rgba(255,255,255,0.13);
+}
+textarea{resize:vertical;min-height:74px;line-height:1.55}
+select{appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23ffffff' stroke-opacity='0.6' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 13px center;padding-right:32px}
+select option{background:#1e2d4f;color:#fff}
+input[type=date],input[type=time]{color-scheme:dark}
+
+/* ── Segmented option groups ─────────────────────────────────
+   Used instead of <select> throughout Tools — same control the
+   calendar's "Add task" pane uses (.pt-type-btn), which beats a
+   native dropdown on touch: every choice is visible and one tap
+   away, with no OS picker sheet. */
+.seg-grid{display:grid;grid-template-columns:repeat(var(--cols,3),1fr);gap:5px}
+.seg-btn{
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  padding:9px 4px;border:1.5px solid var(--field-brd);border-radius:10px;
+  background:var(--field-bg);font-family:'Kanit',sans-serif;
+  font-size:11.5px;font-weight:400;color:var(--muted);
+  cursor:pointer;white-space:nowrap;transition:all 0.15s;
+}
+.seg-btn:hover:not(.active){background:rgba(255,255,255,0.16);color:var(--text)}
+.seg-btn:active{transform:scale(0.96)}
+.seg-btn.active{background:var(--accent-soft);border-color:var(--pink);color:var(--accent-soft-text);font-weight:500}
+.seg-btn svg{width:13px;height:13px;flex-shrink:0}
+html[data-theme="light"] .seg-btn:hover:not(.active){background:#f0f3f0}
+
+/* Colour swatch input */
+.swatch-row{display:flex;align-items:center;gap:9px}
+input[type=color]{
+  -webkit-appearance:none;appearance:none;
+  width:44px;height:36px;padding:0;border-radius:10px;flex-shrink:0;
+  border:1.5px solid var(--field-brd);background:var(--field-bg);cursor:pointer;
+}
+input[type=color]::-webkit-color-swatch-wrapper{padding:4px}
+input[type=color]::-webkit-color-swatch{border:none;border-radius:6px}
+input[type=color]::-moz-color-swatch{border:none;border-radius:6px}
+.swatch-hex{
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;
+  color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;
+}
+
+/* ── Inline SVG icons ────────────────────────────────────────
+   Emoji can't be recoloured and render differently per OS, so all
+   Tools chrome uses inline SVG that inherits currentColor. */
+.ico{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;vertical-align:-0.15em}
+.ico svg{display:block;width:100%;height:100%}
+
+/* ── Buttons ───────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px 18px;border:none;border-radius:11px;
+  font-family:'Kanit',sans-serif;font-size:13.5px;font-weight:500;
+  color:#fff;cursor:pointer;text-decoration:none;
+  transition:filter 0.15s,transform 0.12s,box-shadow 0.15s;
+  touch-action:manipulation;
+}
+.btn.primary{background:var(--accent-grad);color:var(--on-accent);font-weight:600;box-shadow:0 8px 20px -8px var(--accent-shadow)}
+.btn.primary:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 12px 26px -8px var(--accent-shadow)}
+.btn.ghost{background:rgba(255,255,255,0.09);border:1px solid var(--glass-brd);color:var(--text)}
+.btn.ghost:hover{background:rgba(255,255,255,0.16)}
+.btn:active{transform:scale(0.98)}
+.btn:disabled{opacity:0.45;cursor:not-allowed;transform:none;filter:none}
+.btn-row{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
+
+/* ── Toasts ────────────────────────────────────────────────── */
+#toastWrap{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:12000;pointer-events:none;width:max-content;max-width:min(92vw,440px)}
+.toast{
+  display:flex;align-items:center;gap:12px;
+  background:rgba(20,30,54,0.97);backdrop-filter:blur(14px);
+  border:1px solid var(--glass-brd);border-radius:12px;
+  padding:11px 15px;font-size:13px;color:#fff;
+  box-shadow:0 14px 34px -12px rgba(0,0,0,0.75);
+  opacity:0;transform:translateY(12px);transition:opacity 0.25s,transform 0.25s;pointer-events:auto;
+}
+.toast.show{opacity:1;transform:none}
+.toast.error{border-color:var(--red-mid);background:rgba(60,24,30,0.97)}
+.toast-action{background:none;border:none;color:var(--pink);font-family:'Kanit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0}
+
+/* ── Empty states ──────────────────────────────────────────── */
+.empty{text-align:center;padding:2.4rem 1rem;color:var(--label);font-size:13px;font-weight:300}
+.empty .em{font-size:34px;display:block;margin-bottom:10px}
+
+/* ── Light theme (classic green-on-white, same as calendar) ── */
+html[data-theme="light"]{
+  --navy:#e8ece8;--navy-dark:#f4f6f4;
+  --pink:#a8710f;--pink-soft:#ffe9b8;
+  --accent-grad:linear-gradient(180deg,#e8a92c 0%,#a8710f 100%);
+  --accent-shadow:rgba(168,113,15,0.38);
+  --accent-soft:rgba(224,169,44,0.16);
+  --accent-soft-text:#7d520a;
+  --accent-ring:rgba(224,169,44,0.22);
+  --accent-brd:rgba(168,113,15,0.45);
+  --on-accent:#ffffff;
+  --glass:#ffffff;--glass-2:#f8faf8;--glass-brd:#dde3dd;
+  --field-bg:#ffffff;--field-brd:#dde3dd;
+  --panel:#ffffff;--sheet:#ffffff;
+  --card:#ffffff;--border:#dde3dd;
+  --text:#1a1a1a;--muted:#6b7b6b;--label:#9aaa9a;--surface:#f8faf8;
+  --green-text:#0F6E56;--green-light:#e6f7f1;--green-mid:#c3ead8;
+  --red:#e53e3e;--red-text:#e53e3e;--red-light:#fff5f5;--red-mid:#fed7d7;
+}
+html[data-theme="light"] body{background:#f4f6f4}
+html[data-theme="light"] .bg-orbs{display:none}
+html[data-theme="light"] #authGate{background:#f4f6f4}
+html[data-theme="light"] #authGate .gate-spin{border-color:#dde3dd;border-top-color:var(--pink)}
+html[data-theme="light"] .topbar{background:rgba(255,255,255,0.88);border-bottom-color:#dde3dd}
+html[data-theme="light"] .brand-chip{background:#ffffff;border-color:#dde3dd;box-shadow:0 2px 8px -2px rgba(0,0,0,0.12)}
+html[data-theme="light"] .brand-mini{animation:none}
+html[data-theme="light"] .tool-tabs{background:rgba(0,0,0,0.04)}
+html[data-theme="light"] .tool-tab{color:#5a675a}
+html[data-theme="light"] .tool-tab:hover:not(.active){background:rgba(0,0,0,0.05);color:#1a1a1a}
+html[data-theme="light"] .tool-tab.active{background:#ffffff;color:#1a1a1a;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+/* The calendar tints this pill green in light mode; Tools follows its own
+   accent instead so the section stays yellow end to end. */
+html[data-theme="light"] .user-pill{background:var(--accent-soft);border-color:var(--accent-brd);color:var(--accent-soft-text)}
+html[data-theme="light"] .user-pill:hover{background:rgba(224,169,44,0.28)}
+html[data-theme="light"] .user-pill img{border-color:var(--accent-brd)}
+html[data-theme="light"] .user-pill-fb{background:var(--pink);color:#fff}
+html[data-theme="light"] .user-dropdown{border-color:#dde3dd;box-shadow:0 18px 44px -12px rgba(0,0,0,0.18)}
+html[data-theme="light"] .user-dropdown-info{border-bottom-color:#eef1ee}
+html[data-theme="light"] .user-dropdown-btn{color:#3a463a}
+html[data-theme="light"] .user-dropdown-btn.signout:hover{background:#fff5f5;color:#e53e3e}
+html[data-theme="light"] .user-dropdown-name{color:#1a1a1a}
+html[data-theme="light"] .card{box-shadow:0 6px 20px -12px rgba(0,0,0,0.25)}
+html[data-theme="light"] input::placeholder,html[data-theme="light"] textarea::placeholder{color:#9aaa9a}
+html[data-theme="light"] input:focus,html[data-theme="light"] textarea:focus,html[data-theme="light"] select:focus{background:#ffffff}
+html[data-theme="light"] select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7b6b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
+html[data-theme="light"] select option{background:#ffffff;color:#1a1a1a}
+html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=time]{color-scheme:light}
+html[data-theme="light"] .btn.ghost{background:#ffffff;border-color:#dde3dd;color:#3a463a}
+html[data-theme="light"] .btn.ghost:hover{background:#f0f3f0}
+html[data-theme="light"] .toast{background:rgba(255,255,255,0.98);color:#1f2933;border-color:rgba(0,0,0,0.12);box-shadow:0 8px 28px rgba(0,0,0,0.18)}
+
+/* ── Mobile ────────────────────────────────────────────────── */
+@media (max-width:760px){
+  .topbar{height:auto;padding:0.6rem 0.9rem;flex-wrap:wrap;gap:8px}
+  .topbar-row1{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}
+  .brand-chip{width:34px;height:34px;border-radius:10px}
+  .brand-mini{width:26px;height:26px}
+  .brand-text h1{font-size:14px}
+  .tool-tabs{order:3;margin:0;width:100%;overflow-x:auto;justify-content:flex-start}
+  .tool-tab{padding:6px 10px;font-size:12px}
+  .user-pill span.pill-name{display:none}
+  .page{padding:1.4rem 0.95rem 4.5rem}
+  .page-head h2{font-size:22px}
+  .card{padding:1.2rem 1.1rem;border-radius:16px}
+  .btn-row .btn{flex:1 1 auto}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition-duration:0.01ms !important}
+}

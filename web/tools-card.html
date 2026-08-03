@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    // Force external browser if opened in LINE
+    (function() {
+      if (/Line\//i.test(navigator.userAgent || '')) {
+        const url = location.href;
+        if (!url.includes('openExternalBrowser=1')) {
+          location.replace(url + (url.includes('?') ? '&' : '?') + 'openExternalBrowser=1');
+        }
+      }
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Homework Card — TAS Tools</title>
+  <link rel="icon" type="image/x-icon" href="TASLogo.png">
+  <meta name="theme-color" content="#0b1c3d">
+  <link rel="apple-touch-icon" href="TASLogo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    try{document.documentElement.dataset.theme=localStorage.getItem("tas_theme")||"dark"}
+    catch(e){document.documentElement.dataset.theme="dark"}
+  </script>
+  <link rel="stylesheet" href="tools-shell.css">
+  <style>
+    .card-layout{display:grid;grid-template-columns:1fr 400px;gap:1.1rem;align-items:start}
+    @media (max-width:900px){ .card-layout{grid-template-columns:1fr} }
+
+    .stage{display:flex;justify-content:center;padding:6px 0}
+
+    /* Source summary — what the card is being built from */
+    .src{display:flex;flex-direction:column;gap:9px}
+    .src-row{
+      display:flex;align-items:center;gap:11px;
+      padding:11px 13px;border-radius:12px;
+      background:var(--glass-2);border:1px solid var(--glass-brd);
+    }
+    .src-row .ico{color:var(--pink)}
+    .src-k{font-size:10.5px;font-weight:500;letter-spacing:0.13em;text-transform:uppercase;color:var(--label)}
+    .src-v{font-size:13.5px;font-weight:500;margin-top:2px}
+    .src-v.dim{color:var(--label);font-weight:300;font-style:italic}
+    .src-count{
+      margin-left:auto;font-size:11px;font-weight:600;color:var(--pink);
+      background:var(--accent-soft);border:1px solid var(--accent-brd);
+      border-radius:20px;padding:2px 10px;flex-shrink:0;
+    }
+    html[data-theme="light"] .src-row{background:#f8faf8}
+
+    .note-line{
+      display:flex;gap:9px;align-items:flex-start;margin-top:1.1rem;
+      font-size:11.5px;font-weight:300;color:var(--label);line-height:1.65;
+    }
+    .note-line .ico{margin-top:1px;flex-shrink:0}
+
+    .empty-cta{text-align:center;padding:2rem 1rem}
+    .empty-cta .ico{opacity:0.4;margin-bottom:12px}
+    .empty-cta p{font-size:13px;font-weight:300;color:var(--muted);line-height:1.7;margin-bottom:1.2rem}
+
+    .scale-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+    .scale-row .fl{margin-bottom:0;white-space:nowrap}
+  </style>
+</head>
+<body>
+
+<div id="authGate">
+  <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffc73f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M7 13h7M7 17h4"/></svg>
+  <div class="gate-spin"></div>
+  <div class="gate-msg">Checking sign-in...</div>
+</div>
+
+<div id="appWrap" style="display:none">
+  <div class="page">
+    <a class="back-link" href="tools.html"><span data-ico="back"></span> Back to Tools</a>
+    <div class="page-head">
+      <h2><span data-ico="card" data-size="26"></span> Daily Homework Card</h2>
+      <p>Renders the day's homework announcement as an image — the same card that goes out to Discord.</p>
+    </div>
+
+    <div class="card-layout">
+      <div>
+        <div class="card" id="sourceCard">
+          <div class="card-title">
+            Announcement
+            <span class="hint">from the task formatter</span>
+          </div>
+          <div id="sourceBody"></div>
+          <div class="btn-row">
+            <a class="btn primary" href="announce.html"><span data-ico="edit" data-size="15"></span> Edit announcement</a>
+            <button class="btn ghost" id="reloadBtn"><span data-ico="refresh" data-size="15"></span> Reload</button>
+          </div>
+        </div>
+
+        <div class="note-line">
+          <span class="ico" data-ico="lock" data-size="14"></span>
+          <span>The card is built from the draft saved on this device by the task formatter, and rendered to an image here in your browser. Nothing is uploaded.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Preview <span class="hint" id="previewHint"></span></div>
+        <div class="stage"><div id="cardHost"></div></div>
+        <div class="btn-row">
+          <button class="btn primary" id="dlBtn" style="flex:1" disabled><span data-ico="download" data-size="15"></span> Download PNG</button>
+          <button class="btn ghost" id="shareBtn" style="display:none"><span data-ico="share" data-size="15"></span> Share</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initShell, toast, download, esc, paintIcons, icon } from "./tools-shell.js"
+import { mountCard, loadDraft, hasContent, thaiDate, embeddedFontCSS, CARD_WIDTH } from "./tas-card.js"
+import { toBlob } from "https://esm.sh/html-to-image@1.11.13"
+
+await initShell({ title:"Homework Card", active:"card" })
+
+const $ = id => document.getElementById(id)
+let draft = null
+let cardNode = null
+
+function countItems(d){
+  let subjects = 0, bullets = 0
+  ;(d.sections || []).forEach(sec => (sec.subjects || []).forEach(su => {
+    if((su.title || "").trim() || (su.bullets || []).some(b => (b.text || "").trim())) subjects++
+    bullets += (su.bullets || []).filter(b => (b.text || "").trim()).length
+  }))
+  return { subjects, bullets }
+}
+
+function renderSource(){
+  const box = $("sourceBody")
+
+  if(!draft || !hasContent(draft)){
+    box.innerHTML = `<div class="empty-cta">
+      <span class="ico" style="width:38px;height:38px" data-ico="card" data-size="38"></span>
+      <p>No announcement saved on this device yet.<br>
+         Fill in the task formatter and it'll show up here automatically.</p>
+    </div>`
+    paintIcons(box)
+    return
+  }
+
+  const { subjects, bullets } = countItems(draft)
+  const date = thaiDate(draft.date)
+  const reporter = (draft.reporter || "").trim()
+
+  box.innerHTML = `<div class="src">
+    <div class="src-row">
+      <span class="ico" data-ico="calendar" data-size="17"></span>
+      <div><div class="src-k">Date</div>
+        <div class="src-v${date ? "" : " dim"}">${date ? esc(date) : "not set"}</div></div>
+    </div>
+    <div class="src-row">
+      <span class="ico" data-ico="edit" data-size="17"></span>
+      <div><div class="src-k">Reported by</div>
+        <div class="src-v${reporter ? "" : " dim"}">${reporter ? esc(reporter) : "not set"}</div></div>
+    </div>
+    <div class="src-row">
+      <span class="ico" data-ico="card" data-size="17"></span>
+      <div><div class="src-k">Content</div>
+        <div class="src-v">${subjects} item${subjects===1?"":"s"} · ${bullets} line${bullets===1?"":"s"}</div></div>
+      <span class="src-count">${subjects}</span>
+    </div>
+  </div>`
+  paintIcons(box)
+}
+
+function renderCard(){
+  draft = loadDraft()
+  renderSource()
+
+  const host = $("cardHost")
+  if(!draft || !hasContent(draft)){
+    host.innerHTML = `<div class="empty" style="max-width:280px">
+      <span class="ico" style="width:34px;height:34px;opacity:0.4;margin-bottom:10px" data-ico="image" data-size="34"></span>
+      Nothing to render yet.
+    </div>`
+    paintIcons(host)
+    cardNode = null
+    $("dlBtn").disabled = true
+    $("previewHint").textContent = ""
+    return
+  }
+
+  cardNode = mountCard(host, draft)
+  $("dlBtn").disabled = false
+  $("previewHint").textContent = `${CARD_WIDTH} × auto`
+}
+
+$("reloadBtn").onclick = () => { renderCard(); toast("Reloaded from the task formatter") }
+
+// Another tab editing the announcement writes the same key — pick it up live.
+window.addEventListener("storage", e => { if(e.key === "tas_fmt_draft_v4") renderCard() })
+// Coming back from announce.html in the same tab should also refresh.
+document.addEventListener("visibilitychange", () => { if(!document.hidden) renderCard() })
+
+// ── Export ───────────────────────────────────────────────────
+async function renderBlob(){
+  if(!cardNode) return null
+  const fontEmbedCSS = await embeddedFontCSS()
+  return toBlob(cardNode, {
+    pixelRatio: 3,
+    backgroundColor: null,
+    // No cacheBust: it appends a unique query string to every embedded
+    // asset, forcing the logo to be re-fetched on each render. The card's
+    // only external file is that logo, and it never changes mid-session.
+    // Empty string means embedding failed — fall back to system fonts
+    // rather than letting html-to-image try (and fail) the fetch itself.
+    ...(fontEmbedCSS ? { fontEmbedCSS } : { skipFonts:true }),
+  })
+}
+
+function fileName(){
+  return "tas-homework-" + ((draft && draft.date) || new Date().toISOString().slice(0,10)) + ".png"
+}
+
+$("dlBtn").onclick = async () => {
+  const btn = $("dlBtn")
+  const html = btn.innerHTML
+  btn.disabled = true
+  btn.textContent = "Rendering…"
+  try{
+    const blob = await renderBlob()
+    if(!blob) throw new Error("empty blob")
+    download(blob, fileName())
+    toast("Card image saved")
+  }catch(e){
+    console.warn("Card export failed:", e)
+    toast("Couldn't render the image — try again",{error:true})
+  }finally{
+    btn.disabled = false
+    btn.innerHTML = html
+  }
+}
+
+if(navigator.canShare && navigator.canShare({ files:[new File([""],"a.png",{type:"image/png"})] })){
+  const sb = $("shareBtn")
+  sb.style.display = "inline-flex"
+  sb.onclick = async () => {
+    sb.disabled = true
+    try{
+      const blob = await renderBlob()
+      if(!blob) return
+      await navigator.share({ files:[new File([blob], fileName(), { type:"image/png" })], title:"การบ้านประจำวัน" })
+    }catch(e){
+      if(e && e.name !== "AbortError"){
+        console.warn("Share failed:", e)
+        toast("Couldn't share the image",{error:true})
+      }
+    }finally{ sb.disabled = false }
+  }
+}
+
+paintIcons()
+renderCard()
+// Warm the font cache so the first download isn't the slow one.
+embeddedFontCSS()
+</script>
+</body>
+</html>

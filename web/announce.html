@@ -185,6 +185,16 @@
     @keyframes popCheck { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
     /* Discord send button (blurple) — mirrors the copy button's state pattern */
+    /* Card-image export — yellow, matching the Tools section it shares
+       its renderer with */
+    .btn-cardimg { background: rgba(255,199,63,0.16); color: #ffd98a; border-color: rgba(255,199,63,0.42); gap: 6px; transition: background 0.2s, color 0.2s, border-color 0.2s; }
+    .btn-cardimg:hover:not(:disabled) { background: rgba(255,199,63,0.28); }
+    .btn-cardimg:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-cardimg .ico-check { display: none; }
+    .btn-cardimg.working .ico-img { animation: dcSpin 0.8s linear infinite; }
+    .btn-cardimg.done { background: rgba(29,158,117,0.2); color: var(--green); border-color: rgba(29,158,117,0.42); }
+    .btn-cardimg.done .ico-img { display: none; }
+    .btn-cardimg.done .ico-check { display: inline-flex; animation: popCheck 0.3s cubic-bezier(0.34,1.56,0.64,1); }
     .btn-discord { background: rgba(88,101,242,0.16); color: #b9c0f8; border-color: rgba(88,101,242,0.4); gap: 6px; transition: background 0.2s, color 0.2s, border-color 0.2s; }
     .btn-discord:hover:not(:disabled) { background: rgba(88,101,242,0.28); }
     .btn-discord:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -322,6 +332,29 @@
     /* ── Preview ────────────────────────────────────────────────── */
     .preview-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; }
     .preview-head .section-label { margin-bottom: 0; }
+    /* ── Preview mode switch: formatted text ⇄ the card image ───── */
+    .preview-head-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .pv-toggle { display: flex; gap: 2px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 9px; padding: 3px; }
+    .pv-btn {
+      display: flex; align-items: center; gap: 5px; border: none; background: transparent; border-radius: 7px;
+      padding: 5px 11px; font-family: 'Kanit', sans-serif; font-size: 11.5px; font-weight: 500;
+      color: rgba(255,255,255,0.65); cursor: pointer; transition: background 0.15s, color 0.15s; touch-action: manipulation;
+    }
+    .pv-btn:hover:not(.active) { background: rgba(255,255,255,0.09); color: #fff; }
+    .pv-btn.active { background: rgba(255,199,63,0.18); color: #ffd98a; }
+    .pv-btn svg { display: block; }
+    /* The card is a fixed 360px; let it scroll rather than squash on a phone */
+    .preview-card-stage {
+      display: none; justify-content: center; overflow-x: auto;
+      background: rgba(0,0,0,0.24); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; padding: 18px 14px; min-height: 80px;
+      animation: fadeSwap 0.22s ease both;
+    }
+    .preview-card-stage.show { display: flex; }
+    @keyframes fadeSwap { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    .pv-note { display: none; font-size: 11px; font-weight: 300; color: var(--label); text-align: center; margin-top: 9px; line-height: 1.6; }
+    .pv-note.show { display: block; }
+
     .link-toggles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
     .link-chip {
       display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; font-size: 12px; font-weight: 500;
@@ -480,7 +513,19 @@
     <div class="divider"></div>
 
     <div class="preview-head">
-      <span class="section-label">Formatted preview</span>
+      <div class="preview-head-left">
+        <span class="section-label">Preview</span>
+        <div class="pv-toggle" id="pvToggle" role="group" aria-label="Preview mode">
+          <button class="pv-btn active" data-mode="text" type="button">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h9"/></svg>
+            Text
+          </button>
+          <button class="pv-btn" data-mode="card" type="button">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
+            Card
+          </button>
+        </div>
+      </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
         <button class="action-btn btn-copy" id="copyBtn" aria-label="Copy formatted text">
           <svg class="ico-clip" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
@@ -492,13 +537,26 @@
           <svg class="ico-check" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>
           <span class="discord-label">Send to Discord</span>
         </button>
+        <button class="action-btn btn-cardimg" id="cardImgBtn" aria-label="Download this announcement as a card image">
+          <svg class="ico-img" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
+          <svg class="ico-check" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>
+          <span class="cardimg-label">Card image</span>
+        </button>
       </div>
     </div>
+
+    <!-- Off-screen render target for the card image. Kept in the document
+         (not display:none) because html-to-image can only rasterise a node
+         that the browser has actually laid out. -->
+    <div id="cardRenderHost" aria-hidden="true"
+         style="position:fixed;left:-10000px;top:0;width:360px;pointer-events:none;opacity:0;"></div>
     <div class="link-toggles">
       <button class="link-chip" id="lnkClassroom" title="Append the Google Classroom link to the message">🔗 Classroom link <span class="chip-check">✓</span></button>
       <button class="link-chip" id="lnkCalendar" title="Append the TAS calendar link to the message">📅 Calendar link <span class="chip-check">✓</span></button>
     </div>
     <div class="preview-box" id="preview">Fill in the form to see preview...</div>
+    <div class="preview-card-stage" id="previewCardStage"><div id="previewCardHost"></div></div>
+    <div class="pv-note" id="pvNote">This is exactly what “Card image” downloads. The Classroom and Calendar links aren’t drawn on the card — they still go into the text and the Discord message.</div>
 
     <div class="divider"></div>
 
@@ -550,6 +608,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js"
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
 import { getFirestore, collection, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
+import { mountCard, embeddedFontCSS } from "./tas-card.js"
+import { toBlob } from "https://esm.sh/html-to-image@1.11.13"
 
 const firebaseConfig = {
   apiKey: "AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18",
@@ -762,6 +822,10 @@ function initApp() {
   const ICON_CAL    = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v4M16 3v4"/></svg>`
 
   let sections = []
+  // "text" = the formatted message, "card" = the rendered homework card.
+  // Declared up here because updatePreview() reads it, and that runs during
+  // draft restore — before the toggle further down would have initialised it.
+  let previewMode = "text"
   let saveTimer = null
   let pendingEnter = null   // { sel, cls } — the ONE element to animate after a render
 
@@ -1146,7 +1210,29 @@ function initApp() {
     const msg = buildFormattedMessage() || "Fill in the form to see preview..."
     document.getElementById("preview").textContent = msg
     document.getElementById("taskCount").textContent = collectCalendarTasks().length
+    if (previewMode === "card") renderPreviewCard()
   }
+
+  // ── Preview mode ──────────────────────────────────────────────
+  // The card preview is the live DOM the exporter rasterises, not a PNG:
+  // it's pixel-identical to the download but repaints on every keystroke,
+  // where re-encoding an image (and re-embedding the Thai font) would not.
+  function renderPreviewCard() {
+    mountCard(document.getElementById("previewCardHost"), currentCardData())
+  }
+
+  function setPreviewMode(mode) {
+    previewMode = mode
+    document.querySelectorAll(".pv-btn").forEach(b => b.classList.toggle("active", b.dataset.mode === mode))
+    document.getElementById("preview").style.display = mode === "text" ? "block" : "none"
+    document.getElementById("previewCardStage").classList.toggle("show", mode === "card")
+    document.getElementById("pvNote").classList.toggle("show", mode === "card")
+    if (mode === "card") renderPreviewCard()
+    try { localStorage.setItem("tas_fmt_preview_mode", mode) } catch(e) {}
+  }
+
+  document.querySelectorAll(".pv-btn").forEach(b => b.onclick = () => setPreviewMode(b.dataset.mode))
+  try { setPreviewMode(localStorage.getItem("tas_fmt_preview_mode") === "card" ? "card" : "text") } catch(e) {}
 
   function collectCalendarTasks() {
     const tasks = []
@@ -1217,6 +1303,73 @@ function initApp() {
     if (!buildFormattedMessage()) { setStatus("s-info", "ℹ️ Nothing to copy yet."); return }
     const ok = await copyFormatted()
     if (!ok) setStatus("s-error", "Couldn't copy — select the preview text manually.")
+  }
+
+  // ── Download the announcement as a card image ─────────────────
+  // Same renderer the Tools page uses (tas-card.js), fed straight from
+  // the live form rather than the saved draft, so it never lags behind
+  // what's on screen by a debounce.
+  function currentCardData() {
+    return {
+      date:     document.getElementById("fmtDate").value,
+      reporter: document.getElementById("fmtReporter").value,
+      links:    { ...linkPrefs },
+      sections: JSON.parse(JSON.stringify(sections)),
+    }
+  }
+
+  const cardImgBtn = document.getElementById("cardImgBtn")
+  let cardResetTimer = null
+  cardImgBtn.onclick = async function() {
+    if (!buildFormattedMessage()) { setStatus("s-info", "ℹ️ Nothing to render yet — fill in the form first."); return }
+    const lbl = cardImgBtn.querySelector(".cardimg-label")
+    clearTimeout(cardResetTimer)
+    cardImgBtn.classList.remove("done")
+    cardImgBtn.classList.add("working")
+    cardImgBtn.disabled = true
+    if (lbl) lbl.textContent = "Rendering…"
+    try {
+      const host = document.getElementById("cardRenderHost")
+      const node = mountCard(host, currentCardData())
+      const fontEmbedCSS = await embeddedFontCSS()
+      const blob = await toBlob(node, {
+        pixelRatio: 3,
+        backgroundColor: null,
+        // No cacheBust — see tools-card.html; it only forces the logo to
+        // be re-fetched on every render.
+        ...(fontEmbedCSS ? { fontEmbedCSS } : { skipFonts: true }),
+      })
+      if (!blob) throw new Error("empty blob")
+
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = "tas-homework-" + (document.getElementById("fmtDate").value || "card") + ".png"
+      document.body.appendChild(a); a.click(); a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 4000)
+
+      cardImgBtn.classList.remove("working")
+      cardImgBtn.classList.add("done")
+      if (lbl) lbl.textContent = "Saved"
+      cardResetTimer = setTimeout(() => {
+        cardImgBtn.classList.remove("done")
+        if (lbl) lbl.textContent = "Card image"
+      }, 2200)
+    } catch(e) {
+      console.warn("Card image failed:", e)
+      cardImgBtn.classList.remove("working")
+      if (lbl) lbl.textContent = "Card image"
+      setStatus("s-error", "Couldn't render the card image — please try again.")
+    } finally {
+      cardImgBtn.disabled = false
+      host_cleanup()
+    }
+  }
+  // Leave the off-screen host empty between runs so its images and fonts
+  // aren't kept alive for the life of the page.
+  function host_cleanup() {
+    const host = document.getElementById("cardRenderHost")
+    if (host) host.innerHTML = ""
   }
 
   // ── Send announcement to Discord (the "broadcaster") ──────────
