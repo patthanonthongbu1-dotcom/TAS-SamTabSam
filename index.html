@@ -5,9 +5,11 @@
   <title>TAS Mod Panel</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --navy: #16213E; --navy-light: #1F3157; --navy-border: #2C3E63; }
     body { font-family: sans-serif; background: #f5f5f5; display: flex; justify-content: center; padding: 2rem 1rem; }
     .container { width: 100%; max-width: 520px; }
     h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+    h1.section-title { margin-top: 2.5rem; }
     p.sub { font-size: 14px; color: #888; margin-bottom: 1.5rem; }
     .card { background: white; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
     .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #aaa; margin-bottom: 12px; }
@@ -21,6 +23,54 @@
     .status { margin-top: 1rem; padding: 12px; border-radius: 8px; font-size: 14px; text-align: center; display: none; }
     .success { background: #e6f7f1; color: #0F6E56; display: block; }
     .error { background: #fdecea; color: #c0392b; display: block; }
+    .hidden { display: none; }
+
+    /* Dark navy add-on cards */
+    .card-dark { background: var(--navy); border: 1px solid var(--navy-border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; color: #E8ECF7; }
+    .card-dark .section-label { color: #8A96BF; }
+    .card-dark label { color: #B8C2DB; }
+    .card-dark input, .card-dark textarea { background: var(--navy-light); border: 1px solid var(--navy-border); color: #fff; }
+    .card-dark input[type="date"], .card-dark input[type="time"] { color-scheme: dark; }
+
+    /* Preview */
+    .preview-card { background: white; border: 2px dashed var(--navy); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+    .preview-card .ph-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #222; }
+    .preview-card .ph-body { font-size: 14px; color: #333; white-space: pre-wrap; margin-bottom: 4px; }
+    .preview-card .ph-empty { color: #aaa; font-size: 14px; font-style: italic; }
+    .date-badge { display: inline-block; background: var(--navy); color: #fff; font-size: 12px; padding: 4px 10px; border-radius: 20px; margin-right: 6px; margin-bottom: 8px; }
+    .marker-chip { display: inline-block; background: #eef1fa; color: var(--navy); font-size: 12px; padding: 4px 10px; border-radius: 20px; margin-right: 6px; margin-bottom: 8px; }
+
+    /* Add dropdown */
+    .add-btn { width: auto; background: var(--navy-light); border: 1px solid var(--navy-border); }
+    .add-btn:hover { background: var(--navy-border); }
+    .dropdown-wrap { position: relative; display: inline-block; }
+    .dropdown-menu { position: absolute; top: calc(100% + 6px); left: 0; background: var(--navy-light); border: 1px solid var(--navy-border); border-radius: 8px; overflow: hidden; min-width: 160px; z-index: 10; }
+    .dropdown-menu button { display: block; width: 100%; text-align: left; background: none; border: none; color: #fff; padding: 10px 14px; font-size: 14px; cursor: pointer; border-radius: 0; }
+    .dropdown-menu button:hover { background: var(--navy-border); }
+
+    /* Marker chips */
+    .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .chip { background: var(--navy-light); border: 1px solid var(--navy-border); color: #fff; font-size: 13px; padding: 5px 10px; border-radius: 20px; display: flex; align-items: center; gap: 6px; }
+    .chip button { background: none; border: none; color: #B8C2DB; cursor: pointer; font-size: 13px; padding: 0; width: auto; line-height: 1; }
+
+    /* Consolidated action bar */
+    .action-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--navy-border); }
+    .action-row:last-of-type { border-bottom: none; }
+    .action-row .label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+
+    .toggle-switch { position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-switch .slider { position: absolute; cursor: pointer; inset: 0; background: var(--navy-border); border-radius: 24px; transition: .2s; }
+    .toggle-switch .slider::before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: .2s; }
+    .toggle-switch input:checked + .slider { background: #1D9E75; }
+    .toggle-switch input:checked + .slider::before { transform: translateX(18px); }
+
+    /* Saved (calendar) list */
+    .saved-summary { cursor: pointer; font-size: 13px; color: #888; margin-top: 1.5rem; }
+    .saved-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
+    .saved-item:last-child { border-bottom: none; }
+    .saved-item-title { font-weight: 500; color: #333; }
+    .saved-item-date { color: #999; }
   </style>
 </head>
 <body>
@@ -64,6 +114,98 @@
 
   <button onclick="sendReport()">Send report to LINE</button>
   <div class="status" id="status"></div>
+
+  <h1 class="section-title">Announcement</h1>
+  <p class="sub">Compose and publish an announcement</p>
+
+  <div class="card">
+    <div class="section-label">Compose</div>
+    <div class="field">
+      <label>Title</label>
+      <input type="text" id="annTitle" placeholder="Announcement title" oninput="renderPreview()" />
+    </div>
+    <div class="field">
+      <label>Body</label>
+      <textarea id="annBody" placeholder="What's the announcement?" oninput="renderPreview()"></textarea>
+    </div>
+  </div>
+
+  <div class="preview-card" id="previewCard">
+    <div class="ph-empty">Your announcement preview will appear here.</div>
+  </div>
+
+  <div class="card-dark">
+    <div class="dropdown-wrap">
+      <button class="add-btn" onclick="toggleAddMenu()">+ Add</button>
+      <div class="dropdown-menu hidden" id="addMenu">
+        <button onclick="addExtra('calendar')">📅 Calendar</button>
+        <button onclick="addExtra('markers')">🏷 Markers</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-dark hidden" id="calendarCard">
+    <div class="section-label">Calendar</div>
+    <div class="row">
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="annDate" oninput="updateCalendar()" />
+      </div>
+      <div class="field">
+        <label>Time</label>
+        <input type="time" id="annTime" oninput="updateCalendar()" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card-dark hidden" id="markersCard">
+    <div class="section-label">Markers</div>
+    <div class="field">
+      <label>Add a marker</label>
+      <div class="row" style="grid-template-columns: 1fr auto;">
+        <input type="text" id="markerInput" placeholder="e.g. Urgent" onkeydown="if(event.key==='Enter'){event.preventDefault();addMarker()}" />
+        <button class="add-btn" onclick="addMarker()">Add</button>
+      </div>
+      <div class="chip-row" id="markerChips"></div>
+    </div>
+  </div>
+
+  <div class="card-dark">
+    <div class="section-label">Publish actions</div>
+    <div class="action-row">
+      <span class="label">💬 Send to Discord</span>
+      <label class="toggle-switch">
+        <input type="checkbox" onchange="toggleAction('discord')" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="field hidden" id="discordUrlField">
+      <label>Discord Webhook URL</label>
+      <input type="text" id="discordWebhook" placeholder="https://discord.com/api/webhooks/..." />
+    </div>
+    <div class="action-row">
+      <span class="label">🖼 Download Image</span>
+      <label class="toggle-switch">
+        <input type="checkbox" onchange="toggleAction('image')" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="action-row">
+      <span class="label">📋 Copy Text</span>
+      <label class="toggle-switch">
+        <input type="checkbox" onchange="toggleAction('copy')" />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <button onclick="publishAnnouncement()">Publish</button>
+  <div class="status" id="annStatus"></div>
+
+  <details>
+    <summary class="saved-summary">Saved announcements</summary>
+    <div id="savedList" style="margin-top: 10px;"></div>
+  </details>
 </div>
 
 <script>
@@ -104,6 +246,205 @@
       status.textContent = 'Failed. Is the server running?'
     }
   }
+
+  // ---- Announcement Composer ----
+  let announcement = { title: '', body: '', calendar: null, markers: [] }
+  let actionState = { discord: false, image: false, copy: false }
+
+  function renderPreview() {
+    announcement.title = document.getElementById('annTitle').value.trim()
+    announcement.body = document.getElementById('annBody').value.trim()
+
+    const preview = document.getElementById('previewCard')
+
+    if (!announcement.title && !announcement.body) {
+      preview.innerHTML = '<div class="ph-empty">Your announcement preview will appear here.</div>'
+      return
+    }
+
+    let badges = ''
+    if (announcement.calendar && announcement.calendar.date) {
+      const timeStr = announcement.calendar.time ? ` ${announcement.calendar.time}` : ''
+      badges += `<span class="date-badge">📅 ${announcement.calendar.date}${timeStr}</span>`
+    }
+    announcement.markers.forEach(m => {
+      badges += `<span class="marker-chip">🏷 ${m}</span>`
+    })
+
+    preview.innerHTML = `
+      ${badges ? `<div>${badges}</div>` : ''}
+      <div class="ph-title">${announcement.title || '(untitled)'}</div>
+      <div class="ph-body">${announcement.body}</div>
+    `
+  }
+
+  function toggleAddMenu() {
+    document.getElementById('addMenu').classList.toggle('hidden')
+  }
+
+  function addExtra(type) {
+    document.getElementById('addMenu').classList.add('hidden')
+    if (type === 'calendar') {
+      document.getElementById('calendarCard').classList.remove('hidden')
+    } else if (type === 'markers') {
+      document.getElementById('markersCard').classList.remove('hidden')
+    }
+  }
+
+  function updateCalendar() {
+    const date = document.getElementById('annDate').value
+    const time = document.getElementById('annTime').value
+    announcement.calendar = date ? { date, time } : null
+    renderPreview()
+  }
+
+  function addMarker() {
+    const input = document.getElementById('markerInput')
+    const val = input.value.trim()
+    if (!val) return
+    announcement.markers.push(val)
+    input.value = ''
+    renderMarkerChips()
+    renderPreview()
+  }
+
+  function removeMarker(index) {
+    announcement.markers.splice(index, 1)
+    renderMarkerChips()
+    renderPreview()
+  }
+
+  function renderMarkerChips() {
+    const row = document.getElementById('markerChips')
+    row.innerHTML = announcement.markers.map((m, i) =>
+      `<span class="chip">${m}<button onclick="removeMarker(${i})">×</button></span>`
+    ).join('')
+  }
+
+  function toggleAction(name) {
+    actionState[name] = !actionState[name]
+    if (name === 'discord') {
+      document.getElementById('discordUrlField').classList.toggle('hidden', !actionState.discord)
+    }
+  }
+
+  function buildAnnouncementText() {
+    const dateLine = announcement.calendar ? `\n📅 ${announcement.calendar.date}${announcement.calendar.time ? ' ' + announcement.calendar.time : ''}` : ''
+    const markerLine = announcement.markers.length ? `\n🏷 ${announcement.markers.join(', ')}` : ''
+    return `📢 ${announcement.title}${dateLine}\n\n${announcement.body}${markerLine}`
+  }
+
+  function loadSavedAnnouncements() {
+    return JSON.parse(localStorage.getItem('tas_announcements') || '[]')
+  }
+
+  function renderSavedList() {
+    const list = loadSavedAnnouncements()
+    const el = document.getElementById('savedList')
+    if (!list.length) {
+      el.innerHTML = '<div class="ph-empty">No saved announcements yet.</div>'
+      return
+    }
+    el.innerHTML = list.slice().reverse().map(a => `
+      <div class="saved-item">
+        <span class="saved-item-title">${a.title || '(untitled)'}</span>
+        <span class="saved-item-date">${a.calendar ? a.calendar.date : new Date(a.createdAt).toLocaleDateString()}</span>
+      </div>
+    `).join('')
+  }
+
+  async function sendDiscordWebhook() {
+    const url = document.getElementById('discordWebhook').value.trim()
+    if (!url) throw new Error('Missing Discord webhook URL')
+
+    const embed = {
+      title: announcement.title || '(untitled)',
+      description: announcement.body,
+      color: 0x16213E,
+      fields: announcement.markers.length ? [{ name: 'Markers', value: announcement.markers.join(', ') }] : [],
+      timestamp: new Date().toISOString()
+    }
+    if (announcement.calendar) {
+      embed.footer = { text: `${announcement.calendar.date}${announcement.calendar.time ? ' ' + announcement.calendar.time : ''}` }
+    }
+
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ embeds: [embed] })
+    })
+  }
+
+  async function downloadPreviewImage() {
+    const el = document.getElementById('previewCard')
+    const canvas = await html2canvas(el)
+    const blob = await new Promise(resolve => canvas.toBlob(resolve))
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `announcement-${Date.now()}.png`
+    link.click()
+    URL.revokeObjectURL(link.href)
+  }
+
+  async function publishAnnouncement() {
+    renderPreview()
+    const status = document.getElementById('annStatus')
+
+    if (!announcement.title && !announcement.body) {
+      status.className = 'status error'
+      status.style.display = 'block'
+      status.textContent = 'Please add a title or body before publishing.'
+      return
+    }
+
+    status.className = 'status'
+    status.style.display = 'block'
+    status.textContent = 'Publishing...'
+
+    const record = { id: Date.now(), createdAt: new Date().toISOString(), ...announcement }
+    const list = loadSavedAnnouncements()
+    list.push(record)
+    localStorage.setItem('tas_announcements', JSON.stringify(list))
+    renderSavedList()
+
+    const done = ['Saved to calendar']
+    const failed = []
+
+    if (actionState.copy) {
+      try {
+        await navigator.clipboard.writeText(buildAnnouncementText())
+        done.push('Copied text')
+      } catch (e) {
+        failed.push('Copy text')
+      }
+    }
+
+    if (actionState.discord) {
+      try {
+        await sendDiscordWebhook()
+        done.push('Sent to Discord')
+      } catch (e) {
+        failed.push('Discord send')
+      }
+    }
+
+    if (actionState.image) {
+      try {
+        await downloadPreviewImage()
+        done.push('Downloaded image')
+      } catch (e) {
+        failed.push('Download image')
+      }
+    }
+
+    status.className = failed.length ? 'status error' : 'status success'
+    status.textContent = failed.length
+      ? `Done: ${done.join(', ')}. Failed: ${failed.join(', ')}.`
+      : `Published! ${done.join(', ')}.`
+  }
+
+  renderSavedList()
 </script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </body>
 </html>
