@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>TAS — Widget</title>
+  <link rel="icon" href="TASLogo.png">
+  <!--
+    Compact home-screen widget card.
+
+    Deliberately NOT a Firebase-SDK page: a widget host reloads this on a
+    timer and every kilobyte is a cold start, so it talks to the Firestore
+    REST API with plain fetch instead. Everything is inline for the same
+    reason — one request, no module graph.
+
+    Query params
+      u        the owner's uid (required) — from Tools → Phone widget
+      n        max rows to draw (default 6)
+      theme    dark | light   (default dark)
+      compact  1 to drop the header, for very small widget boxes
+
+    Reads two public things: the shared `tasks` collection, and this
+    person's opt-in widgetFeed/{uid} doc (their ticked-off ids + personal
+    tasks). Everything else — what's missing, what's due, the colours — is
+    worked out here, so a class task posted five minutes ago still shows up.
+  -->
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    *{scrollbar-width:none;-ms-overflow-style:none}
+    *::-webkit-scrollbar{display:none}
+
+    :root{
+      --bg1:#1c2f56; --bg2:#182848; --bg3:#0d1526;
+      --card:rgba(255,255,255,0.06);
+      --brd:rgba(255,255,255,0.12);
+      --text:#fff;
+      --muted:rgba(255,255,255,0.55);
+      --faint:rgba(255,255,255,0.38);
+      --pink:#ff4fa3;
+      --red:#ef4444; --red-text:#ff9b8a;
+    }
+    html[data-theme="light"]{
+      --bg1:#ffffff; --bg2:#fdf4f9; --bg3:#ffe3f1;
+      --card:rgba(0,0,0,0.035);
+      --brd:rgba(0,0,0,0.10);
+      --text:#16233d;
+      --muted:rgba(22,35,61,0.6);
+      --faint:rgba(22,35,61,0.42);
+      --red-text:#c0392b;
+    }
+
+    html,body{height:100%}
+    body{
+      font-family:'Kanit','Prompt',system-ui,-apple-system,'Segoe UI',sans-serif;
+      color:var(--text);
+      background:linear-gradient(160deg,var(--bg1) 0%,var(--bg2) 45%,var(--bg3) 100%);
+      display:flex; flex-direction:column;
+      padding:12px 13px;
+      overflow:hidden;
+      /* A widget box is whatever size the host gives it — never scroll, clip. */
+    }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    .wg-head{
+      display:flex; align-items:baseline; gap:8px;
+      margin-bottom:9px; flex-shrink:0;
+    }
+    .wg-mark{
+      font-size:13px; font-weight:700; letter-spacing:.14em;
+      color:var(--pink);
+    }
+    .wg-sum{
+      font-size:10.5px; font-weight:400; color:var(--muted);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .wg-time{
+      margin-left:auto; font-size:9px; font-weight:400; color:var(--faint);
+      font-variant-numeric:tabular-nums; white-space:nowrap;
+    }
+    body.compact .wg-head{display:none}
+
+    /* ── Rows ───────────────────────────────────────────────── */
+    .wg-list{display:flex; flex-direction:column; gap:5px; min-height:0; flex:1}
+    .wg-group{
+      font-size:8.5px; font-weight:700; letter-spacing:.13em; text-transform:uppercase;
+      color:var(--faint); margin-top:2px;
+    }
+    .wg-group:first-child{margin-top:0}
+    .wg-group.missing{color:var(--red-text)}
+
+    .wg-row{
+      display:flex; align-items:center; gap:8px;
+      background:var(--card); border:1px solid var(--brd);
+      border-radius:10px; padding:7px 9px;
+      min-width:0;
+    }
+    .wg-row.missing{background:rgba(239,68,68,0.13); border-color:rgba(239,68,68,0.3)}
+    .wg-dot{width:7px; height:7px; border-radius:50%; flex-shrink:0}
+    /* These are spans (a row is one flat line of markup) so they need an
+       explicit block, or the subject runs on after the task name. */
+    .wg-main{min-width:0; flex:1; display:block}
+    .wg-name{
+      display:block;
+      font-size:12px; font-weight:500; line-height:1.25;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .wg-sub{
+      display:block;
+      font-size:9px; font-weight:300; color:var(--muted);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .wg-when{
+      font-size:10.5px; font-weight:600; flex-shrink:0;
+      font-variant-numeric:tabular-nums; text-align:right;
+    }
+    .wg-when.missing{color:var(--red-text)}
+    .wg-more{font-size:9.5px; color:var(--faint); text-align:center; padding-top:2px}
+
+    /* ── Empty / error ──────────────────────────────────────── */
+    .wg-state{
+      flex:1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:5px;
+      text-align:center; padding:8px;
+    }
+    .wg-state-big{font-size:15px; font-weight:600}
+    .wg-state-sub{font-size:10.5px; font-weight:300; color:var(--muted); line-height:1.5}
+
+    /* ── Short boxes ──────────────────────────────────────────
+       A small or medium home-screen widget is only ~170px tall. At that
+       height the subject line and the group headings cost a whole extra
+       row each, and one more task is worth more than either — the red
+       tint already says which ones are missing. */
+    @media (max-height:200px){
+      .wg-head{margin-bottom:6px}
+      .wg-list{gap:4px}
+      .wg-group{display:none}
+      .wg-sub{display:none}
+      .wg-row{padding:5px 8px}
+      .wg-name{font-size:11.5px}
+    }
+
+    /* ── Loading skeleton — a widget that flashes "nothing due"
+         before its data lands is worse than one that says nothing ── */
+    .sk{
+      height:31px; border-radius:10px;
+      background:linear-gradient(90deg,var(--card) 25%,rgba(255,255,255,0.14) 37%,var(--card) 63%);
+      background-size:400% 100%; animation:sh 1.3s ease infinite;
+    }
+    @keyframes sh{from{background-position:100% 0}to{background-position:0 0}}
+    @media (prefers-reduced-motion:reduce){ .sk{animation:none} }
+  </style>
+</head>
+<body>
+
+<div class="wg-head">
+  <span class="wg-mark">TAS</span>
+  <span class="wg-sum" id="wgSum"></span>
+  <span class="wg-time" id="wgTime"></span>
+</div>
+
+<div class="wg-list" id="wgList">
+  <div class="sk"></div>
+  <div class="sk" style="animation-delay:.12s"></div>
+  <div class="sk" style="animation-delay:.24s"></div>
+</div>
+
+<script>
+(function(){
+  "use strict"
+
+  var PROJECT = "tas-samtabsam"
+  var API_KEY = "AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18"
+  var BASE = "https://firestore.googleapis.com/v1/projects/" + PROJECT +
+             "/databases/(default)/documents"
+
+  var DAY = 864e5
+  var ZONE_DEFAULTS = { red:3, orange:7, yellow:14 }
+  // How far back a missed task keeps showing. The calendar hides archived
+  // work after 20 days; a widget should give up sooner than that or it
+  // fills with things nobody is going to hand in any more.
+  var MISSING_WINDOW = 14
+  // Markers and estimated dates aren't handed in. Live docs still carry the
+  // older "estimated" spelling of "prediction", so both are excluded.
+  var NOT_SUBMITTABLE = ["marker", "prediction", "estimated"]
+
+  var params  = new URLSearchParams(location.search)
+  var uid     = (params.get("u") || "").trim()
+  var maxRows = Math.max(1, Math.min(20, parseInt(params.get("n"), 10) || 6))
+  var theme   = params.get("theme") === "light" ? "light" : "dark"
+  document.documentElement.dataset.theme = theme
+  if (params.get("compact") === "1") document.body.classList.add("compact")
+
+  var CACHE_KEY = "tas_widget_cache_" + uid
+
+  // ── Firestore REST unwrapping ───────────────────────────────
+  function val(v){
+    if (v == null) return null
+    if ("stringValue"    in v) return v.stringValue
+    if ("integerValue"   in v) return Number(v.integerValue)
+    if ("doubleValue"    in v) return v.doubleValue
+    if ("booleanValue"   in v) return v.booleanValue
+    if ("timestampValue" in v) return v.timestampValue
+    if ("nullValue"      in v) return null
+    if ("arrayValue"     in v) return (v.arrayValue.values || []).map(val)
+    if ("mapValue"       in v) return unwrap(v.mapValue.fields || {})
+    return null
+  }
+  function unwrap(fields){
+    var o = {}
+    for (var k in fields) o[k] = val(fields[k])
+    return o
+  }
+  function idOf(name){ return String(name || "").split("/").pop() }
+
+  function getJSON(url){
+    return fetch(url, { cache:"no-store" }).then(function(r){
+      if (!r.ok) throw new Error("HTTP " + r.status)
+      return r.json()
+    })
+  }
+
+  // ── Dates ───────────────────────────────────────────────────
+  function today(){ var d = new Date(); d.setHours(0,0,0,0); return d }
+  function parseDate(s){ return new Date(s + "T00:00:00") }
+  function daysLeft(t, s){ return Math.round((parseDate(s) - t) / DAY) }
+
+  function whenLabel(dl){
+    if (dl < 0)  return Math.abs(dl) + "d late"
+    if (dl === 0) return "Today"
+    if (dl === 1) return "Tomorrow"
+    if (dl < 7)  return dl + " days"
+    return dl + "d"
+  }
+
+  function urgencyColor(dl, z){
+    if (dl < 0)          return "#dc2626"
+    if (dl <= z.red)     return "#ef4444"
+    if (dl <= z.orange)  return "#f97316"
+    if (dl <= z.yellow)  return "#f59e0b"
+    if (dl <= Math.max(30, z.yellow + 1)) return "#84cc16"
+    return "#1D9E75"
+  }
+
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]
+    })
+  }
+
+  // ── Render ──────────────────────────────────────────────────
+  function showState(big, sub){
+    document.getElementById("wgList").innerHTML =
+      '<div class="wg-state"><div class="wg-state-big">' + esc(big) + '</div>' +
+      (sub ? '<div class="wg-state-sub">' + esc(sub) + '</div>' : '') + '</div>'
+  }
+
+  function render(data){
+    var t = today()
+    var z = Object.assign({}, ZONE_DEFAULTS, data.zones || {})
+    var doneSet = {}
+    ;(data.done || []).forEach(function(id){ doneSet[id] = true })
+
+    var all = (data.tasks || []).concat(data.personal || [])
+    var live = all.filter(function(x){
+      if (!x.end || NOT_SUBMITTABLE.indexOf(x.type) !== -1) return false
+      if (doneSet[x.id]) return false
+      var dl = daysLeft(t, x.end)
+      return dl >= -MISSING_WINDOW
+    }).sort(function(a,b){ return parseDate(a.end) - parseDate(b.end) })
+
+    var missing = live.filter(function(x){ return daysLeft(t, x.end) < 0 })
+    var upcoming = live.filter(function(x){ return daysLeft(t, x.end) >= 0 })
+
+    // Summary line — the one thing readable at a glance from across a room
+    var sumParts = []
+    if (missing.length)  sumParts.push(missing.length + " missing")
+    var dueToday = upcoming.filter(function(x){ return daysLeft(t, x.end) === 0 }).length
+    if (dueToday) sumParts.push(dueToday + " due today")
+    if (!sumParts.length) sumParts.push(upcoming.length ? upcoming.length + " coming up" : "nothing due")
+    // Without the feed doc this is just the public class list — it can't
+    // subtract what you've ticked off, and that's worth admitting.
+    if (data.noFeed) sumParts.push("not linked")
+    document.getElementById("wgSum").textContent = sumParts.join(" · ")
+
+    var d = new Date(data.fetchedAt || Date.now())
+    document.getElementById("wgTime").textContent =
+      (data.stale ? "⚠ " : "") +
+      String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0")
+
+    if (!live.length){
+      showState("All clear ✓", missingEverHad(data) ? "Nothing due and nothing missing." : "No tasks on the calendar.")
+      return
+    }
+
+    var html = ""
+    var shown = 0
+
+    function rows(list, isMissing){
+      for (var i = 0; i < list.length && shown < maxRows; i++, shown++){
+        var x = list[i]
+        var dl = daysLeft(t, x.end)
+        html += '<div class="wg-row' + (isMissing ? ' missing' : '') + '">' +
+                  '<span class="wg-dot" style="background:' + urgencyColor(dl, z) + '"></span>' +
+                  '<span class="wg-main">' +
+                    '<span class="wg-name">' + esc(x.name || "Untitled") + '</span>' +
+                    '<span class="wg-sub">' + esc(x.subject || "") +
+                      (x.personal ? " · mine" : "") + '</span>' +
+                  '</span>' +
+                  '<span class="wg-when' + (isMissing ? ' missing' : '') + '">' +
+                    esc(whenLabel(dl)) + '</span>' +
+                '</div>'
+      }
+    }
+
+    if (missing.length){
+      html += '<div class="wg-group missing">Missing</div>'
+      rows(missing, true)
+    }
+    if (upcoming.length && shown < maxRows){
+      html += '<div class="wg-group">Due next</div>'
+      rows(upcoming, false)
+    }
+    var hidden = live.length - shown
+    if (hidden > 0) html += '<div class="wg-more">+' + hidden + ' more</div>'
+
+    document.getElementById("wgList").innerHTML = html
+  }
+
+  // Distinguishes "you're on top of everything" from "there is nothing here"
+  function missingEverHad(data){ return (data.tasks || []).length > 0 }
+
+  // ── Load ────────────────────────────────────────────────────
+  function readCache(){
+    try {
+      var raw = localStorage.getItem(CACHE_KEY)
+      return raw ? JSON.parse(raw) : null
+    } catch(e){ return null }
+  }
+  function writeCache(data){
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)) } catch(e){}
+  }
+
+  function load(){
+    if (!uid){
+      showState("Not set up yet", "Open TAS → Tools → Phone widget and use the link it gives you.")
+      return
+    }
+
+    Promise.all([
+      // Shared class tasks are public by rule, so this needs no sign-in.
+      getJSON(BASE + "/tasks?key=" + API_KEY + "&pageSize=300"),
+      // The owner's opt-in feed: ticked-off ids + personal tasks.
+      getJSON(BASE + "/widgetFeed/" + encodeURIComponent(uid) + "?key=" + API_KEY)
+        .catch(function(){ return null })
+    ]).then(function(res){
+      var taskDocs = (res[0] && res[0].documents) || []
+      var feed = res[1] ? unwrap(res[1].fields || {}) : {}
+
+      var data = {
+        fetchedAt: Date.now(),
+        zones: feed.zones || null,
+        done: feed.done || [],
+        tasks: taskDocs.map(function(d){
+          var f = unwrap(d.fields || {})
+          f.id = idOf(d.name)
+          return f
+        }),
+        personal: (feed.personal || []).map(function(p){
+          p.personal = true
+          return p
+        })
+      }
+
+      if (!res[1]){
+        // No feed doc — the widget still works, it just can't know what
+        // this person has already ticked off or what's on their own list.
+        data.noFeed = true
+      }
+
+      writeCache(data)
+      render(data)
+    }).catch(function(err){
+      console.warn("Widget load failed:", err)
+      var cached = readCache()
+      if (cached){
+        cached.stale = true
+        render(cached)
+      } else {
+        showState("Can't reach TAS", "It'll retry on its own.")
+      }
+    })
+  }
+
+  load()
+  // Widget hosts keep this page alive between refreshes; re-pull on a timer
+  // and whenever the widget comes back into view.
+  setInterval(load, 5 * 60 * 1000)
+  document.addEventListener("visibilitychange", function(){
+    if (!document.hidden) load()
+  })
+  // Past midnight every "2 days late" on screen is wrong by one.
+  setInterval(function(){
+    var c = readCache()
+    if (c) render(c)
+  }, 60 * 1000)
+})()
+</script>
+</body>
+</html>

@@ -1308,6 +1308,18 @@
     </div>
 
     <div class="set-section">
+      <div class="set-label">Phone widget</div>
+      <div class="set-hint">Put your overdue and due-soon tasks straight on your home screen, so you can check without opening the calendar.</div>
+      <a class="set-toggle-row" href="tools-widget.html" style="text-decoration:none;color:inherit">
+        <div>
+          <div class="set-toggle-title">📱 Set up the home-screen widget</div>
+          <div class="set-toggle-sub" id="widgetStateHint">Works on iPhone and Android</div>
+        </div>
+        <span style="font-size:18px;opacity:.6">›</span>
+      </a>
+    </div>
+
+    <div class="set-section">
       <div class="set-label">Rush zones</div>
       <div class="set-hint">Pick when tasks change colour, by days left until the due date. Saved on this device.</div>
       <div class="zone-row">
@@ -1342,6 +1354,8 @@ import {
   getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
   onSnapshot, setDoc, getDoc, query, orderBy
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
+import { publishWidgetFeed, widgetFeedExists }
+  from "./tas-widget-feed.js"
 import {
   getMessaging, getToken, deleteToken, isSupported as messagingSupported
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-messaging.js"
@@ -1503,6 +1517,7 @@ async function persistUserState(uid) {
   if (!userStateLoaded) { console.warn("User state never loaded — refusing to overwrite it"); return false }
   try {
     await setDoc(doc(db, "userDone", uid), { done: userDoneCache, archiveHidden: userHiddenCache })
+    queueWidgetFeed()   // a tick here is a task that should leave the widget
     return true
   } catch(e) {
     console.warn("Could not save user state:", e)
@@ -1545,6 +1560,9 @@ onAuthStateChanged(auth, async user => {
   applyStoredRangeToUI()
   startTasksListener()
   startPersonalTasksListener(user.uid)
+  // The feed doc's existence is the on/off switch, so ask once per session
+  // rather than keeping a per-device preference that could disagree.
+  widgetFeedExists(db, user.uid).then(on => { widgetFeedOn = on; if(on) queueWidgetFeed() })
   if(notifyReady()) enableCloudPush()   // keep this device's push token fresh
   // First-time visitors get the walkthrough automatically
   try{ if(!localStorage.getItem("tas_cal_tour_seen")) setTimeout(()=>window.openTour(),700) }catch(e){}
@@ -1648,9 +1666,32 @@ document.getElementById("tourClose").onclick=()=>window.closeTour()
 document.getElementById("tourOverlay").addEventListener("click",e=>{if(e.target.id==="tourOverlay")window.closeTour()})
 
 // ── Settings (placeholder for now) ────────────────────────────
-window.openSettings=function(){syncZoneInputs();updateNotifyUI();document.getElementById("settingsOverlay").classList.add("open")}
+window.openSettings=function(){
+  syncZoneInputs();updateNotifyUI()
+  const wh=document.getElementById("widgetStateHint")
+  if(wh) wh.textContent = widgetFeedOn ? "On — tap to get the link or turn it off" : "Works on iPhone and Android"
+  document.getElementById("settingsOverlay").classList.add("open")
+}
 window.closeSettings=function(){animCloseOverlay(document.getElementById("settingsOverlay"))}
 document.getElementById("settingsOverlay").addEventListener("click",e=>{if(e.target.id==="settingsOverlay")window.closeSettings()})
+
+// ── Home-screen widget feed ───────────────────────────────────
+// Only republished for students who actually turned the widget on — the
+// existence of widgetFeed/{uid} IS the setting, so it works the same from
+// every device they sign in on. Set up in Tools → Phone widget.
+let widgetFeedOn = false
+let widgetFeedTimer = null
+function queueWidgetFeed(){
+  if(!widgetFeedOn || !currentUser) return
+  clearTimeout(widgetFeedTimer)
+  // Same 1.5s settle as the due reminders: the shared and personal snapshots
+  // land moments apart and the feed should see both.
+  widgetFeedTimer = setTimeout(()=>{
+    publishWidgetFeed(db, currentUser.uid, {
+      personalTasks, done: userDoneCache, zones: rushZones
+    })
+  }, 1500)
+}
 
 // ── Tasks listener ────────────────────────────────────────────
 let unsubTasks = null
@@ -1680,6 +1721,7 @@ function startPersonalTasksListener(uid) {
   unsubPersonal = onSnapshot(col, snap => {
     personalTasks = snap.docs.map(d=>({id:d.id, _personal:true, ...d.data()}))
     queueDueReminders()
+    queueWidgetFeed()
     renderPtList()
     updatePtCount()
     if (savingIds.size === 0) {
@@ -1721,6 +1763,7 @@ try{
 }catch(e){}
 function saveZones(){
   try{ localStorage.setItem(ZONES_KEY, JSON.stringify(rushZones)) }catch(e){}
+  queueWidgetFeed()   // the widget colours tasks with these same thresholds
 }
 function syncZoneInputs(){
   const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v }

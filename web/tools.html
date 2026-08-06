@@ -41,6 +41,7 @@
     .tool-card:nth-child(1){animation-delay:0.10s}
     .tool-card:nth-child(2){animation-delay:0.18s}
     .tool-card:nth-child(3){animation-delay:0.26s}
+    .tool-card:nth-child(4){animation-delay:0.34s}
     .tool-card:hover{transform:translateY(-5px);border-color:var(--accent-brd);box-shadow:0 22px 40px -20px rgba(0,0,0,0.75)}
     .tool-card:active{transform:translateY(-1px) scale(0.995)}
     /* Shine sweep, same gesture as the menu pills on index.html */
@@ -64,6 +65,7 @@
     .tc-link{background:linear-gradient(180deg,#d675b1 0%,#74163e 100%)}
     /* Yellow tile needs dark ink to stay legible */
     .tc-card{background:linear-gradient(180deg,#ffd45c 0%,#e0952a 100%);color:#3a2a05}
+    .tc-widget{background:linear-gradient(180deg,#3ec9a7 0%,#0f5a4a 100%)}
     .tc-title{font-size:18px;font-weight:600;letter-spacing:-0.2px}
     .tc-sub{font-size:9px;font-weight:600;letter-spacing:0.24em;text-transform:uppercase;color:var(--pink);margin-top:-7px}
     .tc-desc{font-size:12.5px;font-weight:300;color:var(--muted);line-height:1.65}
@@ -88,7 +90,7 @@
     <a class="back-link" href="index.html"><span data-ico="back"></span> Back to menu</a>
     <div class="page-head">
       <h2><span data-ico="tools" data-size="26"></span> Tools</h2>
-      <p>Small utilities for class — make a QR code, shorten a link, or turn today's homework into an image.</p>
+      <p>Small utilities for class — make a QR code, shorten a link, turn today's homework into an image, or put your due tasks on your phone's home screen.</p>
     </div>
 
     <div class="tool-grid">
@@ -113,6 +115,14 @@
         <div class="tc-title">Daily Homework Card</div>
         <div class="tc-sub">Image</div>
         <div class="tc-desc">Renders the day's homework announcement as a shareable card image — the same layout that goes out to Discord.</div>
+        <div class="tc-go">Open <span data-ico="next" data-size="14"></span></div>
+      </a>
+
+      <a class="tool-card" href="tools-widget.html">
+        <div class="tc-icon tc-widget" data-ico="phone" data-size="25"></div>
+        <div class="tc-title">Phone Widget</div>
+        <div class="tc-sub">Home screen</div>
+        <div class="tc-desc">Puts what you're missing and what's due next on your home screen, so you can check without opening the calendar. Works on iPhone and Android.</div>
         <div class="tc-go">Open <span data-ico="next" data-size="14"></span></div>
       </a>
     </div>

@@ -55,6 +55,18 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
     }
 
+    // ── Home-screen widget feed ───────────────────────────────
+    // Doc id = the owner's uid. A home-screen widget has nowhere to sign
+    // in, so the calendar publishes the one thing the widget can't work
+    // out on its own — which shared tasks this person has already ticked
+    // off, plus their personal tasks — to a publicly readable doc.
+    // Opt-in: nothing exists here until the student turns the widget on,
+    // and turning it off deletes the doc. Notes are never published.
+    match /widgetFeed/{uid} {
+      allow read:  if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
     // ── Push notification tokens ──────────────────────────────
     // Doc id = the device's FCM token; written by the calendar when a
     // signed-in user turns notifications on. Only the Cloud Function

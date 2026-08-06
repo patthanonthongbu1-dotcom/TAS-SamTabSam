@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    // Force external browser if opened in LINE
+    (function() {
+      if (/Line\//i.test(navigator.userAgent || '')) {
+        const url = location.href;
+        if (!url.includes('openExternalBrowser=1')) {
+          location.replace(url + (url.includes('?') ? '&' : '?') + 'openExternalBrowser=1');
+        }
+      }
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phone Widget — TAS Tools</title>
+  <link rel="icon" type="image/x-icon" href="TASLogo.png">
+  <meta name="theme-color" content="#0b1c3d">
+  <link rel="apple-touch-icon" href="TASLogo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    try{document.documentElement.dataset.theme=localStorage.getItem("tas_theme")||"dark"}
+    catch(e){document.documentElement.dataset.theme="dark"}
+  </script>
+  <link rel="stylesheet" href="tools-shell.css">
+  <style>
+    .wg-layout{display:grid;grid-template-columns:1fr 360px;gap:1.1rem;align-items:start}
+    @media (max-width:900px){ .wg-layout{grid-template-columns:1fr} }
+
+    /* On/off state banner */
+    .state-row{
+      display:flex;align-items:center;gap:12px;
+      padding:13px 14px;border-radius:13px;
+      background:var(--glass-2);border:1px solid var(--glass-brd);
+    }
+    .state-dot{width:9px;height:9px;border-radius:50%;background:var(--label);flex-shrink:0;
+      box-shadow:0 0 0 4px rgba(255,255,255,0.06)}
+    .state-row.on .state-dot{background:#1D9E75;box-shadow:0 0 0 4px rgba(29,158,117,0.18)}
+    .state-k{font-size:13.5px;font-weight:600}
+    .state-v{font-size:11.5px;font-weight:300;color:var(--label);margin-top:2px;line-height:1.5}
+
+    /* The personal link */
+    .link-box{display:flex;gap:8px;align-items:stretch}
+    .link-box input{flex:1;min-width:0;font-size:12px;font-family:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace}
+    .link-box .btn{flex-shrink:0}
+
+    /* Preview — a real iframe of widget.html, sized like the widget boxes
+       iOS and Android actually draw, so what you see here is what lands on
+       the home screen. */
+    .pv-sizes{display:flex;gap:6px;margin-bottom:12px}
+    .pv-stage{display:flex;justify-content:center;padding:4px 0 2px}
+    .pv-frame{
+      border:0;border-radius:20px;
+      box-shadow:0 18px 40px -18px rgba(0,0,0,0.75);
+      background:#0d1526;
+      transition:width 0.25s ease,height 0.25s ease;
+    }
+    .pv-note{font-size:10.5px;font-weight:300;color:var(--label);text-align:center;margin-top:9px;line-height:1.6}
+
+    /* Setup steps */
+    .steps{counter-reset:step;display:flex;flex-direction:column;gap:11px;margin-top:2px}
+    .step{display:flex;gap:11px;align-items:flex-start}
+    .step::before{
+      counter-increment:step;content:counter(step);
+      flex-shrink:0;width:21px;height:21px;border-radius:50%;
+      background:var(--accent-soft);border:1px solid var(--accent-brd);
+      color:var(--accent-soft-text);
+      font-size:11px;font-weight:600;
+      display:flex;align-items:center;justify-content:center;
+      margin-top:1px;
+    }
+    .step-body{font-size:12.5px;font-weight:300;line-height:1.65;color:var(--text)}
+    .step-body b{font-weight:600}
+    .step-body .sub{display:block;font-size:11px;color:var(--label);margin-top:2px}
+
+    /* Script block */
+    pre.code{
+      background:rgba(0,0,0,0.28);border:1px solid var(--glass-brd);
+      border-radius:12px;padding:12px 13px;
+      font-family:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+      font-size:10.5px;line-height:1.6;color:rgba(255,255,255,0.82);
+      max-height:230px;overflow:auto;white-space:pre;
+    }
+    html[data-theme="light"] pre.code{background:rgba(0,0,0,0.05);color:#2c3b2c}
+
+    .note-line{
+      display:flex;gap:9px;align-items:flex-start;margin-top:1.1rem;
+      font-size:11.5px;font-weight:300;color:var(--label);line-height:1.65;
+    }
+    .note-line .ico{margin-top:1px;flex-shrink:0}
+  </style>
+</head>
+<body>
+
+<div id="authGate">
+  <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffc73f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 5.5h3"/></svg>
+  <div class="gate-spin"></div>
+  <div class="gate-msg">Checking sign-in...</div>
+</div>
+
+<div id="appWrap" style="display:none">
+  <div class="page">
+    <a class="back-link" href="tools.html"><span data-ico="back"></span> Back to Tools</a>
+    <div class="page-head">
+      <h2><span data-ico="phone" data-size="26"></span> Phone Widget</h2>
+      <p>Your missing and due-soon tasks on your home screen, so you can check without opening the calendar.</p>
+    </div>
+
+    <div class="wg-layout">
+      <div>
+        <!-- ── 1. Turn it on ──────────────────────────────── -->
+        <div class="card">
+          <div class="card-title">Widget link</div>
+
+          <div class="state-row" id="stateRow">
+            <span class="state-dot"></span>
+            <div style="flex:1;min-width:0">
+              <div class="state-k" id="stateK">Checking…</div>
+              <div class="state-v" id="stateV">&nbsp;</div>
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn primary" id="enableBtn" style="display:none">
+              <span data-ico="check" data-size="15"></span> Turn the widget on
+            </button>
+            <button class="btn ghost" id="disableBtn" style="display:none">
+              <span data-ico="trash" data-size="15"></span> Turn it off
+            </button>
+          </div>
+
+          <div id="linkWrap" style="display:none;margin-top:14px">
+            <div class="field">
+              <label class="fl" for="linkInput">Your personal widget link</label>
+              <div class="link-box">
+                <input type="text" id="linkInput" readonly onclick="this.select()">
+                <button class="btn ghost" id="copyLinkBtn"><span data-ico="copy" data-size="15"></span></button>
+              </div>
+            </div>
+            <div class="note-line" style="margin-top:0">
+              <span class="ico" data-ico="lock" data-size="14"></span>
+              <span>Anyone with this link can see your task list, so keep it to yourself. Turning the widget off deletes the published copy straight away.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 2. iPhone ──────────────────────────────────── -->
+        <div class="card">
+          <div class="card-title">iPhone <span class="hint">via Scriptable</span></div>
+          <div class="steps">
+            <div class="step"><div class="step-body">
+              Install <b>Scriptable</b> from the App Store — it's free.
+              <span class="sub">iOS gives no other way for a website to draw a home-screen widget.</span>
+            </div></div>
+            <div class="step"><div class="step-body">
+              Copy the script below, open Scriptable, tap <b>+</b>, and paste it in. Name it <b>TAS</b>.
+            </div></div>
+            <div class="step"><div class="step-body">
+              Long-press your home screen → <b>+</b> → <b>Scriptable</b> → pick a size → <b>Add Widget</b>.
+            </div></div>
+            <div class="step"><div class="step-body">
+              Long-press the new widget → <b>Edit Widget</b> → set <b>Script</b> to <b>TAS</b>.
+              <span class="sub">Tap the widget any time to jump straight into the calendar.</span>
+            </div></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn primary" id="copyScriptBtn"><span data-ico="copy" data-size="15"></span> Copy the script</button>
+            <button class="btn ghost" id="showScriptBtn">Show it</button>
+          </div>
+          <pre class="code" id="scriptBox" style="display:none;margin-top:12px"></pre>
+        </div>
+
+        <!-- ── 3. Android ─────────────────────────────────── -->
+        <div class="card">
+          <div class="card-title">Android <span class="hint">via any webpage-widget app</span></div>
+          <div class="steps">
+            <div class="step"><div class="step-body">
+              Install a webpage-widget app from Play — <b>Web Widget</b> or <b>Webpage Widget</b> both work.
+              <span class="sub">Chrome can't put a website on the home screen by itself; these apps draw a page inside a widget frame.</span>
+            </div></div>
+            <div class="step"><div class="step-body">
+              Add its widget to your home screen and paste your <b>widget link</b> from above as the URL.
+            </div></div>
+            <div class="step"><div class="step-body">
+              Set the refresh interval to <b>15–30 minutes</b> and turn scrolling off.
+              <span class="sub">Add <b>&amp;n=8</b> to the link for more rows on a tall widget, or <b>&amp;compact=1</b> to drop the header on a small one.</span>
+            </div></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn ghost" id="copyLinkBtn2"><span data-ico="copy" data-size="15"></span> Copy the widget link</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Live preview ─────────────────────────────────── -->
+      <div class="card">
+        <div class="card-title">Preview <span class="hint" id="pvHint">live</span></div>
+        <div class="pv-sizes seg-grid" style="--cols:3">
+          <button class="seg-btn active" data-size="small">Small</button>
+          <button class="seg-btn" data-size="medium">Medium</button>
+          <button class="seg-btn" data-size="large">Large</button>
+        </div>
+        <div class="pv-stage">
+          <iframe class="pv-frame" id="pvFrame" title="Widget preview" width="170" height="170"></iframe>
+        </div>
+        <div class="pv-note">This is the real widget page, not a mock-up — it's showing your actual tasks.</div>
+        <div class="btn-row">
+          <button class="btn ghost" id="pvReloadBtn" style="flex:1"><span data-ico="refresh" data-size="15"></span> Refresh</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- The Scriptable script, kept as plain text so nothing here has to be
+     escaped. ___UID___ is swapped for the signed-in user's id on copy. -->
+<script type="text/plain" id="scriptSrc">
+// ── TAS — home-screen widget ─────────────────────────────────
+// Paste into Scriptable, name it "TAS", then add a Scriptable
+// widget to your home screen and point it at this script.
+// Tap the widget to open the calendar.
+
+const UID  = "___UID___"
+const KEY  = "___KEY___"
+const BASE = "https://firestore.googleapis.com/v1/projects/tas-samtabsam/databases/(default)/documents"
+const OPEN = "___ORIGIN___/calendar.html"
+
+const DAY = 86400000
+const MISSING_WINDOW = 14          // stop showing work missed longer ago than this
+// Markers and estimated dates aren't handed in. Older docs spell
+// "prediction" as "estimated", so both are excluded.
+const SKIP = ["marker", "prediction", "estimated"]
+let ZONES = { red: 3, orange: 7, yellow: 14 }
+
+const COL = {
+  bg1:   new Color("#1c2f56"),
+  bg2:   new Color("#0d1526"),
+  text:  new Color("#ffffff"),
+  muted: new Color("#ffffff", 0.55),
+  pink:  new Color("#ff4fa3"),
+  red:   new Color("#ff9b8a")
+}
+
+async function json(url) {
+  const r = new Request(url)
+  r.timeoutInterval = 15
+  return await r.loadJSON()
+}
+
+// Firestore's REST API wraps every value in a type tag — unwrap it.
+function val(v) {
+  if (v == null) return null
+  if (v.stringValue    !== undefined) return v.stringValue
+  if (v.integerValue   !== undefined) return Number(v.integerValue)
+  if (v.doubleValue    !== undefined) return v.doubleValue
+  if (v.booleanValue   !== undefined) return v.booleanValue
+  if (v.arrayValue     !== undefined) return (v.arrayValue.values || []).map(val)
+  if (v.mapValue       !== undefined) return unwrap(v.mapValue.fields || {})
+  return null
+}
+function unwrap(f) { const o = {}; for (const k in f) o[k] = val(f[k]); return o }
+
+function today() { const d = new Date(); d.setHours(0, 0, 0, 0); return d }
+function dueIn(end) { return Math.round((new Date(end + "T00:00:00") - today()) / DAY) }
+
+function urgency(dl) {
+  if (dl < 0)             return new Color("#dc2626")
+  if (dl <= ZONES.red)    return new Color("#ef4444")
+  if (dl <= ZONES.orange) return new Color("#f97316")
+  if (dl <= ZONES.yellow) return new Color("#f59e0b")
+  if (dl <= 30)           return new Color("#84cc16")
+  return new Color("#1D9E75")
+}
+function whenLabel(dl) {
+  if (dl < 0)   return Math.abs(dl) + "d late"
+  if (dl === 0) return "Today"
+  if (dl === 1) return "Tmrw"
+  return dl + "d"
+}
+
+async function loadTasks() {
+  const [shared, feedRes] = await Promise.all([
+    json(BASE + "/tasks?key=" + KEY + "&pageSize=300"),
+    json(BASE + "/widgetFeed/" + UID + "?key=" + KEY).catch(() => null)
+  ])
+
+  const feed = feedRes && feedRes.fields ? unwrap(feedRes.fields) : {}
+  if (feed.zones) ZONES = Object.assign(ZONES, feed.zones)
+
+  const done = new Set(feed.done || [])
+  const personal = (feed.personal || []).map(p => Object.assign({ personal: true }, p))
+  const classTasks = ((shared && shared.documents) || []).map(d => {
+    const f = unwrap(d.fields || {})
+    f.id = d.name.split("/").pop()
+    return f
+  })
+
+  return classTasks.concat(personal)
+    .filter(t => t.end && SKIP.indexOf(t.type) === -1)
+    .filter(t => !done.has(t.id))
+    .filter(t => dueIn(t.end) >= -MISSING_WINDOW)
+    .sort((a, b) => new Date(a.end) - new Date(b.end))
+}
+
+function rowCount() {
+  const f = config.widgetFamily
+  if (f === "small") return 3
+  if (f === "large" || f === "extraLarge") return 8
+  return 4
+}
+
+async function build() {
+  const w = new ListWidget()
+  w.url = OPEN
+  const g = new LinearGradient()
+  g.colors = [COL.bg1, COL.bg2]
+  g.locations = [0, 1]
+  w.backgroundGradient = g
+  w.setPadding(12, 13, 12, 13)
+
+  let tasks = []
+  let failed = false
+  try { tasks = await loadTasks() } catch (e) { failed = true }
+
+  const missing  = tasks.filter(t => dueIn(t.end) < 0)
+  const dueToday = tasks.filter(t => dueIn(t.end) === 0).length
+
+  const head = w.addStack()
+  head.centerAlignContent()
+  const mark = head.addText("TAS")
+  mark.font = Font.boldSystemFont(11)
+  mark.textColor = COL.pink
+  head.addSpacer(6)
+  const summary =
+    failed          ? "offline" :
+    missing.length  ? missing.length + " missing" :
+    dueToday        ? dueToday + " due today" :
+    tasks.length    ? tasks.length + " coming up" : "all clear"
+  const s = head.addText(summary)
+  s.font = Font.systemFont(10)
+  s.textColor = missing.length && !failed ? COL.red : COL.muted
+  head.addSpacer()
+  w.addSpacer(7)
+
+  if (!tasks.length) {
+    const t = w.addText(failed ? "Can't reach TAS" : "All clear")
+    t.font = Font.semiboldSystemFont(14)
+    t.textColor = COL.text
+    w.addSpacer()
+    return w
+  }
+
+  const max = rowCount()
+  for (const t of tasks.slice(0, max)) {
+    const dl = dueIn(t.end)
+    const row = w.addStack()
+    row.centerAlignContent()
+
+    const dot = row.addText("●")
+    dot.font = Font.systemFont(9)
+    dot.textColor = urgency(dl)
+    row.addSpacer(5)
+
+    const name = row.addText(t.name || "Untitled")
+    name.font = Font.systemFont(11)
+    name.textColor = COL.text
+    name.lineLimit = 1
+    row.addSpacer()
+
+    const when = row.addText(whenLabel(dl))
+    when.font = Font.mediumSystemFont(10)
+    when.textColor = dl < 0 ? COL.red : COL.muted
+    w.addSpacer(5)
+  }
+
+  const extra = tasks.length - max
+  if (extra > 0) {
+    const m = w.addText("+" + extra + " more")
+    m.font = Font.systemFont(9)
+    m.textColor = COL.muted
+  }
+  w.addSpacer()
+  return w
+}
+
+const widget = await build()
+if (config.runsInWidget) Script.setWidget(widget)
+else await widget.presentMedium()
+Script.complete()
+</script>
+
+<script type="module">
+import { initShell, db, toast, copyText, paintIcons } from "./tools-shell.js"
+import { publishWidgetFeed, widgetFeedExists, clearWidgetFeed, resetFeedCache }
+  from "./tas-widget-feed.js"
+import { collection, getDocs, doc, getDoc }
+  from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
+
+const user = await initShell({ title:"Phone Widget", active:"widget" })
+
+const $ = id => document.getElementById(id)
+
+// The widget page has to be reachable from the phone, so the link is
+// always absolute — a relative one is useless pasted into another app.
+const ORIGIN     = location.origin + location.pathname.replace(/[^/]*$/, "")
+const WIDGET_URL = ORIGIN + "widget.html?u=" + encodeURIComponent(user.uid)
+const API_KEY    = "AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18"
+
+let feedOn = false
+
+// ── State ──────────────────────────────────────────────────────
+function paintState(){
+  $("stateRow").classList.toggle("on", feedOn)
+  $("stateK").textContent = feedOn ? "Widget is on" : "Widget is off"
+  $("stateV").textContent = feedOn
+    ? "Your ticked-off tasks and your own task list are published for the widget to read. It refreshes every time you open TAS."
+    : "Turn it on to publish the small amount of data a widget needs — which tasks you've already ticked off, plus your personal tasks."
+  $("enableBtn").style.display  = feedOn ? "none" : "inline-flex"
+  $("disableBtn").style.display = feedOn ? "inline-flex" : "none"
+  $("linkWrap").style.display   = feedOn ? "block" : "none"
+  $("copyLinkBtn2").disabled    = !feedOn
+  if (feedOn) $("linkInput").value = WIDGET_URL
+}
+
+// ── Publishing ─────────────────────────────────────────────────
+// The calendar keeps the feed fresh, but a student who sets the widget up
+// here shouldn't have to go and open the calendar before it works — so
+// gather the same data once, right now.
+async function gatherAndPublish(){
+  const [personalSnap, doneSnap] = await Promise.all([
+    getDocs(collection(db, "userTasks", user.uid, "tasks")).catch(() => null),
+    getDoc(doc(db, "userDone", user.uid)).catch(() => null)
+  ])
+  const personalTasks = personalSnap
+    ? personalSnap.docs.map(d => ({ id:d.id, ...d.data() }))
+    : []
+  const done = doneSnap && doneSnap.exists() ? (doneSnap.data().done || {}) : {}
+
+  let zones = null
+  try { zones = JSON.parse(localStorage.getItem("tas_rush_zones") || "null") } catch(e){}
+
+  return publishWidgetFeed(db, user.uid, { personalTasks, done, zones })
+}
+
+$("enableBtn").onclick = async () => {
+  const btn = $("enableBtn")
+  btn.disabled = true
+  resetFeedCache()
+  const ok = await gatherAndPublish()
+  btn.disabled = false
+  if (!ok) { toast("Couldn't turn the widget on — try again", { error:true }); return }
+  feedOn = true
+  try { localStorage.setItem("tas_widget_on_" + user.uid, "1") } catch(e) {}
+  paintState()
+  loadPreview()
+  toast("Widget is on — copy the link below")
+}
+
+$("disableBtn").onclick = async () => {
+  const btn = $("disableBtn")
+  btn.disabled = true
+  const ok = await clearWidgetFeed(db, user.uid)
+  btn.disabled = false
+  if (!ok) { toast("Couldn't turn it off — try again", { error:true }); return }
+  feedOn = false
+  try { localStorage.setItem("tas_widget_on_" + user.uid, "0") } catch(e) {}
+  paintState()
+  loadPreview()
+  toast("Widget off — the published copy is deleted")
+}
+
+// ── Copy buttons ───────────────────────────────────────────────
+$("copyLinkBtn").onclick  = () => copyText(WIDGET_URL, "Widget link copied")
+$("copyLinkBtn2").onclick = () => copyText(WIDGET_URL, "Widget link copied")
+
+function scriptText(){
+  return $("scriptSrc").textContent
+    .replace("___UID___", user.uid)
+    .replace("___KEY___", API_KEY)
+    .replace("___ORIGIN___", ORIGIN.replace(/\/$/, ""))
+    .trim()
+}
+$("copyScriptBtn").onclick = () => copyText(scriptText(), "Script copied — paste it into Scriptable")
+$("showScriptBtn").onclick = () => {
+  const box = $("scriptBox")
+  const open = box.style.display !== "none"
+  box.style.display = open ? "none" : "block"
+  $("showScriptBtn").textContent = open ? "Show it" : "Hide it"
+  if (!open) box.textContent = scriptText()
+}
+
+// ── Preview ────────────────────────────────────────────────────
+// Roughly the aspect ratios iOS draws: small is square, medium is a wide
+// 2:1, large is nearly square and twice as tall.
+const SIZES = {
+  small:  { w:170, h:170, n:3 },
+  medium: { w:344, h:170, n:4 },
+  large:  { w:344, h:344, n:8 }
+}
+let pvSize = "small"
+
+function loadPreview(){
+  const s = SIZES[pvSize]
+  const f = $("pvFrame")
+  f.width = s.w
+  f.height = s.h
+  f.style.width = s.w + "px"
+  f.style.height = s.h + "px"
+  f.src = WIDGET_URL + "&n=" + s.n + "&_=" + Date.now()
+}
+
+document.querySelectorAll(".pv-sizes .seg-btn").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll(".pv-sizes .seg-btn").forEach(x => x.classList.remove("active"))
+    b.classList.add("active")
+    pvSize = b.dataset.size
+    loadPreview()
+  }
+})
+$("pvReloadBtn").onclick = () => loadPreview()
+
+// ── Boot ───────────────────────────────────────────────────────
+// Paint from the last known answer straight away and correct it when the
+// lookup lands. Blocking the first paint on a Firestore read left the whole
+// page stuck on "Checking…" whenever the network was slow or the read was
+// refused, which also meant the preview never loaded.
+const ON_KEY = "tas_widget_on_" + user.uid
+try { feedOn = localStorage.getItem(ON_KEY) === "1" } catch(e) {}
+paintState()
+paintIcons()
+loadPreview()
+
+widgetFeedExists(db, user.uid).then(on => {
+  if (on === feedOn) return
+  feedOn = on
+  try { localStorage.setItem(ON_KEY, on ? "1" : "0") } catch(e) {}
+  paintState()
+})
+</script>
+</body>
+</html>

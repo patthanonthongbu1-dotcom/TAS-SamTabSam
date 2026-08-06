@@ -57,6 +57,8 @@ const PATHS = {
   scissors: `<circle cx="6" cy="6" r="2.6"/><circle cx="6" cy="18" r="2.6"/><path d="M8 7.5 20 18M8 16.5 20 6"/>`,
   image:    `<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5"/>`,
   edit:     `<path d="M4 20h4l10-10a2.1 2.1 0 0 0-3-3L5 17v3Z"/><path d="M13.5 6.5 17.5 10.5"/>`,
+  phone:    `<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 5.5h3"/>`,
+  check:    `<path d="M4 12.5 9 17.5 20 6.5"/>`,
 }
 
 /**
@@ -88,6 +90,7 @@ const TOOL_TABS = [
   { key:"qr",   href:"tools-qr.html",   icon:"qr",    label:"QR Code" },
   { key:"link", href:"tools-link.html", icon:"link",  label:"Links"   },
   { key:"card", href:"tools-card.html", icon:"card",  label:"Card"    },
+  { key:"widget", href:"tools-widget.html", icon:"phone", label:"Widget" },
 ]
 
 /* Escape user text before it goes anywhere near innerHTML — same
