@@ -1308,6 +1308,17 @@
     </div>
 
     <div class="set-section">
+      <div class="set-label">Overdue work</div>
+      <div class="set-hint">What happens to a task once its due date has passed. Saved on this device, and the phone widget follows it too.</div>
+      <div class="theme-grid" style="grid-template-columns:repeat(3,1fr)">
+        <button class="theme-opt" id="odOptAuto" onclick="setOverdueMode('auto')">🧹 Clear<span>Straight away</span></button>
+        <button class="theme-opt" id="odOptTick" onclick="setOverdueMode('tick')">☑️ On tick<span>Default</span></button>
+        <button class="theme-opt" id="odOptKeep" onclick="setOverdueMode('keep')">📌 Keep<span>Until removed</span></button>
+      </div>
+      <div class="set-hint" id="overdueHint" style="margin:9px 0 0"></div>
+    </div>
+
+    <div class="set-section">
       <div class="set-label">Phone widget</div>
       <div class="set-hint">Put your overdue and due-soon tasks straight on your home screen, so you can check without opening the calendar.</div>
       <a class="set-toggle-row" href="tools-widget.html" style="text-decoration:none;color:inherit">
@@ -1402,6 +1413,17 @@ const thaiMonths = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค."
 function shortDate(d){ return `${d.getDate()} ${thaiMonths[d.getMonth()]}` }
 function parseDate(s){ return new Date(s+"T00:00:00") }
 function daysLeft(e){ return Math.round((e-TODAY)/(24*60*60*1000)) }
+
+// Today as a local calendar date. NOT toISOString(): that formats in UTC, so
+// anywhere east of it the early hours still read as yesterday — Thailand is
+// UTC+7, so before 07:00 every "today" came out a day behind.
+function localToday() {
+  const d = new Date()
+  return d.getFullYear() + "-" +
+         String(d.getMonth() + 1).padStart(2, "0") + "-" +
+         String(d.getDate()).padStart(2, "0")
+}
+
 
 // Escape user-entered text before dropping it into innerHTML templates —
 // a task name like <img onerror=…> or a stray " must never break the page
@@ -1667,7 +1689,7 @@ document.getElementById("tourOverlay").addEventListener("click",e=>{if(e.target.
 
 // ── Settings (placeholder for now) ────────────────────────────
 window.openSettings=function(){
-  syncZoneInputs();updateNotifyUI()
+  syncZoneInputs();updateNotifyUI();syncOverdueUI()
   const wh=document.getElementById("widgetStateHint")
   if(wh) wh.textContent = widgetFeedOn ? "On — tap to get the link or turn it off" : "Works on iPhone and Android"
   document.getElementById("settingsOverlay").classList.add("open")
@@ -1688,7 +1710,7 @@ function queueWidgetFeed(){
   // land moments apart and the feed should see both.
   widgetFeedTimer = setTimeout(()=>{
     publishWidgetFeed(db, currentUser.uid, {
-      personalTasks, done: userDoneCache, zones: rushZones
+      personalTasks, done: userDoneCache, zones: rushZones, overdueMode
     })
   }, 1500)
 }
@@ -1764,6 +1786,47 @@ try{
 function saveZones(){
   try{ localStorage.setItem(ZONES_KEY, JSON.stringify(rushZones)) }catch(e){}
   queueWidgetFeed()   // the widget colours tasks with these same thresholds
+}
+
+// ── Overdue work: how long past-due tasks linger ──────────────
+// The main calendar drops a task the day after it's due either way — this
+// governs the Archive (and the phone widget's "Missing" list).
+//   auto — gone the moment it's overdue; nothing nags you
+//   tick — stays until you tick it off            (default)
+//   keep — never clears on its own, no 20-day cutoff
+const OVERDUE_KEY = "tas_overdue_mode"
+const OVERDUE_MODES = ["auto","tick","keep"]
+// Built lazily: ARCHIVE_RETENTION_DAYS is declared further down the file, so
+// reading it while this module is still evaluating would hit the temporal
+// dead zone.
+const overdueHint = () => ({
+  auto: "Overdue tasks disappear as soon as the due date passes — the archive stays empty and the widget never shows anything missing.",
+  tick: `Overdue tasks wait in the archive until you tick them off, and clear on their own after ${ARCHIVE_RETENTION_DAYS} days.`,
+  keep: "Overdue tasks stay in the archive until you remove them yourself — even after you've ticked them off.",
+}[overdueMode])
+let overdueMode = "tick"
+try{
+  const m = localStorage.getItem(OVERDUE_KEY)
+  if(OVERDUE_MODES.includes(m)) overdueMode = m
+}catch(e){}
+
+function syncOverdueUI(){
+  OVERDUE_MODES.forEach(m => {
+    const el = document.getElementById("odOpt" + m[0].toUpperCase() + m.slice(1))
+    if(el) el.classList.toggle("active", overdueMode === m)
+  })
+  const hint = document.getElementById("overdueHint")
+  if(hint) hint.textContent = overdueHint()
+}
+
+window.setOverdueMode = function(mode){
+  if(!OVERDUE_MODES.includes(mode)) return
+  overdueMode = mode
+  try{ localStorage.setItem(OVERDUE_KEY, mode) }catch(e){}
+  syncOverdueUI()
+  queueWidgetFeed()
+  animateRows = true
+  if(currentView === "archive") renderArchive(); else renderCalendar()
 }
 function syncZoneInputs(){
   const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v }
@@ -2007,10 +2070,17 @@ let archiveFilterSubject = ""
 let archiveFilterType = ""
 
 function getArchivedTasks(){
+  // "Clear straight away" means nothing lingers at all.
+  if (overdueMode === "auto") return []
   return getOrderedTasks().filter(t => {
     if (t.type === "marker" || t.type === "prediction") return false
+    if (userHiddenCache[t.id]) return false
     const dl = daysLeft(parseDate(t.end))
-    return dl < 0 && dl >= -ARCHIVE_RETENTION_DAYS && !userHiddenCache[t.id]
+    if (dl >= 0) return false
+    // "Keep" ignores the retention cutoff; "on tick" drops a task the moment
+    // it's ticked off, and otherwise clears it after the retention window.
+    if (overdueMode === "keep") return true
+    return dl >= -ARCHIVE_RETENTION_DAYS && !userDoneCache[t.id]
   }).sort((a,b) => new Date(b.end)-new Date(a.end))
 }
 
@@ -3013,7 +3083,7 @@ window.openAddModal=function(){
   document.getElementById("t-name").value=""
   document.getElementById("t-subject").value=""
   document.getElementById("t-type").value="normal"
-  document.getElementById("t-start").value=new Date().toISOString().split("T")[0]
+  document.getElementById("t-start").value=localToday()
   document.getElementById("t-end").value=""
   document.getElementById("t-note").value=""
   document.getElementById("modal-delete-btn").style.display="none"
@@ -3214,7 +3284,7 @@ window.savePtTask = async function(){
 }
 
 function resetPtForm(){
-  const today = new Date().toISOString().split("T")[0]
+  const today = localToday()
   ptMarkerMode = false; ptMarkerType = "quiz"
   // Clear extend-from-archive mode: unlock fields, restore marker toggle
   extendSource = null

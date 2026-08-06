@@ -59,6 +59,7 @@ const PATHS = {
   edit:     `<path d="M4 20h4l10-10a2.1 2.1 0 0 0-3-3L5 17v3Z"/><path d="M13.5 6.5 17.5 10.5"/>`,
   phone:    `<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 5.5h3"/>`,
   check:    `<path d="M4 12.5 9 17.5 20 6.5"/>`,
+  clock:    `<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>`,
 }
 
 /**

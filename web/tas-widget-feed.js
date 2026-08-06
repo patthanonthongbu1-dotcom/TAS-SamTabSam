@@ -39,7 +39,7 @@ function slimPersonal(t) {
   }
 }
 
-export function buildFeed({ personalTasks = [], done = {}, zones } = {}) {
+export function buildFeed({ personalTasks = [], done = {}, zones, overdueMode } = {}) {
   const feed = {
     v: 1,
     updatedAt: Date.now(),
@@ -49,13 +49,16 @@ export function buildFeed({ personalTasks = [], done = {}, zones } = {}) {
   // Ship the reader's own rush-zone thresholds so the widget colours a task
   // the same red the calendar does.
   if (zones) feed.zones = { red: zones.red, orange: zones.orange, yellow: zones.yellow }
+  // How long overdue work should keep showing as "Missing" — the widget
+  // follows whatever the calendar's Settings say.
+  if (overdueMode) feed.overdueMode = overdueMode
   return feed
 }
 
 // Everything except updatedAt — used to skip writes that wouldn't change
 // anything a widget can see.
 function signature(feed) {
-  return JSON.stringify([feed.done, feed.personal, feed.zones])
+  return JSON.stringify([feed.done, feed.personal, feed.zones, feed.overdueMode])
 }
 
 let lastSignature = null

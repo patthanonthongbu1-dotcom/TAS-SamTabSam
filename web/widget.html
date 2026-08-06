@@ -62,22 +62,44 @@
 
     /* ── Header ─────────────────────────────────────────────── */
     .wg-head{
-      display:flex; align-items:baseline; gap:8px;
+      display:flex; align-items:center; gap:6px;
       margin-bottom:9px; flex-shrink:0;
+    }
+    .wg-logo{
+      width:17px; height:17px; object-fit:contain; display:block; flex-shrink:0;
+      filter:drop-shadow(0 0 6px rgba(255,79,163,0.35));
     }
     .wg-mark{
       font-size:13px; font-weight:700; letter-spacing:.14em;
-      color:var(--pink);
+      color:var(--pink); line-height:1;
     }
     .wg-sum{
       font-size:10.5px; font-weight:400; color:var(--muted);
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      padding-left:2px; border-left:1px solid var(--brd); margin-left:2px;
+      padding-left:8px;
     }
+    /* Last-updated stamp. An icon rather than a bare time, so it reads as
+       "this is when the data is from" instead of a clock. */
     .wg-time{
-      margin-left:auto; font-size:9px; font-weight:400; color:var(--faint);
+      margin-left:auto; display:inline-flex; align-items:center; gap:3px;
+      font-size:9px; font-weight:400; color:var(--faint);
       font-variant-numeric:tabular-nums; white-space:nowrap;
     }
+    .wg-time svg{width:9px; height:9px; flex-shrink:0; display:block}
+    .wg-time.stale{color:#ffb4a8}
     body.compact .wg-head{display:none}
+
+    /* Watermark — brand presence that costs no rows. Same file as the
+       header mark, so it's already in cache by the time it paints. */
+    .wg-watermark{
+      position:fixed; right:-14px; bottom:-16px;
+      width:96px; height:96px; object-fit:contain;
+      opacity:0.07; pointer-events:none; z-index:0;
+    }
+    .wg-head, .wg-list{position:relative; z-index:1}
+    /* Fainter on a short box, where it would otherwise sit right behind a row */
+    @media (max-height:200px){ .wg-watermark{width:70px;height:70px;right:-12px;bottom:-14px;opacity:0.045} }
 
     /* ── Rows ───────────────────────────────────────────────── */
     .wg-list{display:flex; flex-direction:column; gap:5px; min-height:0; flex:1}
@@ -152,10 +174,16 @@
 </head>
 <body>
 
+<img class="wg-watermark" id="wgWatermark" src="TASLogoLIGHT.png" alt="" aria-hidden="true">
+
 <div class="wg-head">
+  <img class="wg-logo" id="wgLogo" src="TASLogoLIGHT.png" alt="3/3 Academic System">
   <span class="wg-mark">TAS</span>
   <span class="wg-sum" id="wgSum"></span>
-  <span class="wg-time" id="wgTime"></span>
+  <span class="wg-time" id="wgTime">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>
+    <span id="wgTimeText"></span>
+  </span>
 </div>
 
 <div class="wg-list" id="wgList">
@@ -188,6 +216,12 @@
   var maxRows = Math.max(1, Math.min(20, parseInt(params.get("n"), 10) || 6))
   var theme   = params.get("theme") === "light" ? "light" : "dark"
   document.documentElement.dataset.theme = theme
+  // The LIGHT file is the logo *for* dark backgrounds, so the light theme
+  // needs the other one — same swap setTheme() does in the calendar.
+  if (theme === "light") {
+    document.getElementById("wgLogo").src = "TASLogo.png"
+    document.getElementById("wgWatermark").src = "TASLogo.png"
+  }
   if (params.get("compact") === "1") document.body.classList.add("compact")
 
   var CACHE_KEY = "tas_widget_cache_" + uid
@@ -260,12 +294,18 @@
     var doneSet = {}
     ;(data.done || []).forEach(function(id){ doneSet[id] = true })
 
+    // How far back "Missing" reaches, per the calendar's Overdue setting:
+    // clear straight away (nothing overdue at all), on tick (the retention
+    // window), or keep (no cutoff).
+    var mode = data.overdueMode || "tick"
+    var back = mode === "auto" ? 0 : mode === "keep" ? Infinity : MISSING_WINDOW
+
     var all = (data.tasks || []).concat(data.personal || [])
     var live = all.filter(function(x){
       if (!x.end || NOT_SUBMITTABLE.indexOf(x.type) !== -1) return false
       if (doneSet[x.id]) return false
       var dl = daysLeft(t, x.end)
-      return dl >= -MISSING_WINDOW
+      return dl >= -back
     }).sort(function(a,b){ return parseDate(a.end) - parseDate(b.end) })
 
     var missing = live.filter(function(x){ return daysLeft(t, x.end) < 0 })
@@ -283,9 +323,11 @@
     document.getElementById("wgSum").textContent = sumParts.join(" · ")
 
     var d = new Date(data.fetchedAt || Date.now())
-    document.getElementById("wgTime").textContent =
-      (data.stale ? "⚠ " : "") +
+    document.getElementById("wgTimeText").textContent =
       String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0")
+    document.getElementById("wgTime").classList.toggle("stale", !!data.stale)
+    document.getElementById("wgTime").title =
+      (data.stale ? "Couldn't reach TAS — showing the last data from " : "Last updated ") + d.toLocaleString()
 
     if (!live.length){
       showState("All clear ✓", missingEverHad(data) ? "Nothing due and nothing missing." : "No tasks on the calendar.")
@@ -359,6 +401,7 @@
       var data = {
         fetchedAt: Date.now(),
         zones: feed.zones || null,
+        overdueMode: feed.overdueMode || "tick",
         done: feed.done || [],
         tasks: taskDocs.map(function(d){
           var f = unwrap(d.fields || {})

@@ -57,6 +57,11 @@
       transition:width 0.25s ease,height 0.25s ease;
     }
     .pv-note{font-size:10.5px;font-weight:300;color:var(--label);text-align:center;margin-top:9px;line-height:1.6}
+    .pv-updated{
+      display:flex;align-items:center;justify-content:center;gap:5px;
+      margin-top:11px;font-size:11px;font-weight:400;color:var(--label);
+    }
+    .pv-updated .ico{color:var(--pink)}
 
     /* Setup steps */
     .steps{counter-reset:step;display:flex;flex-direction:column;gap:11px;margin-top:2px}
@@ -205,9 +210,7 @@
           <iframe class="pv-frame" id="pvFrame" title="Widget preview" width="170" height="170"></iframe>
         </div>
         <div class="pv-note">This is the real widget page, not a mock-up — it's showing your actual tasks.</div>
-        <div class="btn-row">
-          <button class="btn ghost" id="pvReloadBtn" style="flex:1"><span data-ico="refresh" data-size="15"></span> Refresh</button>
-        </div>
+        <div class="pv-updated"><span class="ico" data-ico="clock" data-size="13"></span> <span id="pvUpdatedText">Loading…</span></div>
       </div>
     </div>
   </div>
@@ -288,6 +291,10 @@ async function loadTasks() {
   const feed = feedRes && feedRes.fields ? unwrap(feedRes.fields) : {}
   if (feed.zones) ZONES = Object.assign(ZONES, feed.zones)
 
+  // Overdue setting from the calendar: clear straight away / on tick / keep.
+  const mode = feed.overdueMode || "tick"
+  const back = mode === "auto" ? 0 : mode === "keep" ? Infinity : MISSING_WINDOW
+
   const done = new Set(feed.done || [])
   const personal = (feed.personal || []).map(p => Object.assign({ personal: true }, p))
   const classTasks = ((shared && shared.documents) || []).map(d => {
@@ -299,7 +306,7 @@ async function loadTasks() {
   return classTasks.concat(personal)
     .filter(t => t.end && SKIP.indexOf(t.type) === -1)
     .filter(t => !done.has(t.id))
-    .filter(t => dueIn(t.end) >= -MISSING_WINDOW)
+    .filter(t => dueIn(t.end) >= -back)
     .sort((a, b) => new Date(a.end) - new Date(b.end))
 }
 
@@ -508,6 +515,9 @@ function loadPreview(){
   f.style.width = s.w + "px"
   f.style.height = s.h + "px"
   f.src = WIDGET_URL + "&n=" + s.n + "&_=" + Date.now()
+  const now = new Date()
+  document.getElementById("pvUpdatedText").textContent =
+    "Last updated " + now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
 document.querySelectorAll(".pv-sizes .seg-btn").forEach(b => {
@@ -518,7 +528,9 @@ document.querySelectorAll(".pv-sizes .seg-btn").forEach(b => {
     loadPreview()
   }
 })
-$("pvReloadBtn").onclick = () => loadPreview()
+// The widget page repulls on its own timer, so the preview follows along
+// rather than needing a button.
+setInterval(loadPreview, 5 * 60 * 1000)
 
 // ── Boot ───────────────────────────────────────────────────────
 // Paint from the last known answer straight away and correct it when the
