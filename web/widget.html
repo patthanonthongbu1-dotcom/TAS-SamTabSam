@@ -49,103 +49,108 @@
       --red-text:#c0392b;
     }
 
+    /* Everything below is sized in rem, so the whole widget scales together
+       from this one number. A widget host decides the box; how big the CSS
+       pixel is inside it varies wildly between phones and host apps, so the
+       ?scale= parameter is the escape hatch when it comes out too small. */
+    html{ font-size:calc(16px * var(--s, 1.15)) }
     html,body{height:100%}
     body{
       font-family:'Kanit','Prompt',system-ui,-apple-system,'Segoe UI',sans-serif;
       color:var(--text);
       background:linear-gradient(160deg,var(--bg1) 0%,var(--bg2) 45%,var(--bg3) 100%);
       display:flex; flex-direction:column;
-      padding:12px 13px;
+      padding:0.75rem 0.8125rem;
       overflow:hidden;
       /* A widget box is whatever size the host gives it — never scroll, clip. */
     }
 
     /* ── Header ─────────────────────────────────────────────── */
     .wg-head{
-      display:flex; align-items:center; gap:6px;
-      margin-bottom:9px; flex-shrink:0;
+      display:flex; align-items:center; gap:0.375rem;
+      margin-bottom:0.5rem; flex-shrink:0;
     }
     .wg-logo{
-      width:17px; height:17px; object-fit:contain; display:block; flex-shrink:0;
+      width:1.125rem; height:1.125rem; object-fit:contain; display:block; flex-shrink:0;
       filter:drop-shadow(0 0 6px rgba(255,79,163,0.35));
     }
     .wg-mark{
-      font-size:13px; font-weight:700; letter-spacing:.14em;
+      font-size:0.85rem; font-weight:700; letter-spacing:.14em;
       color:var(--pink); line-height:1;
     }
     .wg-sum{
-      font-size:10.5px; font-weight:400; color:var(--muted);
+      font-size:0.68rem; font-weight:400; color:var(--muted);
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-      padding-left:2px; border-left:1px solid var(--brd); margin-left:2px;
-      padding-left:8px;
+      border-left:1px solid var(--brd); margin-left:0.125rem;
+      padding-left:0.5rem;
     }
     /* Last-updated stamp. An icon rather than a bare time, so it reads as
        "this is when the data is from" instead of a clock. */
     .wg-time{
-      margin-left:auto; display:inline-flex; align-items:center; gap:3px;
-      font-size:9px; font-weight:400; color:var(--faint);
+      margin-left:auto; display:inline-flex; align-items:center; gap:0.2rem;
+      font-size:0.6rem; font-weight:400; color:var(--faint);
       font-variant-numeric:tabular-nums; white-space:nowrap;
     }
-    .wg-time svg{width:9px; height:9px; flex-shrink:0; display:block}
+    .wg-time svg{width:0.6rem; height:0.6rem; flex-shrink:0; display:block}
     .wg-time.stale{color:#ffb4a8}
     body.compact .wg-head{display:none}
 
     /* Watermark — brand presence that costs no rows. Same file as the
        header mark, so it's already in cache by the time it paints. */
     .wg-watermark{
-      position:fixed; right:-14px; bottom:-16px;
-      width:96px; height:96px; object-fit:contain;
+      position:fixed; right:-0.9rem; bottom:-1rem;
+      width:6rem; height:6rem; object-fit:contain;
       opacity:0.07; pointer-events:none; z-index:0;
     }
     .wg-head, .wg-list{position:relative; z-index:1}
     /* Fainter on a short box, where it would otherwise sit right behind a row */
-    @media (max-height:200px){ .wg-watermark{width:70px;height:70px;right:-12px;bottom:-14px;opacity:0.045} }
+    @media (max-height:200px){ .wg-watermark{width:4.4rem;height:4.4rem;right:-0.75rem;bottom:-0.9rem;opacity:0.045} }
 
     /* ── Rows ───────────────────────────────────────────────── */
-    .wg-list{display:flex; flex-direction:column; gap:5px; min-height:0; flex:1}
+    .wg-list{display:flex; flex-direction:column; gap:0.3rem; min-height:0; flex:1; overflow:hidden}
     .wg-group{
-      font-size:8.5px; font-weight:700; letter-spacing:.13em; text-transform:uppercase;
-      color:var(--faint); margin-top:2px;
+      font-size:0.55rem; font-weight:700; letter-spacing:.13em; text-transform:uppercase;
+      color:var(--faint); margin-top:0.125rem;
     }
     .wg-group:first-child{margin-top:0}
     .wg-group.missing{color:var(--red-text)}
 
     .wg-row{
-      display:flex; align-items:center; gap:8px;
+      display:flex; align-items:center; gap:0.5rem;
       background:var(--card); border:1px solid var(--brd);
-      border-radius:10px; padding:7px 9px;
+      border-radius:0.625rem; padding:0.44rem 0.56rem;
       min-width:0;
     }
     .wg-row.missing{background:rgba(239,68,68,0.13); border-color:rgba(239,68,68,0.3)}
-    .wg-dot{width:7px; height:7px; border-radius:50%; flex-shrink:0}
+    .wg-dot{width:0.44rem; height:0.44rem; border-radius:50%; flex-shrink:0}
     /* These are spans (a row is one flat line of markup) so they need an
        explicit block, or the subject runs on after the task name. */
     .wg-main{min-width:0; flex:1; display:block}
     .wg-name{
       display:block;
-      font-size:12px; font-weight:500; line-height:1.25;
+      font-size:0.78rem; font-weight:500; line-height:1.25;
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
     .wg-sub{
       display:block;
-      font-size:9px; font-weight:300; color:var(--muted);
+      font-size:0.58rem; font-weight:300; color:var(--muted);
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
     .wg-when{
-      font-size:10.5px; font-weight:600; flex-shrink:0;
+      font-size:0.68rem; font-weight:600; flex-shrink:0;
       font-variant-numeric:tabular-nums; text-align:right;
     }
     .wg-when.missing{color:var(--red-text)}
-    .wg-more{font-size:9.5px; color:var(--faint); text-align:center; padding-top:2px}
+    .wg-more{font-size:0.6rem; color:var(--faint); text-align:center; padding-top:0.125rem}
 
     /* ── Empty / error ──────────────────────────────────────── */
     .wg-state{
       flex:1; display:flex; flex-direction:column;
-      align-items:center; justify-content:center; gap:5px;
-      text-align:center; padding:8px;
+      align-items:center; justify-content:center; gap:0.3rem;
+      text-align:center; padding:0.5rem;
     }
-    .wg-state-big{font-size:15px; font-weight:600}
-    .wg-state-sub{font-size:10.5px; font-weight:300; color:var(--muted); line-height:1.5}
+    .wg-state-big{font-size:0.95rem; font-weight:600}
+    .wg-state-sub{font-size:0.68rem; font-weight:300; color:var(--muted); line-height:1.5}
 
     /* ── Short boxes ──────────────────────────────────────────
        A small or medium home-screen widget is only ~170px tall. At that
@@ -153,18 +158,17 @@
        row each, and one more task is worth more than either — the red
        tint already says which ones are missing. */
     @media (max-height:200px){
-      .wg-head{margin-bottom:6px}
-      .wg-list{gap:4px}
+      .wg-head{margin-bottom:0.375rem}
+      .wg-list{gap:0.25rem}
       .wg-group{display:none}
       .wg-sub{display:none}
-      .wg-row{padding:5px 8px}
-      .wg-name{font-size:11.5px}
+      .wg-row{padding:0.32rem 0.5rem}
     }
 
     /* ── Loading skeleton — a widget that flashes "nothing due"
          before its data lands is worse than one that says nothing ── */
     .sk{
-      height:31px; border-radius:10px;
+      height:1.94rem; border-radius:0.625rem;
       background:linear-gradient(90deg,var(--card) 25%,rgba(255,255,255,0.14) 37%,var(--card) 63%);
       background-size:400% 100%; animation:sh 1.3s ease infinite;
     }
@@ -215,6 +219,12 @@
   var uid     = (params.get("u") || "").trim()
   var maxRows = Math.max(1, Math.min(20, parseInt(params.get("n"), 10) || 6))
   var theme   = params.get("theme") === "light" ? "light" : "dark"
+  // Text size. Everything is in rem off one root font-size, so this scales
+  // the whole card — rows, padding, logo and all — not just the type.
+  var scale = parseFloat(params.get("scale"))
+  if (isFinite(scale) && scale > 0) {
+    document.documentElement.style.setProperty("--s", Math.max(0.7, Math.min(2.5, scale)))
+  }
   document.documentElement.dataset.theme = theme
   // The LIGHT file is the logo *for* dark backgrounds, so the light theme
   // needs the other one — same swap setTheme() does in the calendar.
@@ -362,10 +372,43 @@
       html += '<div class="wg-group">Due next</div>'
       rows(upcoming, false)
     }
-    var hidden = live.length - shown
-    if (hidden > 0) html += '<div class="wg-more">+' + hidden + ' more</div>'
-
     document.getElementById("wgList").innerHTML = html
+    fitRows(live.length)
+  }
+
+  // The host decides the box and the reader decides the text size, so how
+  // many rows actually fit can't be known up front — a half-drawn row at the
+  // bottom looks broken. Drop whole rows from the end until the rest fit.
+  function fitRows(total){
+    var list = document.getElementById("wgList")
+    var guard = 40
+    while (list.scrollHeight > list.clientHeight + 1 && guard-- > 0) {
+      var rows = list.querySelectorAll(".wg-row")
+      if (rows.length <= 1) break              // always keep at least one
+      var last = rows[rows.length - 1]
+      var prev = last.previousElementSibling
+      last.remove()
+      // A heading left with nothing under it should go too.
+      if (prev && prev.className.indexOf("wg-group") !== -1) prev.remove()
+      updateMore(list, total)
+    }
+    updateMore(list, total)
+  }
+
+  function updateMore(list, total){
+    var shown = list.querySelectorAll(".wg-row").length
+    var hidden = total - shown
+    var el = list.querySelector(".wg-more")
+    if (hidden > 0) {
+      if (!el) {
+        el = document.createElement("div")
+        el.className = "wg-more"
+        list.appendChild(el)
+      }
+      el.textContent = "+" + hidden + " more"
+    } else if (el) {
+      el.remove()
+    }
   }
 
   // Distinguishes "you're on top of everything" from "there is nothing here"

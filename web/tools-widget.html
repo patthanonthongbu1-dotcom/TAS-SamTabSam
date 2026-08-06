@@ -189,7 +189,7 @@
             </div></div>
             <div class="step"><div class="step-body">
               Set the refresh interval to <b>15–30 minutes</b> and turn scrolling off.
-              <span class="sub">Add <b>&amp;n=8</b> to the link for more rows on a tall widget, or <b>&amp;compact=1</b> to drop the header on a small one.</span>
+              <span class="sub">Too small? Bump <b>Text size</b> on the right — it's baked into the link you copy. Add <b>&amp;n=8</b> for more rows on a tall widget, or <b>&amp;compact=1</b> to drop the header on a small one.</span>
             </div></div>
           </div>
           <div class="btn-row">
@@ -205,6 +205,16 @@
           <button class="seg-btn active" data-size="small">Small</button>
           <button class="seg-btn" data-size="medium">Medium</button>
           <button class="seg-btn" data-size="large">Large</button>
+        </div>
+        <div class="field" style="margin-bottom:12px">
+          <label class="fl">Text size</label>
+          <div class="seg-grid" id="scaleGrid" style="--cols:4">
+            <button class="seg-btn" data-scale="1">S</button>
+            <button class="seg-btn active" data-scale="1.15">M</button>
+            <button class="seg-btn" data-scale="1.35">L</button>
+            <button class="seg-btn" data-scale="1.6">XL</button>
+          </div>
+          <div class="pv-note" style="margin-top:7px;text-align:left">Bigger text means fewer tasks fit — the widget only ever draws whole rows and counts the rest. Pick a larger widget on your home screen if you want both.</div>
         </div>
         <div class="pv-stage">
           <iframe class="pv-frame" id="pvFrame" title="Widget preview" width="170" height="170"></iframe>
@@ -228,6 +238,10 @@ const UID  = "___UID___"
 const KEY  = "___KEY___"
 const BASE = "https://firestore.googleapis.com/v1/projects/tas-samtabsam/databases/(default)/documents"
 const OPEN = "___ORIGIN___/calendar.html"
+
+// Text too small on the home screen? Raise this — 1.3 or 1.5 — and the
+// whole widget grows with it. Fewer rows fit as it goes up.
+const SCALE = 1.15
 
 const DAY = 86400000
 const MISSING_WINDOW = 14          // stop showing work missed longer ago than this
@@ -324,7 +338,7 @@ async function build() {
   g.colors = [COL.bg1, COL.bg2]
   g.locations = [0, 1]
   w.backgroundGradient = g
-  w.setPadding(12, 13, 12, 13)
+  w.setPadding(12 * SCALE, 13 * SCALE, 12 * SCALE, 13 * SCALE)
 
   let tasks = []
   let failed = false
@@ -336,23 +350,23 @@ async function build() {
   const head = w.addStack()
   head.centerAlignContent()
   const mark = head.addText("TAS")
-  mark.font = Font.boldSystemFont(11)
+  mark.font = Font.boldSystemFont(11 * SCALE)
   mark.textColor = COL.pink
-  head.addSpacer(6)
+  head.addSpacer(6 * SCALE)
   const summary =
     failed          ? "offline" :
     missing.length  ? missing.length + " missing" :
     dueToday        ? dueToday + " due today" :
     tasks.length    ? tasks.length + " coming up" : "all clear"
   const s = head.addText(summary)
-  s.font = Font.systemFont(10)
+  s.font = Font.systemFont(10 * SCALE)
   s.textColor = missing.length && !failed ? COL.red : COL.muted
   head.addSpacer()
-  w.addSpacer(7)
+  w.addSpacer(7 * SCALE)
 
   if (!tasks.length) {
     const t = w.addText(failed ? "Can't reach TAS" : "All clear")
-    t.font = Font.semiboldSystemFont(14)
+    t.font = Font.semiboldSystemFont(14 * SCALE)
     t.textColor = COL.text
     w.addSpacer()
     return w
@@ -365,26 +379,26 @@ async function build() {
     row.centerAlignContent()
 
     const dot = row.addText("●")
-    dot.font = Font.systemFont(9)
+    dot.font = Font.systemFont(9 * SCALE)
     dot.textColor = urgency(dl)
-    row.addSpacer(5)
+    row.addSpacer(5 * SCALE)
 
     const name = row.addText(t.name || "Untitled")
-    name.font = Font.systemFont(11)
+    name.font = Font.systemFont(11 * SCALE)
     name.textColor = COL.text
     name.lineLimit = 1
     row.addSpacer()
 
     const when = row.addText(whenLabel(dl))
-    when.font = Font.mediumSystemFont(10)
+    when.font = Font.mediumSystemFont(10 * SCALE)
     when.textColor = dl < 0 ? COL.red : COL.muted
-    w.addSpacer(5)
+    w.addSpacer(5 * SCALE)
   }
 
   const extra = tasks.length - max
   if (extra > 0) {
     const m = w.addText("+" + extra + " more")
-    m.font = Font.systemFont(9)
+    m.font = Font.systemFont(9 * SCALE)
     m.textColor = COL.muted
   }
   w.addSpacer()
@@ -411,8 +425,19 @@ const $ = id => document.getElementById(id)
 // The widget page has to be reachable from the phone, so the link is
 // always absolute — a relative one is useless pasted into another app.
 const ORIGIN     = location.origin + location.pathname.replace(/[^/]*$/, "")
-const WIDGET_URL = ORIGIN + "widget.html?u=" + encodeURIComponent(user.uid)
 const API_KEY    = "AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18"
+
+// Text size travels in the link, so what you copy is what you saw here.
+const SCALE_KEY = "tas_widget_scale"
+const DEFAULT_SCALE = "1.15"
+let pvScale = DEFAULT_SCALE
+try { pvScale = localStorage.getItem(SCALE_KEY) || DEFAULT_SCALE } catch(e) {}
+
+function widgetURL() {
+  let u = ORIGIN + "widget.html?u=" + encodeURIComponent(user.uid)
+  if (pvScale !== DEFAULT_SCALE) u += "&scale=" + pvScale
+  return u
+}
 
 let feedOn = false
 
@@ -427,7 +452,7 @@ function paintState(){
   $("disableBtn").style.display = feedOn ? "inline-flex" : "none"
   $("linkWrap").style.display   = feedOn ? "block" : "none"
   $("copyLinkBtn2").disabled    = !feedOn
-  if (feedOn) $("linkInput").value = WIDGET_URL
+  if (feedOn) $("linkInput").value = widgetURL()
 }
 
 // ── Publishing ─────────────────────────────────────────────────
@@ -478,8 +503,8 @@ $("disableBtn").onclick = async () => {
 }
 
 // ── Copy buttons ───────────────────────────────────────────────
-$("copyLinkBtn").onclick  = () => copyText(WIDGET_URL, "Widget link copied")
-$("copyLinkBtn2").onclick = () => copyText(WIDGET_URL, "Widget link copied")
+$("copyLinkBtn").onclick  = () => copyText(widgetURL(), "Widget link copied")
+$("copyLinkBtn2").onclick = () => copyText(widgetURL(), "Widget link copied")
 
 function scriptText(){
   return $("scriptSrc").textContent
@@ -514,7 +539,7 @@ function loadPreview(){
   f.height = s.h
   f.style.width = s.w + "px"
   f.style.height = s.h + "px"
-  f.src = WIDGET_URL + "&n=" + s.n + "&_=" + Date.now()
+  f.src = widgetURL() + "&n=" + s.n + "&_=" + Date.now()
   const now = new Date()
   document.getElementById("pvUpdatedText").textContent =
     "Last updated " + now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -528,6 +553,23 @@ document.querySelectorAll(".pv-sizes .seg-btn").forEach(b => {
     loadPreview()
   }
 })
+
+function syncScaleButtons() {
+  document.querySelectorAll("#scaleGrid .seg-btn").forEach(b =>
+    b.classList.toggle("active", b.dataset.scale === pvScale))
+}
+document.querySelectorAll("#scaleGrid .seg-btn").forEach(b => {
+  b.onclick = () => {
+    pvScale = b.dataset.scale
+    try { localStorage.setItem(SCALE_KEY, pvScale) } catch(e) {}
+    syncScaleButtons()
+    // The link changes with the size, so re-copy is on the user — but keep
+    // the box in step so they can't paste a stale one.
+    if (feedOn) $("linkInput").value = widgetURL()
+    loadPreview()
+  }
+})
+syncScaleButtons()
 // The widget page repulls on its own timer, so the preview follows along
 // rather than needing a button.
 setInterval(loadPreview, 5 * 60 * 1000)
