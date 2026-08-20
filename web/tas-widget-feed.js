@@ -39,12 +39,26 @@ function slimPersonal(t) {
   }
 }
 
-export function buildFeed({ personalTasks = [], done = {}, zones, overdueMode } = {}) {
+// Progress goes out as a bare percentage — the widget draws a bar, it never
+// needs to know whether that came from "3 of 5" or a slider. Only tasks that
+// have actually been started are worth the bytes.
+function slimProgress(progress) {
+  const out = {}
+  for (const [id, p] of Object.entries(progress || {})) {
+    if (!p || !p.total) continue
+    const pct = Math.round(p.value / p.total * 100)
+    if (pct > 0) out[id] = Math.min(100, Math.max(0, pct))
+  }
+  return out
+}
+
+export function buildFeed({ personalTasks = [], done = {}, progress = {}, zones, overdueMode } = {}) {
   const feed = {
     v: 1,
     updatedAt: Date.now(),
     done: Object.keys(done).filter(id => done[id]).slice(-MAX_DONE),
-    personal: personalTasks.filter(SUBMITTABLE).map(slimPersonal).slice(0, MAX_PERSONAL)
+    personal: personalTasks.filter(SUBMITTABLE).map(slimPersonal).slice(0, MAX_PERSONAL),
+    progress: slimProgress(progress)
   }
   // Ship the reader's own rush-zone thresholds so the widget colours a task
   // the same red the calendar does.
@@ -58,7 +72,7 @@ export function buildFeed({ personalTasks = [], done = {}, zones, overdueMode } 
 // Everything except updatedAt — used to skip writes that wouldn't change
 // anything a widget can see.
 function signature(feed) {
-  return JSON.stringify([feed.done, feed.personal, feed.zones, feed.overdueMode])
+  return JSON.stringify([feed.done, feed.personal, feed.progress, feed.zones, feed.overdueMode])
 }
 
 let lastSignature = null

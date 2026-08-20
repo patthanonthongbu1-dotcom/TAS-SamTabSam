@@ -518,8 +518,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js"
 import {
-  getAuth, signInWithPopup, signOut, onAuthStateChanged, GoogleAuthProvider,
-  setPersistence, browserLocalPersistence
+  getAuth, signInWithPopup, signOut, onAuthStateChanged, GoogleAuthProvider
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
 import { getFirestore, doc, getDoc }
   from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
@@ -541,9 +540,16 @@ const db       = getFirestore(app)
 const provider = new GoogleAuthProvider()
 provider.setCustomParameters({ prompt: "select_account" })
 
-// Explicit local persistence — keeps the session in this browser across
-// reloads/reopens so users aren't asked to sign in again every visit.
-try { await setPersistence(auth, browserLocalPersistence) } catch(e) { console.warn("Could not set persistence:", e) }
+// ⚠️ Do NOT call setPersistence() here. getAuth() already installs the local
+// hierarchy [indexedDB, localStorage, sessionStorage], and every other page
+// (calendar.html, announce.html, tools-shell.js) uses that same default.
+// Forcing browserLocalPersistence on this page ONLY made the two disagree:
+// the SDK moves the session to whichever storage the current page prefers and
+// deletes it from the others (PersistenceUserManager.create migrates into
+// IndexedDB and _remove()s the rest; setPersistence does remove-then-write).
+// So every hop between the menu and the calendar dragged the session across
+// storages, and a hop interrupted mid-move left the user signed out.
+// The default is already local — sessions survive reloads and restarts.
 
 // ── Fetch whitelist from Firestore ────────────────────────────
 // Document: config/modWhitelist  →  { emails: ["a@b.com", ...] }

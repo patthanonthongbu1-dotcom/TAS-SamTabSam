@@ -38,9 +38,9 @@
        tap-highlight kills the overlay, user-select stops the long-press text
        selection on interactive chrome, touch-callout stops the iOS preview,
        and focus rings only show for keyboard users (:focus-visible) */
-    button,.label-row,.gantt-bar,.check-row,.date-tick,.view-tab,.user-pill,
+    button,.label-row,.gantt-bar,.check-row,.date-tick,.nav-pill,
     .pt-tab,.pt-list-card,.archive-row,.archive-cb,.legend-toggle,.range-toggle,
-    .pt-marker-toggle,.set-toggle-row,.theme-opt,.marker-vline,.out-indicator{
+    .pt-marker-toggle,.set-row,.theme-opt,.marker-vline,.out-indicator{
       -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
     }
     :focus:not(:focus-visible){outline:none}
@@ -64,6 +64,8 @@
       --glass:rgba(255,255,255,0.09);--glass-2:rgba(255,255,255,0.06);--glass-brd:rgba(255,255,255,0.16);
       --field-bg:rgba(255,255,255,0.10);--field-brd:rgba(255,255,255,0.20);
       --panel:rgba(30,45,79,0.97);--sheet:rgba(34,50,86,0.98);--col:rgba(255,255,255,0.07);
+      /* Settings grouped-list surface + hairline (GrowCycle's --group-bg/--divider) */
+      --group-bg:rgba(255,255,255,0.055);--divider:rgba(255,255,255,0.08);
       --bg:transparent;--card:rgba(255,255,255,0.09);--border:rgba(255,255,255,0.18);
       --text:#ffffff;--muted:rgba(255,255,255,0.72);--label:rgba(255,255,255,0.55);--surface:rgba(255,255,255,0.10);
       --label-w:160px;--check-w:40px;--row-h:46px;
@@ -107,25 +109,142 @@
     #authGate .gate-msg{font-size:14px;color:var(--muted);font-weight:300}
     @keyframes spin{to{transform:rotate(360deg)}}
 
-    /* ── Profile pill + dropdown (glassy, matches announce) ────── */
-    .user-pill{
-      display:none;align-items:center;gap:7px;
-      background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);
-      border-radius:20px;padding:4px 10px 4px 4px;
-      font-size:12px;font-weight:500;color:#fff;
-      cursor:pointer;transition:background 0.15s,transform 0.12s;flex-shrink:0;user-select:none;
+    /* ══ ICONS ═════════════════════════════════════════════════
+       One <use> class for every icon outside the nav. Sized in em so an
+       icon tracks the text it sits beside, and coloured by currentColor so
+       it inverts on a filled pill without a second asset. */
+    .ic{width:1em;height:1em;display:inline-block;vertical-align:-0.14em;flex-shrink:0}
+    .ic-lg{width:1.35em;height:1.35em;vertical-align:-0.26em}
+    .ic-xl{width:42px;height:42px;vertical-align:middle}
+    /* Type dots — the icon is a filled circle, the class carries the meaning */
+    .ic-dot-normal{color:var(--green)}
+    .ic-dot-deadline{color:var(--red)}
+    .ic-dot-prediction{color:#8b5cf6}
+    .ic-dot-marker{color:var(--marker)}
+    /* Buttons and rows that now lead with an icon need it spaced off the text */
+    .user-dropdown-btn .ic,.theme-opt .ic,.pt-type-btn .ic,.pt-mtype-btn .ic,
+    .range-option .ic,.archive-fchip .ic,.archive-tb-btn .ic,.pt-tab .ic,
+    .modal-save .ic,.modal-delete .ic,.pt-save-btn .ic,.detail-delete-btn .ic,
+    .detail-edit-btn .ic,.tl-today-btn .ic{margin-right:6px}
+    .set-row-icon .ic{width:19px;height:19px;vertical-align:middle}
+    .theme-opt .ic{margin-right:5px}
+    /* Icon-only buttons carry no label to align to */
+    .row-del .ic,.pt-list-del .ic,.archive-act .ic,.dp-prog-edit .ic{margin:0;width:1.05em;height:1.05em}
+
+    /* ══ HEADER ════════════════════════════════════════════════
+       A floating glass bar inset from the page edges rather than a
+       full-width strip: .topbar is the (transparent) sticky slot, .topnav
+       is the bar you can see. It slims down as you scroll — see the
+       shrink handler, which also re-measures --topbar-h so the calendar's
+       sticky date ruler keeps hanging off the bar's real bottom edge. */
+    .topbar{
+      position:sticky;top:0;z-index:100;
+      padding:12px 14px 0;
+      animation:slideDown 0.4s cubic-bezier(0.16,1,0.3,1) both;
     }
-    .user-pill:hover{background:rgba(255,255,255,0.14)}
-    .user-pill:active{transform:scale(0.98)}
-    .user-pill img{width:24px;height:24px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.25)}
-    .user-pill-fb{width:24px;height:24px;border-radius:50%;background:var(--pink);color:white;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center}
-    .user-pill.visible{display:flex;animation:popIn 0.35s cubic-bezier(0.34,1.56,0.64,1) 0.1s backwards}
+    @keyframes slideDown{from{transform:translateY(-64px);opacity:0}to{transform:translateY(0);opacity:1}}
+    .topnav{
+      display:flex;align-items:center;gap:12px;
+      max-width:1180px;margin:0 auto;
+      padding:8px 12px 8px 10px;border-radius:20px;
+      background:rgba(30,48,84,0.78);
+      backdrop-filter:blur(20px) saturate(1.35);-webkit-backdrop-filter:blur(20px) saturate(1.35);
+      border:1px solid var(--glass-brd);
+      box-shadow:0 1px 2px rgba(0,0,0,0.16), 0 18px 44px -22px rgba(0,0,0,0.85);
+      transition:padding 0.2s ease, border-radius 0.2s ease, background 0.2s ease;
+    }
+    .topbar.shrunk .topnav{padding:3px 10px 3px 7px;border-radius:16px}
+
+    /* ── Brand ── */
+    .topnav-brand{
+      display:flex;align-items:center;gap:10px;min-width:0;flex-shrink:0;
+      text-decoration:none;color:inherit;border-radius:14px;
+      transition:opacity 0.15s;
+      animation:brandIn 0.5s cubic-bezier(0.16,1,0.3,1) 0.05s backwards;
+    }
+    .topnav-brand:hover{opacity:0.78}
+    @keyframes brandIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+    .brand-chip{
+      width:38px;height:38px;border-radius:12px;flex-shrink:0;
+      background:rgba(255,255,255,0.10);border:1px solid var(--glass-brd);
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 4px 14px -6px rgba(0,0,0,0.5);
+      transition:width 0.2s,height 0.2s,border-radius 0.2s;
+    }
+    .topbar.shrunk .brand-chip{width:30px;height:30px;border-radius:10px}
+    .brand-mini{width:78%;height:78%;object-fit:contain;display:block;animation:logoGlow 4.5s ease-in-out infinite}
+    @keyframes logoGlow{
+      0%,100%{filter:drop-shadow(0 0 2px rgba(255,255,255,0.2))}
+      50%{filter:drop-shadow(0 0 9px rgba(255,255,255,0.7))}
+    }
+    .brand-text{min-width:0;display:flex;flex-direction:column;overflow:hidden;transition:max-height 0.2s,opacity 0.2s}
+    .brand-title{font-size:15.5px;font-weight:700;color:var(--text);letter-spacing:-0.2px;line-height:1.2;white-space:nowrap}
+    .brand-sub{font-size:8px;font-weight:600;letter-spacing:0.32em;color:var(--pink);text-transform:uppercase;margin-top:1px;white-space:nowrap}
+    /* Shrunk, the subtitle goes and the title carries the brand alone */
+    .topbar.shrunk .brand-sub{display:none}
+    .topbar.shrunk .brand-title{font-size:14px}
+
+    .latest-pill{display:inline-flex;align-items:center;gap:4px;background:var(--green-light);color:var(--green-text);font-size:10px;font-weight:500;padding:2px 7px;border-radius:10px;border:1px solid var(--green-mid);white-space:nowrap;flex-shrink:0;animation:pillPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both}
+    .topbar.shrunk .latest-pill{display:none}
+
+    /* ── Tabs + profile, one group on the right ── */
+    .topnav-tabs{
+      display:flex;align-items:center;gap:3px;margin-left:auto;flex-shrink:0;
+      animation:fadeDrop 0.45s cubic-bezier(0.16,1,0.3,1) 0.14s backwards;
+    }
+    @keyframes fadeDrop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+    /* Icon over label, at every width — the label is a caption, not a row-mate */
+    .nav-pill{
+      position:relative;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+      padding:6px 13px;border:none;border-radius:14px;background:transparent;
+      font-family:'Kanit',sans-serif;color:var(--muted);cursor:pointer;
+      transition:background 0.18s,color 0.18s,padding 0.2s,transform 0.12s;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .nav-pill:hover:not(.active){background:var(--glass);color:var(--text)}
+    .nav-pill:active{transform:scale(0.94)}
+    .nav-pill.active{
+      background:var(--accent-grad);color:#fff;
+      box-shadow:0 6px 18px -8px var(--accent-shadow);
+    }
+    .nav-ic{width:20px;height:20px;flex-shrink:0;display:block;transition:width 0.2s,height 0.2s}
+    .nav-lab{font-size:10.5px;font-weight:500;line-height:1.15;white-space:nowrap;transition:font-size 0.2s}
+    .topbar.shrunk .nav-pill{padding:4px 11px}
+    .topbar.shrunk .nav-ic{width:17px;height:17px}
+    .topbar.shrunk .nav-lab{font-size:9.5px}
+
+    /* Counts ride the top-right corner of the pill, so they never widen it */
+    .nav-pill .tab-count{
+      position:absolute;top:1px;right:3px;
+      min-width:15px;padding:0 4px;border-radius:10px;
+      background:#e53e3e;color:#fff;font-size:9.5px;font-weight:600;line-height:15px;
+    }
+    .nav-pill#tabTasks .tab-count{background:var(--pink)}
+    .nav-pill.active .tab-count{background:#fff;color:#c02e7e}
+
+    /* Profile pill — same shape as a tab, avatar where the icon goes */
+    .nav-pill.profile{display:none;padding-left:9px;padding-right:11px}
+    .nav-pill.profile.visible{display:flex;animation:popIn 0.35s cubic-bezier(0.34,1.56,0.64,1) 0.1s backwards}
+    .nav-av{width:20px;height:20px;border-radius:50%;overflow:hidden;flex-shrink:0;display:block;transition:width 0.2s,height 0.2s}
+    .nav-av img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+    .user-pill-fb{width:100%;height:100%;border-radius:50%;background:var(--pink);color:#fff;font-size:9px;font-weight:600;display:flex;align-items:center;justify-content:center}
+    .nav-pill.profile.active .user-pill-fb{background:rgba(255,255,255,0.28)}
+    .topbar.shrunk .nav-av{width:17px;height:17px}
+    .nav-pill.profile .nav-lab{max-width:76px;overflow:hidden;text-overflow:ellipsis}
+    @keyframes popIn{from{transform:scale(0.6);opacity:0}to{transform:scale(1);opacity:1}}
+
+    /* ── Profile dropdown, anchored to the floating bar's right edge ── */
     .user-dropdown{
-      position:absolute;top:calc(100% + 8px);right:12px;
+      /* .topbar spans the window but .topnav is centred at max-width:1180 —
+         so mirror the bar's own inset instead of the window's padding, or
+         the menu hangs off the end of the bar on wide screens. */
+      position:absolute;top:calc(100% + 6px);
+      right:calc(max(14px, (100% - 1180px) / 2) + 8px);
       background:var(--sheet);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-      border:1px solid rgba(255,255,255,0.14);border-radius:14px;
+      border:1px solid rgba(255,255,255,0.14);border-radius:16px;
       box-shadow:0 18px 44px -12px rgba(0,0,0,0.7);
-      padding:8px;min-width:210px;z-index:1000;display:none;flex-direction:column;gap:3px;
+      padding:8px;min-width:214px;z-index:1000;display:none;flex-direction:column;gap:3px;
       animation:dropIn 0.18s cubic-bezier(0.34,1.56,0.64,1) both;
     }
     @keyframes dropIn{from{opacity:0;transform:translateY(-6px) scale(0.97)}to{opacity:1;transform:none}}
@@ -137,39 +256,6 @@
     .user-dropdown-btn{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;border:none;background:transparent;font-family:'Kanit',sans-serif;font-size:13px;color:rgba(255,255,255,0.85);cursor:pointer;transition:background 0.13s,color 0.13s;text-align:left;width:100%}
     .user-dropdown-btn.menu:hover{background:var(--accent-soft);color:var(--accent-soft-text)}
     .user-dropdown-btn.signout:hover{background:rgba(192,57,43,0.18);color:var(--red-text)}
-
-    /* TOPBAR — frosted glass, brand lockup left · tabs · profile right */
-    .topbar{
-      background:rgba(30,48,84,0.72);backdrop-filter:blur(16px) saturate(1.1);-webkit-backdrop-filter:blur(16px);
-      border-bottom:1px solid var(--glass-brd);
-      padding:0 1.25rem;display:flex;align-items:center;
-      height:var(--topbar-h);position:sticky;top:0;z-index:100;
-      animation:slideDown 0.4s cubic-bezier(0.16,1,0.3,1) both;
-    }
-    @keyframes slideDown{from{transform:translateY(-56px);opacity:0}to{transform:translateY(0);opacity:1}}
-    /* On desktop row1 dissolves so brand + pill are direct flex items */
-    .topbar-row1{display:contents}
-    .topbar-brand{display:flex;align-items:center;gap:11px;min-width:0;order:0;animation:brandIn 0.5s cubic-bezier(0.16,1,0.3,1) 0.05s backwards}
-    @keyframes brandIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
-    .brand-chip{
-      width:40px;height:40px;border-radius:12px;flex-shrink:0;
-      background:rgba(255,255,255,0.10);border:1px solid var(--glass-brd);
-      display:flex;align-items:center;justify-content:center;
-      box-shadow:0 4px 14px -6px rgba(0,0,0,0.5);
-    }
-    .brand-mini{width:31px;height:31px;object-fit:contain;display:block;animation:logoGlow 4.5s ease-in-out infinite}
-    @keyframes logoGlow{
-      0%,100%{filter:drop-shadow(0 0 2px rgba(255,255,255,0.2))}
-      50%{filter:drop-shadow(0 0 9px rgba(255,255,255,0.7))}
-    }
-    .brand-text{min-width:0}
-    .brand-text h1{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.2px;line-height:1.15;white-space:nowrap}
-    .brand-sub{font-size:8.5px;font-weight:600;letter-spacing:0.34em;color:var(--pink);text-transform:uppercase;margin-top:1px;white-space:nowrap}
-    .topbar .view-tabs{order:1;margin-left:auto;margin-right:12px;animation:fadeDrop 0.45s cubic-bezier(0.16,1,0.3,1) 0.14s backwards}
-    @keyframes fadeDrop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-    .topbar .user-pill{order:2}
-    .pill-caret{opacity:0.5;font-size:9px;margin-left:2px}
-    @keyframes popIn{from{transform:scale(0.6);opacity:0}to{transform:scale(1);opacity:1}}
 
     /* THREE-COLUMN LAYOUT — frosted side columns over the gradient */
     .cal-wrap{padding-bottom:7rem;min-height:calc(100vh - var(--topbar-h));display:flex;flex-direction:column}
@@ -253,6 +339,40 @@
     @keyframes checkPop{0%{transform:scale(0.5)}60%{transform:scale(1.3)}100%{transform:scale(1)}}
     .check-row.saving input{opacity:0.35;pointer-events:none}
 
+    /* ══ PROGRESS ═══════════════════════════════════════════════
+       Hold the checkbox to set a task's progress up. The hold itself is
+       shown by a ring that sweeps round the box over the 500ms, so a
+       half-press reads as "not yet" rather than "nothing happened". */
+    .check-row input{touch-action:manipulation}
+    .check-row{position:relative}
+    .check-row .hold-ring{
+      position:absolute;left:50%;top:50%;width:31px;height:31px;margin:-15.5px 0 0 -15.5px;
+      border-radius:9px;pointer-events:none;opacity:0;
+      background:conic-gradient(var(--pink) var(--hold,0%),transparent 0);
+      -webkit-mask:radial-gradient(circle,transparent 11px,#000 11.5px);
+              mask:radial-gradient(circle,transparent 11px,#000 11.5px);
+      transition:opacity 0.12s;
+    }
+    .check-row.holding .hold-ring{opacity:1}
+    .check-row.holding input{transform:scale(0.9)}
+
+    /* The bar itself — one component, used in the popup, My Tasks and the sheet.
+       --pc carries the colour so callers can tint it per task. */
+    .prog-bar{display:flex;align-items:center;gap:3px;width:100%;height:8px}
+    .prog-bar .prog-track{flex:1;height:6px;border-radius:99px;background:var(--field-brd);overflow:hidden}
+    .prog-bar .prog-fill{height:100%;border-radius:99px;background:var(--pc);transition:width 0.28s cubic-bezier(0.34,1.4,0.64,1)}
+    .prog-seg{flex:1;height:6px;border-radius:99px;background:var(--field-brd);transition:background 0.2s,transform 0.14s}
+    .prog-seg.on{background:var(--pc)}
+    .prog-bar.live{height:22px;cursor:pointer}
+    .prog-bar.live .prog-seg{height:12px;border-radius:4px}
+    .prog-bar.live .prog-track{height:12px}
+    .prog-bar.live .prog-seg:hover{transform:scaleY(1.25)}
+    .prog-bar.live .prog-seg:active{transform:scaleY(0.85)}
+    .prog-bar.big{height:26px}
+    .prog-bar.big .prog-seg{height:14px;border-radius:5px}
+    .prog-bar.big .prog-track{height:14px}
+    .prog-read{font-size:11px;font-weight:500;color:var(--muted);white-space:nowrap;flex-shrink:0}
+
     /* Saving spinner */
     .check-spin{width:12px;height:12px;border:2px solid rgba(255,255,255,0.2);border-top-color:var(--pink);border-radius:50%;animation:spin 0.6s linear infinite;display:none;flex-shrink:0}
     .check-row.saving .check-spin{display:block}
@@ -287,6 +407,127 @@
     .out-indicator{position:absolute;top:7px;bottom:7px;width:6px;border-radius:3px;z-index:4;cursor:pointer;opacity:0.7;transition:opacity 0.15s}
     .out-indicator:hover{opacity:1}
     .out-left{left:0;border-radius:0 4px 4px 0}.out-right{right:0;border-radius:4px 0 0 4px}
+
+    /* ══ GRID MODE — month calendar with spanning chevron bars ═══ */
+    .tl-wrap{padding:0.85rem 1.25rem 0;display:flex;flex-direction:column;gap:10px}
+    /* Month bar: title centred, arrows pinned to the ends */
+    .tl-head{
+      position:relative;display:flex;align-items:center;justify-content:center;
+      height:52px;border-radius:14px;
+      background:var(--glass-2);border:1px solid var(--glass-brd);
+      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    }
+    .tl-title{font-size:19px;font-weight:600;letter-spacing:0.01em;white-space:nowrap;padding:0 96px;overflow:hidden;text-overflow:ellipsis}
+    .tl-title .tl-yr{color:var(--muted);font-weight:300;margin-left:6px}
+    .tl-nav{
+      position:absolute;top:8px;width:36px;height:36px;
+      border-radius:11px;border:1px solid var(--glass-brd);background:var(--glass);
+      color:var(--text);font-family:'Kanit',sans-serif;font-size:20px;line-height:1;
+      cursor:pointer;display:grid;place-items:center;
+      transition:background 0.14s,border-color 0.14s,color 0.14s,transform 0.12s;
+    }
+    .tl-nav.prev{left:8px}.tl-nav.next{right:8px}
+    .tl-nav:hover{background:var(--accent-soft);border-color:var(--accent-brd);color:var(--accent-soft-text)}
+    .tl-nav:active{transform:scale(0.92)}
+    .tl-today-btn{
+      position:absolute;right:52px;top:12px;height:28px;padding:0 12px;
+      border-radius:20px;border:1px solid var(--accent-brd);background:var(--accent-soft);
+      color:var(--accent-soft-text);font-family:'Kanit',sans-serif;font-size:12.5px;font-weight:500;
+      cursor:pointer;transition:background 0.14s,transform 0.12s;
+    }
+    .tl-today-btn:hover{background:var(--accent-ring)}
+    .tl-today-btn:active{transform:scale(0.95)}
+
+    .tl-grid{
+      --tl-top:34px;--tl-lane:30px;
+      border:1px solid var(--glass-brd);border-radius:16px;overflow:hidden;
+      background:var(--col);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+      box-shadow:0 10px 30px -18px rgba(0,0,0,0.7);
+    }
+    .tl-wd-row{display:grid;grid-template-columns:repeat(7,1fr)}
+    /* Weekday strip carries the Thai day colours (Sun red → Sat purple) */
+    .tl-wd{
+      padding:10px 3px;text-align:center;font-size:13px;font-weight:600;letter-spacing:0.01em;
+      color:var(--dc);background:var(--glass-2);
+      background:color-mix(in srgb,var(--dc) 20%,transparent);
+      border-bottom:1px solid var(--glass-brd);
+      white-space:nowrap;overflow:hidden;
+    }
+    .tl-wd+.tl-wd{border-left:1px solid var(--glass-brd)}
+    .tl-wd.d0{--dc:#f8717d}.tl-wd.d1{--dc:#e3b341}.tl-wd.d2{--dc:#ff86c8}
+    .tl-wd.d3{--dc:#4ac97e}.tl-wd.d4{--dc:#f0883e}.tl-wd.d5{--dc:#6aa9ff}.tl-wd.d6{--dc:#b083f7}
+    .tl-wd-abbr{display:none}
+
+    .tl-week{
+      position:relative;display:grid;grid-template-columns:repeat(7,1fr);
+      /* Grows with the busiest week, but a quiet month still reads as a calendar */
+      min-height:max(104px,calc(var(--tl-top) + var(--lanes) * var(--tl-lane) + 10px));
+    }
+    .tl-cell{border-top:1px solid var(--glass-brd);padding:6px 8px;min-width:0}
+    .tl-cell+.tl-cell{border-left:1px solid var(--glass-brd)}
+    .tl-wd-row+.tl-week .tl-cell{border-top:none}
+    .tl-cell.weekend{background:rgba(255,255,255,0.035)}
+    .tl-cell.out .tl-daynum{opacity:0.34}
+    .tl-daynum{display:inline-block;font-size:15px;font-weight:600;color:var(--muted);line-height:22px;min-width:22px;text-align:center}
+    /* Today is the one box you should find without looking for it */
+    .tl-cell.today{background:rgba(229,62,62,0.14);box-shadow:inset 0 0 0 2px var(--red)}
+    .tl-cell.today .tl-daynum{background:var(--red);color:#fff;font-weight:700;border-radius:20px;padding:0 7px;box-shadow:0 2px 10px -2px rgba(229,62,62,0.8)}
+
+    /* Bars float above the cells — one absolutely-placed lane stack per week */
+    .tl-lanes{position:absolute;left:0;right:0;top:var(--tl-top);bottom:4px;pointer-events:none}
+    .tl-bar{
+      position:absolute;height:24px;border-radius:7px;
+      display:flex;align-items:center;gap:4px;padding:0 10px;overflow:hidden;
+      cursor:pointer;pointer-events:auto;
+      box-shadow:0 3px 10px -5px rgba(0,0,0,0.8);
+      transition:filter 0.14s,transform 0.14s,opacity 0.25s;
+      animation:tlBarIn 0.36s cubic-bezier(0.16,1,0.3,1) backwards;
+    }
+    @keyframes tlBarIn{from{opacity:0;transform:translateY(3px) scaleX(0.96)}to{opacity:1;transform:none}}
+    .no-anim .tl-bar{animation:none}
+    .tl-bar:hover{filter:brightness(1.13);transform:translateY(-1px)}
+    /* Arrow head = the task really ends here · notch = continued from last week */
+    .tl-bar.ar{clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%)}
+    .tl-bar.nl{clip-path:polygon(0 0,100% 0,100% 100%,0 100%,9px 50%)}
+    .tl-bar.nl.ar{clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%,9px 50%)}
+    .tl-bar.nl{padding-left:15px}
+    .tl-bar.ar{padding-right:17px}
+    /* A one-day bar is only a seventh of the week wide — give the arrow head
+       and the padding back to the label, which is the part you actually read */
+    .tl-bar.tiny{padding:0 6px}
+    .tl-bar.tiny.nl{padding-left:13px}
+    .tl-bar.tiny.ar{padding-right:11px;clip-path:polygon(0 0,calc(100% - 7px) 0,100% 50%,calc(100% - 7px) 100%,0 100%)}
+    .tl-bar-txt{font-size:12.5px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 2px rgba(0,0,0,0.35)}
+    .tl-bar.done{opacity:0.36}
+    .tl-bar.done .tl-bar-txt{text-decoration:line-through}
+    .tl-bar.personal{border:2px dashed rgba(255,255,255,0.7)}
+    /* Overdue has to shout in either colour mode, so the alarm is a red glow
+       that follows the arrow silhouette rather than a change of fill */
+    .tl-bar.overdue{animation:tlBarIn 0.36s cubic-bezier(0.16,1,0.3,1) backwards,tlOverdue 2s ease-in-out 0.4s infinite}
+    @keyframes tlOverdue{
+      0%,100%{filter:drop-shadow(0 0 0 rgba(255,60,60,0)) brightness(1)}
+      50%{filter:drop-shadow(0 0 5px rgba(255,70,70,0.95)) brightness(1.14)}
+    }
+    /* Silent re-renders skip the entrance but the overdue pulse keeps going */
+    .no-anim .tl-bar.overdue{animation:tlOverdue 2s ease-in-out infinite}
+
+    /* Subject key — swatches are live colour inputs */
+    .tl-legend{display:flex;flex-wrap:wrap;align-items:center;gap:7px 14px;padding:11px 13px;
+      background:var(--glass-2);border:1px solid var(--glass-brd);border-radius:12px}
+    .tl-leg{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:12.5px;color:var(--muted);transition:color 0.14s}
+    .tl-leg:hover{color:var(--text)}
+    .tl-leg.marker-leg{cursor:default}
+    .tl-leg-sw{-webkit-appearance:none;appearance:none;width:17px;height:17px;flex-shrink:0;
+      border:1px solid var(--glass-brd);border-radius:5px;padding:0;background:transparent;cursor:pointer;
+      transition:transform 0.14s,box-shadow 0.14s}
+    .tl-leg-sw::-webkit-color-swatch-wrapper{padding:0}
+    .tl-leg-sw::-webkit-color-swatch{border:none;border-radius:4px}
+    .tl-leg-sw::-moz-color-swatch{border:none;border-radius:4px}
+    .tl-leg:hover .tl-leg-sw{transform:scale(1.14);box-shadow:0 2px 8px -2px rgba(0,0,0,0.6)}
+    .tl-leg-sw.static{cursor:default;border-radius:5px}
+    .tl-leg:hover .tl-leg-sw.static{transform:none;box-shadow:none}
+    .tl-leg-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+    .tl-foot{display:flex;align-items:center;justify-content:center;gap:8px;padding:2px 0 0;font-size:12px;color:var(--label);font-weight:300}
 
     .empty-state{text-align:center;padding:4rem 2rem;color:var(--muted)}
     .empty-state p{font-size:15px;margin-bottom:8px}
@@ -365,6 +606,8 @@
     .range-option{display:block;width:100%;padding:9px 12px;border:none;background:transparent;font-family:'Kanit',sans-serif;font-size:13px;color:rgba(255,255,255,0.85);cursor:pointer;border-radius:8px;text-align:left;transition:background 0.13s,color 0.13s}
     .range-option:hover{background:var(--accent-soft);color:var(--accent-soft-text)}
     .range-option.active{background:var(--accent-grad);color:white;font-weight:500}
+    /* Range only applies to timeline mode, so it sits below a divider */
+    #rangeSection{border-top:1px solid var(--glass-brd);margin-top:5px;padding-top:2px}
 
     /* MODAL — dark glass */
     .modal-overlay{position:fixed;inset:0;background:rgba(5,10,22,0.62);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem}
@@ -521,18 +764,7 @@
     .detail-close{position:absolute;top:10px;right:12px;background:none;border:none;font-size:16px;cursor:pointer;color:var(--label);line-height:1;transition:color 0.15s}
     .detail-close:hover{color:var(--text)}
 
-    .latest-pill{display:inline-flex;align-items:center;gap:4px;background:var(--green-light);color:var(--green-text);font-size:10px;font-weight:500;padding:2px 7px;border-radius:10px;border:1px solid var(--green-mid);white-space:nowrap;animation:pillPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both}
     @keyframes pillPop{from{transform:scale(0.7);opacity:0}to{transform:scale(1);opacity:1}}
-
-    /* VIEW TABS */
-    .view-tabs{display:flex;gap:4px;background:var(--glass-2);border:1px solid var(--glass-brd);border-radius:10px;padding:3px}
-    .view-tab{padding:5px 13px;border:none;border-radius:7px;font-family:'Kanit',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:var(--muted);background:transparent;transition:background 0.18s,color 0.18s,transform 0.12s;white-space:nowrap}
-    .view-tab:hover:not(.active){background:rgba(255,255,255,0.08);color:var(--text)}
-    .view-tab:active{transform:scale(0.93)}
-    .view-tab.active{background:rgba(255,255,255,0.16);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,0.25)}
-    .view-tab .tab-count{display:inline-block;margin-left:5px;background:var(--red-light);color:var(--red-text);font-size:10px;font-weight:600;border-radius:10px;padding:0 5px;line-height:16px;vertical-align:middle}
-    .view-tab.active .tab-count{background:#e53e3e;color:white}
-    .view-tab #ptTopCount{background:var(--accent-soft);color:var(--accent-soft-text)}
 
     /* ARCHIVE — Gmail-style list */
     .archive-wrap{padding:1.5rem 1.5rem 7rem;max-width:980px;margin:0 auto}
@@ -606,36 +838,57 @@
 
     /* ── 480 px and below (phones) ─────────────────────────────── */
     @media(max-width:480px){
-      :root{--label-w:88px;--check-w:36px;--row-h:48px;--topbar-h:96px}
+      :root{--label-w:88px;--check-w:36px;--row-h:48px;--topbar-h:76px}
 
-      /* Two-row topbar: brand + profile row, then centered tab pill */
-      .topbar{
-        padding:0;height:auto;
-        flex-direction:column;align-items:stretch;gap:0;
-      }
-      .topbar-row1{
-        display:flex;align-items:center;justify-content:space-between;
-        gap:10px;padding:9px 14px 6px;
-      }
-      .topbar-brand .latest-pill{display:none!important}
-      .brand-text h1{font-size:14px}
-      .brand-sub{font-size:7.5px}
-      .brand-chip{width:34px;height:34px;border-radius:10px}
-      .brand-mini{width:26px;height:26px}
-      /* Centered segmented tab pill */
-      .topbar .view-tabs{order:initial;margin:0 auto 8px;flex-shrink:0}
-      .view-tab{padding:5px 8px;font-size:10.5px;white-space:nowrap}
-      .user-pill{flex-shrink:0}
-      .user-pill span.pill-name{display:none}
+      /* One row still, because the pills stack icon over label and stay narrow.
+         The brand collapses to its chip so the tabs get the width. */
+      .topbar{padding:8px 8px 0}
+      .topnav{gap:8px;padding:6px 8px 6px 6px;border-radius:17px}
+      .topbar.shrunk .topnav{padding:2px 7px 2px 5px;border-radius:14px}
+      .brand-text{display:none}
+      .latest-pill{display:none!important}
+      .topnav-tabs{gap:1px}
+      .nav-pill{padding:5px 7px;border-radius:12px}
+      .topbar.shrunk .nav-pill{padding:3px 7px}
+      .nav-lab{font-size:9px}
+      .nav-ic{width:18px;height:18px}
+      .nav-pill.profile .nav-lab{max-width:44px}
 
-      /* Sticky header offset matches two-row topbar */
-      .cal-header-row{top:96px}
+      /* The ruler hangs off whatever the bar currently measures */
+      .cal-header-row{top:var(--topbar-h)}
 
       /* Gantt + ticks */
       .date-tick-label{font-size:9.5px}
       .gantt-bar{top:8px;bottom:8px}
       .check-row input{width:18px;height:18px}
       .marker-name-tag{max-width:52px;font-size:8px}
+
+      /* Grid mode — seven columns on a phone, so everything shrinks a notch */
+      .tl-wrap{padding:0.7rem 0.55rem 0;gap:9px}
+      .tl-head{height:46px}
+      .tl-title{font-size:16px;padding:0 84px}
+      .tl-nav{top:6px;width:34px;height:34px;font-size:19px}
+      .tl-today-btn{right:46px;top:10px;height:26px;padding:0 10px;font-size:11.5px}
+      .tl-grid{--tl-top:26px;--tl-lane:24px;border-radius:13px}
+      .tl-week{min-height:max(80px,calc(var(--tl-top) + var(--lanes) * var(--tl-lane) + 8px))}
+      .tl-wd{font-size:11px;padding:7px 1px}
+      .tl-wd-full{display:none}
+      .tl-wd-abbr{display:inline}
+      .tl-cell{padding:4px 3px}
+      .tl-daynum{font-size:13px;line-height:19px;min-width:19px}
+      .tl-cell.today{box-shadow:inset 0 0 0 2px var(--red)}
+      .tl-bar{height:19px;border-radius:5px;padding:0 5px}
+      .tl-bar.nl{padding-left:10px}.tl-bar.ar{padding-right:12px}
+      .tl-bar.ar{clip-path:polygon(0 0,calc(100% - 8px) 0,100% 50%,calc(100% - 8px) 100%,0 100%)}
+      .tl-bar.nl.ar{clip-path:polygon(0 0,calc(100% - 8px) 0,100% 50%,calc(100% - 8px) 100%,0 100%,6px 50%)}
+      .tl-bar.nl{clip-path:polygon(0 0,100% 0,100% 100%,0 100%,6px 50%)}
+      .tl-bar.tiny{padding:0 3px}
+      .tl-bar.tiny.nl{padding-left:9px}
+      .tl-bar.tiny.ar{padding-right:8px;clip-path:polygon(0 0,calc(100% - 5px) 0,100% 50%,calc(100% - 5px) 100%,0 100%)}
+      .tl-bar-txt{font-size:10.5px}
+      .tl-legend{gap:6px 11px;padding:9px 10px}
+      .tl-leg{font-size:11.5px}
+      .tl-leg-name{max-width:110px}
 
       /* Modals slide up from bottom */
       .modal{border-radius:16px 16px 0 0;max-height:85vh;margin-top:auto}
@@ -670,13 +923,16 @@
 
     /* ── 380 px and below (small phones) ───────────────────────── */
     @media(max-width:380px){
-      :root{--label-w:72px;--font-row-name:12px;--topbar-h:90px}
-      .view-tab{padding:4px 6px;font-size:10px}
+      :root{--label-w:72px;--font-row-name:12px;--topbar-h:72px}
+      .nav-pill{padding:5px 5px}
+      .nav-lab{font-size:8.5px}
+      .nav-ic{width:17px;height:17px}
+      .nav-pill.profile .nav-lab{display:none}
       .row-subject{display:none}
       .label-row{padding-left:8px}
       .skel-lrow{padding-left:8px}
       .cal-header-left{padding-left:8px}
-      .cal-header-row{top:90px}
+      .cal-header-row{top:var(--topbar-h)}
     }
 
     /* ── Tablet 601–1024 px ─────────────────────────────────────── */
@@ -858,25 +1114,147 @@
     .btn-solid:hover{filter:brightness(1.07)}
     .btn-solid:active,.btn-ghost:active{transform:scale(0.98)}
 
-    /* Settings modal */
-    .set-section{margin-bottom:1.2rem}
-    .set-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--label);margin-bottom:8px}
-    .set-hint{font-size:11px;color:var(--muted);font-weight:300;margin:-4px 0 9px;line-height:1.5}
-    .set-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--field-bg);border:1px solid var(--glass-brd);border-radius:10px;padding:10px 12px;cursor:pointer;transition:background 0.15s}
-    .set-toggle-row:hover{background:rgba(255,255,255,0.12)}
-    .set-toggle-title{font-size:13px;font-weight:500;color:var(--text)}
-    .set-toggle-sub{font-size:10.5px;color:var(--muted);font-weight:300;margin-top:1px;line-height:1.4}
+    /* ══ SETTINGS ══════════════════════════════════════════════
+       A grouped inset list, the way GrowCycle's settings screen reads:
+       small-caps section labels with a leaf bullet, rounded groups of
+       hairline-separated rows, an icon chip per row. Two extra tokens
+       carry the group surface and the divider in both themes. */
+    .set-sheet{max-width:460px;padding:0;display:flex;flex-direction:column;max-height:88vh}
+    .set-sheet-head{
+      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+      padding:1.25rem 1.35rem 0.9rem;flex-shrink:0;
+      border-bottom:1px solid var(--divider);
+    }
+    .set-page-title{font-size:23px;font-weight:700;letter-spacing:-0.02em;color:var(--text);line-height:1.1}
+    .set-page-sub{font-size:12px;font-weight:300;color:var(--muted);margin-top:3px}
+    .set-close{
+      width:32px;height:32px;flex-shrink:0;border-radius:50%;border:1px solid var(--glass-brd);
+      background:var(--field-bg);color:var(--muted);font-size:13px;cursor:pointer;
+      display:grid;place-items:center;transition:background 0.15s,color 0.15s,transform 0.12s;
+    }
+    .set-close:hover{background:var(--accent-soft);color:var(--accent-soft-text)}
+    .set-close:active{transform:scale(0.9)}
+    .set-scroll{overflow-y:auto;padding:1.15rem 1.35rem 0.4rem;flex:1;-webkit-overflow-scrolling:touch}
+    /* The sheet has padding:0 so the head and list can span it — the pinned
+       footer has to put its own back. */
+    .set-sheet .modal-actions{margin:0;padding:0.9rem 1.35rem 1.15rem;flex-shrink:0;border-top:1px solid var(--divider)}
+    /* On phones the modal becomes a bottom sheet; keep the settings list
+       within that shorter box instead of the taller desktop one. */
+    @media(max-width:480px){
+      .set-sheet{max-height:85vh;border-radius:16px 16px 0 0}
+      .set-sheet-head{padding:1.05rem 1.1rem 0.8rem}
+      .set-scroll{padding:1rem 1.1rem 0.4rem}
+      .set-sheet .modal-actions{padding:0.8rem 1.1rem 1rem}
+      .set-page-title{font-size:21px}
+      .theme-grid.three{grid-template-columns:1fr;gap:7px}
+      .theme-grid.three .theme-opt{flex-direction:row;justify-content:center;gap:7px;padding:10px 8px}
+    }
+
+    .set-group-label{
+      display:flex;align-items:center;gap:8px;
+      font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;
+      color:var(--label);margin:0 0 9px 3px;
+    }
+    .set-group-label:not(:first-child){margin-top:1.5rem}
+    /* The leaf bullet — a rounded square turned 45°, GrowCycle's signature */
+    .set-group-label::before{
+      content:'';width:7px;height:7px;flex-shrink:0;
+      background:var(--pink);border-radius:0 60% 60% 60%;transform:rotate(45deg);
+    }
+    .set-group{
+      background:var(--group-bg);border:1px solid var(--glass-brd);
+      border-radius:18px;overflow:hidden;
+      box-shadow:0 2px 14px -6px rgba(0,0,0,0.35);
+    }
+    .set-group-note{font-size:11px;font-weight:300;color:var(--muted);line-height:1.55;margin:9px 4px 0}
+
+    .set-row{
+      display:flex;align-items:center;gap:14px;
+      padding:14px 15px;width:100%;text-align:left;
+      border:none;border-bottom:1px solid var(--divider);
+      background:transparent;color:var(--text);font-family:'Kanit',sans-serif;
+      text-decoration:none;transition:background 0.15s;
+    }
+    .set-group>.set-row:last-child{border-bottom:none}
+    .set-row.tap{cursor:pointer}
+    .set-row.tap:hover{background:var(--accent-soft)}
+    /* Choice rows put their picker under the label instead of beside it */
+    .set-row.stack{flex-direction:column;align-items:stretch;gap:11px}
+    .set-row-main{display:flex;align-items:center;gap:14px}
+    .set-row-icon{
+      width:38px;height:38px;flex-shrink:0;border-radius:11px;
+      display:grid;place-items:center;font-size:17px;
+      background:var(--accent-soft);border:1px solid var(--accent-brd);
+    }
+    .set-row-text{min-width:0;flex:1}
+    .set-row-title{font-size:13.5px;font-weight:600;color:var(--text);line-height:1.3}
+    .set-row-desc{font-size:11px;font-weight:300;color:var(--muted);line-height:1.5;margin-top:2px}
+    .set-chev{font-size:19px;color:var(--muted);opacity:0.65;flex-shrink:0;line-height:1}
+
+    /* iOS-style switch — bigger and more obviously tappable than .pt-switch */
+    .set-switch{
+      width:50px;height:29px;flex-shrink:0;border-radius:99px;position:relative;
+      background:var(--field-brd);border:1px solid var(--glass-brd);
+      transition:background 0.2s,border-color 0.2s;
+    }
+    .set-switch::after{
+      content:'';position:absolute;left:2px;top:2px;width:23px;height:23px;border-radius:50%;
+      background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);
+      transition:transform 0.28s cubic-bezier(.34,1.4,.64,1);
+    }
+    .set-switch.on{background:var(--pink);border-color:transparent}
+    .set-switch.on::after{transform:translateX(21px)}
+
     .notify-time-input{background:var(--field-bg);border:1px solid var(--field-brd);border-radius:9px;color:var(--text);font-family:'Kanit',sans-serif;font-size:14px;padding:6px 9px;outline:none;flex-shrink:0;color-scheme:dark;transition:border-color 0.15s}
     .notify-time-input:focus{border-color:var(--pink)}
     html[data-theme="light"] .notify-time-input{color-scheme:light}
-    .pt-switch.accent.on{background:var(--pink)}
-    html[data-theme="light"] .set-toggle-row{background:rgba(0,0,0,0.04)}
-    html[data-theme="light"] .set-toggle-row:hover{background:rgba(0,0,0,0.07)}
+
     .theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .theme-grid.three{grid-template-columns:repeat(3,1fr)}
     .theme-opt{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 8px;border-radius:12px;border:1.5px solid var(--field-brd);background:var(--field-bg);color:var(--text);font-family:'Kanit',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:border-color 0.15s,background 0.15s,transform 0.12s}
     .theme-opt span{font-size:10px;color:var(--muted);font-weight:300}
     .theme-opt:active{transform:scale(0.97)}
+    /* Small +/− pair for the "parts to start with" row */
+    .pg-mini-btn{width:28px;height:28px;flex-shrink:0;border-radius:8px;border:1px solid var(--field-brd);background:var(--field-bg);color:var(--text);font-family:'Kanit',sans-serif;font-size:15px;line-height:1;cursor:pointer;display:grid;place-items:center;transition:border-color 0.15s,background 0.15s,transform 0.12s}
+    .pg-mini-btn:hover{border-color:var(--pink);background:var(--accent-soft)}
+    .pg-mini-btn:active{transform:scale(0.9)}
+    .pg-mini-val{min-width:26px;text-align:center;font-size:14px;font-weight:600;color:var(--text)}
+    #pgDefTotalRow.hide{display:none}
     .theme-opt.active{border-color:var(--pink);background:var(--accent-soft)}
+    /* Progress inside the detail popup */
+    .dp-prog{margin:0 0 11px}
+    .dp-prog-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+    .dp-prog-label{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--label)}
+    .dp-prog-read{font-size:12px;font-weight:600;color:var(--text)}
+    .dp-prog-edit{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;transition:color .15s}
+    .dp-prog-edit:hover{color:var(--pink)}
+    .dp-prog-set{width:100%;padding:9px;border-radius:10px;border:1px dashed var(--field-brd);background:transparent;color:var(--muted);font-family:'Kanit',sans-serif;font-size:12.5px;cursor:pointer;transition:border-color .15s,color .15s,background .15s;margin-bottom:11px}
+    .dp-prog-set:hover{border-color:var(--pink);color:var(--accent-soft-text);background:var(--accent-soft)}
+    .dp-prog .pg-range{height:12px}
+    .dp-prog .pg-range::-webkit-slider-thumb{width:20px;height:20px}
+
+    /* Progress setup sheet — reuses the small section styles the settings
+       sheet used to be built from */
+    .set-section{margin-bottom:1.2rem}
+    .set-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--label);margin-bottom:8px}
+    .set-hint{font-size:11px;color:var(--muted);font-weight:300;line-height:1.5}
+    .pg-task{font-size:13px;font-weight:500;color:var(--text);background:var(--field-bg);border:1px solid var(--glass-brd);border-radius:10px;padding:9px 12px;margin:-0.5rem 0 1.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .pg-stepper{display:flex;align-items:center;gap:10px}
+    .pg-step-btn{width:40px;height:40px;border-radius:12px;border:1.5px solid var(--field-brd);background:var(--field-bg);color:var(--text);font-family:'Kanit',sans-serif;font-size:20px;line-height:1;cursor:pointer;display:grid;place-items:center;transition:border-color 0.15s,background 0.15s,transform 0.12s}
+    .pg-step-btn:hover{border-color:var(--pink);background:var(--accent-soft)}
+    .pg-step-btn:active{transform:scale(0.9)}
+    .pg-step-btn:disabled{opacity:0.35;pointer-events:none}
+    .pg-step-val{flex:1;text-align:center;font-size:22px;font-weight:600;color:var(--text)}
+    .pg-preview-row{display:flex;align-items:center;gap:10px}
+    .pt-list-prog{display:flex;align-items:center;gap:7px;margin-top:6px}
+    .pt-list-prog .prog-bar{max-width:120px}
+    /* Slider — restyled so it matches the glass fields rather than the OS */
+    .pg-range{-webkit-appearance:none;appearance:none;width:100%;height:14px;border-radius:99px;outline:none;cursor:pointer;
+      background:linear-gradient(to right,var(--pink) var(--fill,0%),var(--field-brd) var(--fill,0%))}
+    .pg-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:26px;height:26px;border-radius:50%;background:var(--accent-grad);border:2px solid var(--sheet);box-shadow:0 3px 10px -2px var(--accent-shadow);cursor:pointer}
+    .pg-range::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:var(--pink);border:2px solid var(--sheet);cursor:pointer}
+    #pgStepsFields.hide,#pgPercentFields.hide{display:none}
+
     .zone-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12px;color:var(--muted)}
     .zone-row label{flex:1;color:var(--text);font-size:13px;display:flex;align-items:center;gap:8px;font-weight:400}
     .zone-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
@@ -898,6 +1276,7 @@
       --glass:#ffffff;--glass-2:#f8faf8;--glass-brd:#dde3dd;
       --field-bg:#ffffff;--field-brd:#dde3dd;
       --panel:#ffffff;--sheet:#ffffff;--col:rgba(255,255,255,0.88);
+      --group-bg:#ffffff;--divider:rgba(20,40,15,0.08);
       --card:#ffffff;--border:#dde3dd;
       --text:#1a1a1a;--muted:#6b7b6b;--label:#9aaa9a;--surface:#f8faf8;
       --green-text:#0F6E56;--green-light:#e6f7f1;--green-mid:#c3ead8;
@@ -908,20 +1287,38 @@
     html[data-theme="light"] body{background:#f4f6f4}
     html[data-theme="light"] .bg-orbs{display:none}
     html[data-theme="light"] #authGate .gate-spin{border-color:#dde3dd;border-top-color:var(--pink)}
-    html[data-theme="light"] .topbar{background:rgba(255,255,255,0.88);border-bottom-color:#dde3dd}
+    /* The floating bar is .topnav now — .topbar is just the transparent slot */
+    html[data-theme="light"] .topnav{
+      background:rgba(255,255,255,0.86);border-color:rgba(20,40,15,0.10);
+      box-shadow:0 1px 2px rgba(20,40,15,0.06), 0 16px 40px -22px rgba(20,40,15,0.30);
+    }
     html[data-theme="light"] .brand-chip{background:#ffffff;border-color:#dde3dd;box-shadow:0 2px 8px -2px rgba(0,0,0,0.12)}
+    html[data-theme="light"] .user-dropdown-name{color:#1a1a1a}
     html[data-theme="light"] .brand-mini{animation:none}
     html[data-theme="light"] .cal-header-scroll{background:rgba(244,246,244,0.88)}
     html[data-theme="light"] .cal-left,html[data-theme="light"] .cal-header-left{box-shadow:4px 0 14px -4px rgba(0,0,0,0.10)}
     html[data-theme="light"] .cal-right,html[data-theme="light"] .cal-header-right{box-shadow:-4px 0 14px -4px rgba(0,0,0,0.10)}
     html[data-theme="light"] .grid-col{background:rgba(0,0,0,0.07)}
+    /* Grid mode: paler surfaces, and day colours darkened enough to read on white */
+    html[data-theme="light"] .tl-head,html[data-theme="light"] .tl-grid{background:#ffffff;border-color:#dde3dd;backdrop-filter:none;-webkit-backdrop-filter:none}
+    html[data-theme="light"] .tl-grid{box-shadow:0 6px 22px -16px rgba(0,0,0,0.35)}
+    html[data-theme="light"] .tl-nav{background:#f8faf8;border-color:#dde3dd}
+    html[data-theme="light"] .tl-cell.weekend{background:#f8faf8}
+    html[data-theme="light"] .tl-wd.d0{--dc:#c62828}html[data-theme="light"] .tl-wd.d1{--dc:#9a6b00}
+    html[data-theme="light"] .tl-wd.d2{--dc:#c2185b}html[data-theme="light"] .tl-wd.d3{--dc:#2e7d32}
+    html[data-theme="light"] .tl-wd.d4{--dc:#c05621}html[data-theme="light"] .tl-wd.d5{--dc:#1565c0}
+    html[data-theme="light"] .tl-wd.d6{--dc:#6b21a8}
+    html[data-theme="light"] .tl-bar{box-shadow:0 2px 7px -4px rgba(0,0,0,0.45)}
+    html[data-theme="light"] .tl-bar.personal{border-color:rgba(255,255,255,0.85)}
+    html[data-theme="light"] .tl-cell.today{background:#fff1f1}
+    html[data-theme="light"] .tl-legend{background:#ffffff;border-color:#dde3dd}
+    html[data-theme="light"] .tl-leg-sw{border-color:#c8d4c8}
     html[data-theme="light"] .baseline-track{background:#dde3dd}
     html[data-theme="light"] .label-row:hover{background:rgba(0,0,0,0.04)}
-    html[data-theme="light"] .view-tab:hover:not(.active){background:rgba(0,0,0,0.05)}
-    html[data-theme="light"] .view-tab.active{background:#ffffff;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
-    html[data-theme="light"] .user-pill{background:var(--green-light);border-color:var(--green-mid);color:#0F6E56}
-    html[data-theme="light"] .user-pill:hover{background:var(--green-mid)}
-    html[data-theme="light"] .user-pill img{border-color:#c3ead8}
+    html[data-theme="light"] .nav-pill:hover:not(.active){background:rgba(0,0,0,0.05)}
+    html[data-theme="light"] .nav-pill{color:#6b7b6b}
+    html[data-theme="light"] .nav-pill.active{color:#fff}
+    html[data-theme="light"] .nav-pill.active .tab-count{background:#fff;color:#0F6E56}
     html[data-theme="light"] .user-dropdown{border-color:#dde3dd;box-shadow:0 18px 44px -12px rgba(0,0,0,0.18)}
     html[data-theme="light"] .user-dropdown-info{border-bottom-color:#eef1ee}
     html[data-theme="light"] .user-dropdown-btn{color:#3a463a}
@@ -984,49 +1381,221 @@
 
 <!-- Auth gate -->
 <div id="authGate">
-  <div style="font-size:36px">📅</div>
+  <div style="font-size:36px;line-height:0"><svg class="ic ic-xl" aria-hidden="true"><use href="#ic-calendar-grid"/></svg></div>
   <div class="gate-spin"></div>
   <div class="gate-msg">Checking sign-in...</div>
 </div>
 
 <div id="appWrap" style="display:none">
 
+<!-- Nav icon set — stroke drawings at 24×24, inherit currentColor so the
+     active pill flips them to white without a second asset. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="ic-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M7.5 14.5h3M13.5 14.5h3M7.5 17.5h3"/>
+  </symbol>
+  <symbol id="ic-archive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="4" width="18" height="4.5" rx="1.6"/><path d="M4.8 8.5v9.7A2.3 2.3 0 0 0 7.1 20.5h9.8a2.3 2.3 0 0 0 2.3-2.3V8.5"/><path d="M10 12.3h4"/>
+  </symbol>
+  <symbol id="ic-mine" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16.5 3.6a2.1 2.1 0 0 1 3 3L9.4 16.7l-3.9 1 1-3.9z"/><path d="M4.5 20.4h15"/>
+  </symbol>
+  <symbol id="ic-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3.1"/>
+    <path d="M12 2.7v2.1M12 19.2v2.1M4.4 4.4l1.5 1.5M18.1 18.1l1.5 1.5M2.7 12h2.1M19.2 12h2.1M4.4 19.6l1.5-1.5M18.1 5.9l1.5-1.5"/>
+  </symbol>
+  <symbol id="ic-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="8" r="3.6"/><path d="M4.8 20.2a7.2 7.2 0 0 1 14.4 0"/>
+  </symbol>
+  <!-- UI icons. Same drawing rules as the nav set: 24×24, stroke-only,
+       currentColor, so one symbol works on a pink pill and a grey row alike.
+       Presentation attributes sit on the <symbol> and are inherited by the
+       shapes, which is what lets <use> re-colour them. -->
+  <symbol id="ic-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/><path d="M9.4 9.2a2.7 2.7 0 1 1 3.4 3.3c-.6.2-.8.7-.8 1.3v.4"/><path d="M12 17.4h.01"/>
+  </symbol>
+  <symbol id="ic-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3.6 10.4 12 3.8l8.4 6.6"/><path d="M5.6 12v7.4a1 1 0 0 0 1 1h10.8a1 1 0 0 0 1-1V12"/><path d="M9.8 20.4v-5.2h4.4v5.2"/>
+  </symbol>
+  <symbol id="ic-note" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 12.5V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6.6"/><path d="M8.2 9.4h5M8.2 13h4"/><path d="M17.6 3.6a1.7 1.7 0 0 1 2.4 2.4l-4.3 4.3-2.8.5.5-2.8z"/>
+  </symbol>
+  <symbol id="ic-toolbox" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="8" width="18" height="12" rx="2.4"/><path d="M8.6 8V6.2a1.6 1.6 0 0 1 1.6-1.6h3.6a1.6 1.6 0 0 1 1.6 1.6V8"/><path d="M3 13h18M10 13v2.4h4V13"/>
+  </symbol>
+  <symbol id="ic-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="4.6" y="10.4" width="14.8" height="9.8" rx="2.2"/><path d="M8 10.4V7.6a4 4 0 0 1 8 0v2.8"/><path d="M12 14.2v2.2"/>
+  </symbol>
+  <symbol id="ic-unlock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="4.6" y="10.4" width="14.8" height="9.8" rx="2.2"/><path d="M8 10.4V7.6a4 4 0 0 1 7.6-1.7"/><path d="M12 14.2v2.2"/>
+  </symbol>
+  <symbol id="ic-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 5.4v13.2M5.4 12h13.2"/>
+  </symbol>
+  <symbol id="ic-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2.8s5.6 4.2 5.6 9.4a5.6 5.6 0 0 1-11.2 0c0-2.1 1-3.8 2-5 .3 1.2 1 2 1.9 2.2C10 7 10.8 4.6 12 2.8z"/>
+  </symbol>
+  <symbol id="ic-exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14.4 4.6H6.8a1.8 1.8 0 0 0-1.8 1.8v11.2a1.8 1.8 0 0 0 1.8 1.8h7.6"/><path d="M17.4 12H10.2"/><path d="M14.8 8.8 18 12l-3.2 3.2"/>
+  </symbol>
+  <symbol id="ic-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/><path d="m8 12.2 2.8 2.8L16 9.6"/>
+  </symbol>
+  <symbol id="ic-check-square" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3.6" y="3.6" width="16.8" height="16.8" rx="3.2"/><path d="m8 12.2 2.8 2.8L16 9.6"/>
+  </symbol>
+  <symbol id="ic-palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3.2a8.8 8.8 0 0 0 0 17.6c1.2 0 1.9-.8 1.9-1.7 0-.5-.2-.8-.5-1.2s-.5-.7-.5-1.2c0-.9.8-1.6 1.7-1.6h1.6a4.6 4.6 0 0 0 4.6-4.6c0-3.9-3.9-7.3-8.8-7.3z"/>
+    <circle cx="8" cy="10.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="7.6" r="1.1" fill="currentColor" stroke="none"/><circle cx="16" cy="10" r="1.1" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="ic-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 20.2h16"/><path d="M7 20V12.4M12 20V5.4M17 20v-5.6"/>
+  </symbol>
+  <symbol id="ic-calendar-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8.6 13.6h.01M12 13.6h.01M15.4 13.6h.01M8.6 17.2h.01M12 17.2h.01M15.4 17.2h.01"/>
+  </symbol>
+  <symbol id="ic-infinity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 8.4a3.6 3.6 0 1 0 0 7.2c3.6 0 4.4-7.2 8-7.2a3.6 3.6 0 1 1 0 7.2c-3.6 0-4.4-7.2-8-7.2z"/>
+  </symbol>
+  <symbol id="ic-tack" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9.4 3.6h5.2l-.7 5 3.3 2.8v1.8H6.8v-1.8l3.3-2.8z"/><path d="M12 13.2v7.2"/>
+  </symbol>
+  <symbol id="ic-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4.4 6.6h15.2"/><path d="M9.4 6.6V5a1.4 1.4 0 0 1 1.4-1.4h2.4A1.4 1.4 0 0 1 14.6 5v1.6"/>
+    <path d="M6.4 6.6 7.3 19a1.8 1.8 0 0 0 1.8 1.6h5.8a1.8 1.8 0 0 0 1.8-1.6l.9-12.4"/><path d="M10.4 10.4v6M13.6 10.4v6"/>
+  </symbol>
+  <symbol id="ic-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16.5 3.6a2.1 2.1 0 0 1 3 3L9.4 16.7l-3.9 1 1-3.9z"/><path d="M4.5 20.4h15"/>
+  </symbol>
+  <symbol id="ic-clipboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 4.6H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-12a2 2 0 0 0-2-2h-2"/>
+    <rect x="9" y="2.8" width="6" height="3.6" rx="1.2"/><path d="M8.6 11.4h6.8M8.6 15h4.8"/>
+  </symbol>
+  <symbol id="ic-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 21.2s6.4-6 6.4-10.6a6.4 6.4 0 1 0-12.8 0C5.6 15.2 12 21.2 12 21.2z"/><circle cx="12" cy="10.4" r="2.4"/>
+  </symbol>
+  <symbol id="ic-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.4" fill="currentColor"/></symbol>
+  <symbol id="ic-party" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3.6 20.4 8 9.2l6.8 6.8z"/><path d="M13.4 3.6v2M18.6 5.4l-1.4 1.4M20.4 10.6h-2"/><path d="M11.6 7.6a3.4 3.4 0 0 1 3.4-3.4M16.4 12.4a3.4 3.4 0 0 1 3.4-3.4"/>
+  </symbol>
+  <symbol id="ic-save" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 4.6h11L19.4 8v11.4a1.6 1.6 0 0 1-1.6 1.6H5a1.6 1.6 0 0 1-1.6-1.6V6.2A1.6 1.6 0 0 1 5 4.6z"/>
+    <path d="M7.6 4.6v4.6h7.2V4.6"/><rect x="7.6" y="13" width="8.8" height="8"/>
+  </symbol>
+  <symbol id="ic-theme" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="8.4"/><path d="M12 3.6a8.4 8.4 0 0 1 0 16.8z" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 14.4A8.4 8.4 0 0 1 9.6 4a8.4 8.4 0 1 0 10.4 10.4z"/>
+  </symbol>
+  <symbol id="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.2M12 19.2v2.2M4.4 4.4l1.6 1.6M18 18l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.4 19.6 6 18M18 6l1.6-1.6"/>
+  </symbol>
+  <symbol id="ic-crayon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14.6 3.4 20.6 9.4 10.2 19.8l-6 .8.8-6z"/><path d="M12.6 5.4l6 6"/>
+  </symbol>
+  <symbol id="ic-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6.2 10.4a5.8 5.8 0 0 1 11.6 0c0 4 1.4 5.6 1.4 5.6H4.8s1.4-1.6 1.4-5.6z"/><path d="M10.2 19a2 2 0 0 0 3.6 0"/>
+  </symbol>
+  <symbol id="ic-alarm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="13.4" r="7.2"/><path d="M12 9.8v3.6l2.4 1.6"/><path d="M4.4 5.4 7 3.2M19.6 5.4 17 3.2"/>
+  </symbol>
+  <symbol id="ic-broom" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19.6 3.8 12.2 11.2"/><path d="M13.6 9.4 6.4 16.6l3.4 3.4 7.2-7.2z"/><path d="M6.4 16.6 3.6 20.4l3.4-.4"/>
+  </symbol>
+  <symbol id="ic-puzzle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 4.2a1.9 1.9 0 0 1 3.8 0v.9h3a1 1 0 0 1 1 1v3h.9a1.9 1.9 0 0 1 0 3.8h-.9v3a1 1 0 0 1-1 1h-3v-.9a1.9 1.9 0 0 0-3.8 0v.9h-3a1 1 0 0 1-1-1v-3h-.9a1.9 1.9 0 0 1 0-3.8h.9v-3a1 1 0 0 1 1-1h3z"/>
+  </symbol>
+  <symbol id="ic-trend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3.6 16.4 9 10.8l3.4 3.4 7-7"/><path d="M15.4 7.2h4.2v4.2"/>
+  </symbol>
+  <symbol id="ic-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="6" y="2.6" width="12" height="18.8" rx="2.8"/><path d="M10.6 18.4h2.8"/>
+  </symbol>
+  <symbol id="ic-warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10.6 4.2 2.9 17.6a1.6 1.6 0 0 0 1.4 2.4h15.4a1.6 1.6 0 0 0 1.4-2.4L13.4 4.2a1.6 1.6 0 0 0-2.8 0z"/><path d="M12 9.6v4M12 16.8h.01"/>
+  </symbol>
+  <symbol id="ic-timer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12.8" r="8"/><path d="M12 8.6v4.2l2.8 1.8"/>
+  </symbol>
+  <symbol id="ic-tap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 11.2V5.6a1.8 1.8 0 0 1 3.6 0v6.6"/><path d="M12.6 12.4V10a1.7 1.7 0 0 1 3.4 0v2.4"/><path d="M16 12.6v-1a1.7 1.7 0 0 1 3.4 0v4.6a5 5 0 0 1-5 5h-1.8a4.4 4.4 0 0 1-3.4-1.6l-3-3.6a1.7 1.7 0 0 1 2.4-2.4L9 14.6"/>
+  </symbol>
+  <symbol id="ic-telescope" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m3.4 12.6 3.2-5.4 4.6 2.6-3.2 5.4z"/><path d="m11.2 9.8 3.2-5.4 4.6 2.6-3.2 5.4z"/><path d="M9.4 15.6 12 20.6M12 14.4l4 6.2"/>
+  </symbol>
+  <symbol id="ic-inbox" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3.4 13.4h4.4l1.4 2.6h5.6l1.4-2.6h4.4"/><path d="M6.2 4.6h11.6l2.8 8.8v4.4a2 2 0 0 1-2 2H5.4a2 2 0 0 1-2-2v-4.4z"/>
+  </symbol>
+  <symbol id="ic-archive-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3.4 8.2h6.2l1.6-2.6h9.4v12.8a2 2 0 0 1-2 2H5.4a2 2 0 0 1-2-2z"/><path d="M9.4 13.4h5.2"/>
+  </symbol>
+  <symbol id="ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="10.8" cy="10.8" r="6.6"/><path d="m15.6 15.6 4.2 4.2"/>
+  </symbol>
+  <symbol id="ic-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8.6 6.4 4.4 10.6l4.2 4.2"/><path d="M4.4 10.6h10.2a5 5 0 0 1 0 10H10"/>
+  </symbol>
+  <symbol id="ic-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 11.4a8 8 0 0 0-13.7-4.7L3.6 9.4"/><path d="M3.6 4.8v4.6h4.6"/>
+    <path d="M4 12.6a8 8 0 0 0 13.7 4.7l2.7-2.7"/><path d="M20.4 19.2v-4.6h-4.6"/>
+  </symbol>
+</svg>
+
 <div class="topbar">
-  <div class="topbar-row1">
-    <div class="topbar-brand">
-      <div class="brand-chip"><img class="brand-mini" src="TASLogoLIGHT.png" alt="3/3 Academic System" /></div>
-      <div class="brand-text">
-        <h1>TAS Calendar</h1>
-        <div class="brand-sub">Academic System</div>
-      </div>
-      <span class="latest-pill" id="latestPill" style="display:none"></span>
+  <nav class="topnav" id="topnav">
+    <a class="topnav-brand" href="index.html" title="Back to the TAS menu">
+      <span class="brand-chip"><img class="brand-mini" src="TASLogoLIGHT.png" alt="3/3 Academic System" /></span>
+      <span class="brand-text">
+        <span class="brand-title">TAS Calendar</span>
+        <span class="brand-sub">Academic System</span>
+      </span>
+    </a>
+
+    <span class="latest-pill" id="latestPill" style="display:none"></span>
+
+    <div class="topnav-tabs" id="mainTabs">
+      <button class="nav-pill active" id="tabCalendar" onclick="switchView('calendar')">
+        <svg class="nav-ic"><use href="#ic-calendar"/></svg>
+        <span class="nav-lab">Calendar</span>
+      </button>
+      <button class="nav-pill" id="tabArchive" onclick="switchView('archive')">
+        <svg class="nav-ic"><use href="#ic-archive"/></svg>
+        <span class="nav-lab">Archive</span>
+        <span class="tab-count" id="archiveCount" style="display:none"></span>
+      </button>
+      <button class="nav-pill" id="tabTasks" onclick="openPersonalPanel()">
+        <svg class="nav-ic"><use href="#ic-mine"/></svg>
+        <span class="nav-lab">My Tasks</span>
+        <span class="tab-count" id="ptTopCount" style="display:none"></span>
+      </button>
+      <button class="nav-pill" id="tabSettings" onclick="openSettings()">
+        <svg class="nav-ic"><use href="#ic-settings"/></svg>
+        <span class="nav-lab">Settings</span>
+      </button>
+      <!-- The profile sits in the same group as the tabs: it is one more
+           place to go, not a separate piece of chrome. -->
+      <button class="nav-pill profile" id="userPill" onclick="toggleUserDropdown(event)">
+        <span class="nav-av" id="pillAv"></span>
+        <span class="nav-lab pill-name" id="pillName">You</span>
+      </button>
     </div>
-    <div class="user-pill" id="userPill" onclick="toggleUserDropdown(event)">
-      <div id="pillAv"></div>
-      <span class="pill-name" id="pillName"></span>
-      <span class="pill-caret">▾</span>
-    </div>
-  </div>
-  <div class="view-tabs" id="mainTabs">
-    <button class="view-tab active" id="tabCalendar" onclick="switchView('calendar')">📅 Calendar</button>
-    <button class="view-tab" id="tabArchive" onclick="switchView('archive')">🗂 Archive<span class="tab-count" id="archiveCount" style="display:none"></span></button>
-    <button class="view-tab" id="tabTasks" onclick="openPersonalPanel()">✏️ My Tasks<span class="tab-count" id="ptTopCount" style="display:none"></span></button>
-    <button class="view-tab" id="tabSettings" onclick="openSettings()">⚙️ Settings</button>
-  </div>
+  </nav>
+
   <div class="user-dropdown" id="userDropdown">
     <div class="user-dropdown-info">
       <div class="user-dropdown-name" id="dropdownName"></div>
       <div class="user-dropdown-email" id="dropdownEmail"></div>
       <span class="user-dropdown-role" id="dropdownRole">Member</span>
     </div>
-    <button class="user-dropdown-btn menu" onclick="openTour()">❔ How to use</button>
-    <button class="user-dropdown-btn menu" onclick="handleReturnToMenu()">🏠 Return to menu</button>
-    <a class="user-dropdown-btn menu" href="announce.html" style="text-decoration:none;">📝 Open task formatter</a>
-    <a class="user-dropdown-btn menu" href="tools.html" style="text-decoration:none;">🧰 Tools</a>
-    <button class="user-dropdown-btn menu" id="ddModMode" onclick="toggleModMode()">🔒 Mod mode</button>
-    <button class="user-dropdown-btn menu" id="ddAddTask" onclick="openAddModal()" style="display:none;">➕ Add shared task</button>
-    <a class="user-dropdown-btn menu" id="ddFirebase" href="https://console.firebase.google.com/u/0/project/tas-samtabsam/overview" target="_blank" rel="noopener" style="text-decoration:none;display:none;">🔥 Firebase console</a>
-    <button class="user-dropdown-btn signout" onclick="handleSignOut()">🚪 Sign out</button>
+    <button class="user-dropdown-btn menu" onclick="openTour()"><svg class="ic" aria-hidden="true"><use href="#ic-help"/></svg> How to use</button>
+    <button class="user-dropdown-btn menu" onclick="handleReturnToMenu()"><svg class="ic" aria-hidden="true"><use href="#ic-home"/></svg> Return to menu</button>
+    <a class="user-dropdown-btn menu" href="announce.html" style="text-decoration:none;"><svg class="ic" aria-hidden="true"><use href="#ic-note"/></svg> Open task formatter</a>
+    <a class="user-dropdown-btn menu" href="tools.html" style="text-decoration:none;"><svg class="ic" aria-hidden="true"><use href="#ic-toolbox"/></svg> Tools</a>
+    <button class="user-dropdown-btn menu" id="ddModMode" onclick="toggleModMode()"><svg class="ic" aria-hidden="true"><use href="#ic-lock"/></svg> Mod mode</button>
+    <button class="user-dropdown-btn menu" id="ddAddTask" onclick="openAddModal()" style="display:none;"><svg class="ic" aria-hidden="true"><use href="#ic-plus"/></svg> Add shared task</button>
+    <a class="user-dropdown-btn menu" id="ddFirebase" href="https://console.firebase.google.com/u/0/project/tas-samtabsam/overview" target="_blank" rel="noopener" style="text-decoration:none;display:none;"><svg class="ic" aria-hidden="true"><use href="#ic-flame"/></svg> Firebase console</a>
+    <button class="user-dropdown-btn signout" onclick="handleSignOut()"><svg class="ic" aria-hidden="true"><use href="#ic-exit"/></svg> Sign out</button>
   </div>
 </div>
 
@@ -1043,7 +1612,7 @@
       <div class="legend-item"><div class="legend-dot dot-deadline"></div>Send Before</div>
       <div class="legend-item"><div class="legend-dot dot-prediction"></div>Estimated</div>
       <div class="legend-item"><div class="legend-dot dot-marker"></div>Marker (quiz/exam/event)</div>
-      <div class="legend-hint">✅ Check = personal done mark (synced to your account)<br>🟥 Colour = urgency level<br>📍 Orange line = marked date<br>📌 Tap date to highlight</div>
+      <div class="legend-hint"><svg class="ic" aria-hidden="true"><use href="#ic-check-circle"/></svg> Check = personal done mark (synced to your account)<br><span id="legendColourHint"><svg class="ic" aria-hidden="true"><use href="#ic-palette"/></svg> Colour = subject (tap a swatch under the grid to change it)</span><br><svg class="ic" aria-hidden="true"><use href="#ic-pin"/></svg> Orange line = marked date<br><svg class="ic" aria-hidden="true"><use href="#ic-tack"/></svg> Tap date to highlight</div>
     </div>
     <button class="legend-toggle" id="legendToggle" onclick="toggleLegend()" title="Legend">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pink);transition:color 0.22s">
@@ -1053,14 +1622,19 @@
   </div>
   <div class="range-fab">
     <div class="range-panel" id="rangePanel">
-      <span class="range-label-hd">View range</span>
-      <button class="range-option" id="ro-week" onclick="setRange('week')">Week ♾️</button>
-      <button class="range-option" id="ro-2weeks" onclick="setRange('2weeks')">2 Weeks</button>
-      <button class="range-option active" id="ro-month" onclick="setRange('month')">Month</button>
-      <button class="range-option" id="ro-semester" onclick="setRange('semester')">Semester</button>
+      <span class="range-label-hd">View mode</span>
+      <button class="range-option mode-option active" id="mo-timeline" onclick="setCalMode('timeline')"><svg class="ic" aria-hidden="true"><use href="#ic-chart"/></svg> Timeline</button>
+      <button class="range-option mode-option" id="mo-grid" onclick="setCalMode('grid')"><svg class="ic" aria-hidden="true"><use href="#ic-calendar-grid"/></svg> Month grid</button>
+      <div id="rangeSection">
+        <span class="range-label-hd" style="margin-top:4px">View range</span>
+        <button class="range-option" id="ro-week" onclick="setRange('week')">Week <svg class="ic" aria-hidden="true"><use href="#ic-infinity"/></svg></button>
+        <button class="range-option" id="ro-2weeks" onclick="setRange('2weeks')">2 Weeks</button>
+        <button class="range-option active" id="ro-month" onclick="setRange('month')">Month</button>
+        <button class="range-option" id="ro-semester" onclick="setRange('semester')">Semester</button>
+      </div>
     </div>
     <button class="range-toggle" id="rangeToggle" onclick="toggleRange()">
-      <span id="rangeLabel">📆 Month</span>
+      <span id="rangeLabel"><svg class="ic" aria-hidden="true"><use href="#ic-calendar-grid"/></svg> Month</span>
       <span class="range-chevron">▲</span>
     </button>
   </div>
@@ -1075,20 +1649,21 @@
   </div>
   <div class="detail-body">
     <div id="dp-note-section" style="display:none">
-      <div class="detail-note-label">📌 Description</div>
+      <div class="detail-note-label"><svg class="ic" aria-hidden="true"><use href="#ic-tack"/></svg> Description</div>
       <div class="detail-note" id="dp-note"></div>
     </div>
+    <div id="dp-progress-section" style="display:none"></div>
     <button class="detail-mark-done" id="dp-mark-done" onclick="markDoneFromDetail()">Mark as Done</button>
-    <button class="detail-delete-btn" id="dp-delete-btn" onclick="deleteFromDetail()">🗑️ Delete task</button>
+    <button class="detail-delete-btn" id="dp-delete-btn" onclick="deleteFromDetail()"><svg class="ic" aria-hidden="true"><use href="#ic-trash"/></svg> Delete task</button>
   </div>
   <div class="detail-footer">
     <div>
-      <div class="dp-due-label" id="dp-due-label">🗓 Due</div>
+      <div class="dp-due-label" id="dp-due-label"><svg class="ic" aria-hidden="true"><use href="#ic-calendar-grid"/></svg> Due</div>
       <div class="dp-due-date" id="dp-due-date"></div>
     </div>
     <div id="dp-days"></div>
     <div class="detail-dates" id="dp-dates"></div>
-    <button class="detail-edit-btn" id="dp-edit-btn">✏️ Edit task</button>
+    <button class="detail-edit-btn" id="dp-edit-btn"><svg class="ic" aria-hidden="true"><use href="#ic-pencil"/></svg> Edit task</button>
   </div>
 </div>
 
@@ -1098,7 +1673,7 @@
     <!-- Header -->
     <div class="pt-header">
       <div>
-        <div class="pt-header-title">✏️ My Tasks</div>
+        <div class="pt-header-title"><svg class="ic" aria-hidden="true"><use href="#ic-pencil"/></svg> My Tasks</div>
         <div class="pt-header-desc">Personal tasks visible only to you — not shared with the class. Supports markers too.</div>
       </div>
       <button class="pt-close" onclick="closePtPanel()">✕</button>
@@ -1106,8 +1681,8 @@
 
     <!-- Tab bar -->
     <div class="pt-tabs">
-      <button class="pt-tab active" id="ptTabAdd" onclick="switchPtTab('add')">➕ Add</button>
-      <button class="pt-tab" id="ptTabList" onclick="switchPtTab('list')">📋 My list <span class="pt-count" id="ptCount" style="display:none"></span></button>
+      <button class="pt-tab active" id="ptTabAdd" onclick="switchPtTab('add')"><svg class="ic" aria-hidden="true"><use href="#ic-plus"/></svg> Add</button>
+      <button class="pt-tab" id="ptTabList" onclick="switchPtTab('list')"><svg class="ic" aria-hidden="true"><use href="#ic-clipboard"/></svg> My list <span class="pt-count" id="ptCount" style="display:none"></span></button>
     </div>
 
     <!-- ADD TAB — one clean column: toggle → fields → live preview → save -->
@@ -1117,7 +1692,7 @@
         <!-- Marker toggle -->
         <div class="pt-marker-toggle" id="ptMarkerToggleRow" onclick="togglePtMarker()">
           <div>
-            <div class="pt-marker-toggle-title">📍 Marker mode</div>
+            <div class="pt-marker-toggle-title"><svg class="ic" aria-hidden="true"><use href="#ic-pin"/></svg> Marker mode</div>
             <div class="pt-marker-toggle-sub">Mark a date for a quiz, exam or event instead of a task range</div>
           </div>
           <div class="pt-switch" id="ptMarkerSwitch"></div>
@@ -1132,9 +1707,9 @@
           <div class="pt-field"><label>Subject</label><input type="text" id="pt-subject" placeholder="e.g. คณิตศาสตร์" oninput="updatePtPreview()" /></div>
           <div class="pt-field"><label>Type</label>
             <div class="pt-type-grid" id="ptTypeGrid">
-              <button type="button" class="pt-type-btn active" data-ptype="normal" onclick="setPtType('normal')">🟢 Send On</button>
-              <button type="button" class="pt-type-btn" data-ptype="deadline" onclick="setPtType('deadline')">🔴 Send Before</button>
-              <button type="button" class="pt-type-btn" data-ptype="prediction" onclick="setPtType('prediction')">🟣 Estimated</button>
+              <button type="button" class="pt-type-btn active" data-ptype="normal" onclick="setPtType('normal')"><svg class="ic ic-dot-normal" aria-hidden="true"><use href="#ic-dot"/></svg> Send On</button>
+              <button type="button" class="pt-type-btn" data-ptype="deadline" onclick="setPtType('deadline')"><svg class="ic ic-dot-deadline" aria-hidden="true"><use href="#ic-dot"/></svg> Send Before</button>
+              <button type="button" class="pt-type-btn" data-ptype="prediction" onclick="setPtType('prediction')"><svg class="ic ic-dot-prediction" aria-hidden="true"><use href="#ic-dot"/></svg> Estimated</button>
             </div>
           </div>
           <div class="pt-date-row">
@@ -1151,10 +1726,10 @@
           <div class="pt-field"><label>Date</label><input type="date" id="pt-m-date" oninput="updatePtPreview()" /></div>
           <div class="pt-field"><label>Type</label>
             <div class="pt-marker-type-grid">
-              <button class="pt-mtype-btn active" data-type="quiz" onclick="setPtMarkerType('quiz')">📝 Quiz</button>
-              <button class="pt-mtype-btn" data-type="exam" onclick="setPtMarkerType('exam')">📋 Exam</button>
-              <button class="pt-mtype-btn" data-type="event" onclick="setPtMarkerType('event')">🎉 Event</button>
-              <button class="pt-mtype-btn" data-type="date" onclick="setPtMarkerType('date')">📌 Important</button>
+              <button class="pt-mtype-btn active" data-type="quiz" onclick="setPtMarkerType('quiz')"><svg class="ic" aria-hidden="true"><use href="#ic-note"/></svg> Quiz</button>
+              <button class="pt-mtype-btn" data-type="exam" onclick="setPtMarkerType('exam')"><svg class="ic" aria-hidden="true"><use href="#ic-clipboard"/></svg> Exam</button>
+              <button class="pt-mtype-btn" data-type="event" onclick="setPtMarkerType('event')"><svg class="ic" aria-hidden="true"><use href="#ic-party"/></svg> Event</button>
+              <button class="pt-mtype-btn" data-type="date" onclick="setPtMarkerType('date')"><svg class="ic" aria-hidden="true"><use href="#ic-tack"/></svg> Important</button>
             </div>
           </div>
           <div class="pt-field"><label>Note (optional)</label><input type="text" id="pt-m-note" placeholder="Extra info..." oninput="updatePtPreview()" /></div>
@@ -1164,12 +1739,12 @@
         <div class="pt-preview-card" id="ptPreview"><span class="ptp-empty">Fill in the fields to see a preview…</span></div>
 
       </div>
-      <button class="pt-save-btn" onclick="savePtTask()">💾 Save task</button>
+      <button class="pt-save-btn" onclick="savePtTask()"><svg class="ic" aria-hidden="true"><use href="#ic-save"/></svg> Save task</button>
     </div>
 
     <!-- LIST TAB -->
     <div id="ptListPane" class="pt-pane pt-pane-list" style="display:none">
-      <div id="ptListContent"><div class="pt-list-empty">No personal tasks yet.<br><span>Add one from the ➕ Add tab.</span></div></div>
+      <div id="ptListContent"><div class="pt-list-empty">No personal tasks yet.<br><span>Add one from the <svg class="ic" aria-hidden="true"><use href="#ic-plus"/></svg> Add tab.</span></div></div>
     </div>
   </div>
 </div>
@@ -1182,9 +1757,9 @@
     <div class="modal-field"><label>Subject</label><input type="text" id="t-subject" placeholder="e.g. การงาน, ภาษาไทย" /></div>
     <div class="modal-field"><label>Type</label>
       <select id="t-type">
-        <option value="normal">🟢 Send On (fixed send date)</option>
-        <option value="deadline">🔴 Send Before (hard deadline)</option>
-        <option value="prediction">🟣 Estimated (no clear deadline)</option>
+        <option value="normal">Send On (fixed send date)</option>
+        <option value="deadline">Send Before (hard deadline)</option>
+        <option value="prediction">Estimated (no clear deadline)</option>
       </select>
     </div>
     <div class="modal-row">
@@ -1194,8 +1769,8 @@
     <div class="modal-field"><label>Note (optional)</label><textarea id="t-note" placeholder="Extra info, link, etc."></textarea></div>
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeModal()">Cancel</button>
-      <button class="modal-delete" id="modal-delete-btn" style="display:none" onclick="deleteTask()">🗑️ Delete</button>
-      <button class="modal-save" onclick="saveTask()">💾 Save task</button>
+      <button class="modal-delete" id="modal-delete-btn" style="display:none" onclick="deleteTask()"><svg class="ic" aria-hidden="true"><use href="#ic-trash"/></svg> Delete</button>
+      <button class="modal-save" onclick="saveTask()"><svg class="ic" aria-hidden="true"><use href="#ic-save"/></svg> Save task</button>
     </div>
   </div>
 </div>
@@ -1203,7 +1778,7 @@
 <!-- PASSWORD -->
 <div class="pw-overlay" id="pwOverlay">
   <div class="pw-box">
-    <h2>🔒 Mod mode</h2>
+    <h2><svg class="ic" aria-hidden="true"><use href="#ic-lock"/></svg> Mod mode</h2>
     <p>Enter the mod password to enable editing</p>
     <form onsubmit="event.preventDefault();checkPw()">
       <input type="password" id="pwInput" placeholder="Password" autocomplete="off" />
@@ -1217,7 +1792,7 @@
 <!-- DELETE CONFIRMATION -->
 <div class="modal-overlay" id="confirmOverlay" style="z-index:950">
   <div class="modal confirm-modal">
-    <div class="confirm-emoji">🗑️</div>
+    <div class="confirm-emoji"><svg class="ic ic-xl" aria-hidden="true"><use href="#ic-trash"/></svg></div>
     <h2 id="confirmTitle">Delete this task?</h2>
     <p class="confirm-msg" id="confirmMsg"></p>
     <div class="modal-actions">
@@ -1249,7 +1824,7 @@
     <div class="marker-modal-footer">
       <div class="marker-days-btn" id="mm-days-btn"></div>
       <div class="cd-wrap marker" id="mm-cd" style="display:none">
-        <div class="cd-caption">📍 Time until</div>
+        <div class="cd-caption"><svg class="ic" aria-hidden="true"><use href="#ic-pin"/></svg> Time until</div>
         <div class="cd-boxes" id="mm-cd-boxes"></div>
       </div>
     </div>
@@ -1277,80 +1852,216 @@
 
 <!-- Settings -->
 <div class="modal-overlay" id="settingsOverlay" style="z-index:900">
-  <div class="modal" style="max-width:400px">
-    <h2>⚙️ Settings</h2>
-
-    <div class="set-section">
-      <div class="set-label">Theme</div>
-      <div class="theme-grid">
-        <button class="theme-opt" id="themeOptDark" onclick="setTheme('dark')">🌙 Dark<span>Default</span></button>
-        <button class="theme-opt" id="themeOptLight" onclick="setTheme('light')">☀️ Light<span>Classic</span></button>
+  <div class="modal set-sheet">
+    <!-- Sticky head: the list below it is long enough to lose your place in -->
+    <div class="set-sheet-head">
+      <div>
+        <div class="set-page-title">Settings</div>
+        <div class="set-page-sub">Make TAS work the way you do</div>
       </div>
+      <button class="set-close" onclick="closeSettings()" aria-label="Close settings">✕</button>
     </div>
 
-    <div class="set-section">
-      <div class="set-label">Notifications</div>
-      <div class="set-hint">Get notified when a new task is posted, plus one reminder a day — at the time you pick below — for tasks due today or tomorrow. Works while the site is open, even in a background tab. On phones, add the site to your home screen for best results.</div>
-      <div class="set-toggle-row" onclick="toggleNotify()">
-        <div>
-          <div class="set-toggle-title">🔔 Notify me</div>
-          <div class="set-toggle-sub" id="notifyStateHint">Off</div>
+    <div class="set-scroll">
+
+      <div class="set-group-label">Appearance</div>
+      <div class="set-group">
+        <div class="set-row stack">
+          <div class="set-row-main">
+            <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-theme"/></svg></div>
+            <div class="set-row-text">
+              <div class="set-row-title">Theme</div>
+              <div class="set-row-desc">Dark by default, or the classic green-on-white look</div>
+            </div>
+          </div>
+          <div class="theme-grid">
+            <button class="theme-opt" id="themeOptDark" onclick="setTheme('dark')"><svg class="ic" aria-hidden="true"><use href="#ic-moon"/></svg> Dark<span>Default</span></button>
+            <button class="theme-opt" id="themeOptLight" onclick="setTheme('light')"><svg class="ic" aria-hidden="true"><use href="#ic-sun"/></svg> Light<span>Classic</span></button>
+          </div>
         </div>
-        <div class="pt-switch accent" id="notifySwitch"></div>
-      </div>
-      <div class="set-toggle-row" style="cursor:default;margin-top:8px">
-        <div>
-          <div class="set-toggle-title">⏰ Reminder time</div>
-          <div class="set-toggle-sub">The daily due today / tomorrow reminder fires at this time</div>
+
+        <div class="set-row stack">
+          <div class="set-row-main">
+            <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-crayon"/></svg></div>
+            <div class="set-row-text">
+              <div class="set-row-title">Task colours</div>
+              <div class="set-row-desc">What a bar's colour tells you. Subject gives every subject its own — tap a swatch in the key under the month grid to change it.</div>
+            </div>
+          </div>
+          <div class="theme-grid">
+            <button class="theme-opt" id="colOptSubject" onclick="setColourMode('subject')"><svg class="ic" aria-hidden="true"><use href="#ic-palette"/></svg> Subject<span>Default</span></button>
+            <button class="theme-opt" id="colOptUrgency" onclick="setColourMode('urgency')"><svg class="ic" aria-hidden="true"><use href="#ic-flame"/></svg> Urgency<span>Days left</span></button>
+          </div>
+          <button class="zone-reset" onclick="resetSubjectColors()">Reset subject colours</button>
         </div>
-        <input type="time" id="notifyTimeInput" class="notify-time-input" value="18:00" onclick="event.stopPropagation()" />
-      </div>
-    </div>
 
-    <div class="set-section">
-      <div class="set-label">Overdue work</div>
-      <div class="set-hint">What happens to a task once its due date has passed. Saved on this device, and the phone widget follows it too.</div>
-      <div class="theme-grid" style="grid-template-columns:repeat(3,1fr)">
-        <button class="theme-opt" id="odOptAuto" onclick="setOverdueMode('auto')">🧹 Clear<span>Straight away</span></button>
-        <button class="theme-opt" id="odOptTick" onclick="setOverdueMode('tick')">☑️ On tick<span>Default</span></button>
-        <button class="theme-opt" id="odOptKeep" onclick="setOverdueMode('keep')">📌 Keep<span>Until removed</span></button>
-      </div>
-      <div class="set-hint" id="overdueHint" style="margin:9px 0 0"></div>
-    </div>
-
-    <div class="set-section">
-      <div class="set-label">Phone widget</div>
-      <div class="set-hint">Put your overdue and due-soon tasks straight on your home screen, so you can check without opening the calendar.</div>
-      <a class="set-toggle-row" href="tools-widget.html" style="text-decoration:none;color:inherit">
-        <div>
-          <div class="set-toggle-title">📱 Set up the home-screen widget</div>
-          <div class="set-toggle-sub" id="widgetStateHint">Works on iPhone and Android</div>
+        <div class="set-row stack">
+          <div class="set-row-main">
+            <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-flame"/></svg></div>
+            <div class="set-row-text">
+              <div class="set-row-title">Rush zones</div>
+              <div class="set-row-desc">When tasks change colour, by days left — used by the Urgency mode.</div>
+            </div>
+          </div>
+          <div class="zone-row">
+            <label><span class="zone-dot" style="background:#ef4444"></span>Red — panic under</label>
+            <input type="number" id="zoneRed" min="0" max="365" inputmode="numeric" /><span>days</span>
+          </div>
+          <div class="zone-row">
+            <label><span class="zone-dot" style="background:#f97316"></span>Orange — rush under</label>
+            <input type="number" id="zoneOrange" min="0" max="365" inputmode="numeric" /><span>days</span>
+          </div>
+          <div class="zone-row">
+            <label><span class="zone-dot" style="background:#f59e0b"></span>Yellow — heads-up under</label>
+            <input type="number" id="zoneYellow" min="0" max="365" inputmode="numeric" /><span>days</span>
+          </div>
+          <button class="zone-reset" onclick="resetZones()">Reset to defaults (3 / 7 / 14)</button>
         </div>
-        <span style="font-size:18px;opacity:.6">›</span>
-      </a>
-    </div>
+      </div>
 
-    <div class="set-section">
-      <div class="set-label">Rush zones</div>
-      <div class="set-hint">Pick when tasks change colour, by days left until the due date. Saved on this device.</div>
-      <div class="zone-row">
-        <label><span class="zone-dot" style="background:#ef4444"></span>Red — panic under</label>
-        <input type="number" id="zoneRed" min="0" max="365" inputmode="numeric" /><span>days</span>
+      <div class="set-group-label">Notifications</div>
+      <div class="set-group">
+        <div class="set-row tap" onclick="toggleNotify()">
+          <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-bell"/></svg></div>
+          <div class="set-row-text">
+            <div class="set-row-title">Notify me</div>
+            <div class="set-row-desc" id="notifyStateHint">Off</div>
+          </div>
+          <div class="set-switch" id="notifySwitch"></div>
+        </div>
+        <div class="set-row">
+          <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-alarm"/></svg></div>
+          <div class="set-row-text">
+            <div class="set-row-title">Reminder time</div>
+            <div class="set-row-desc">The daily due today / tomorrow reminder fires at this time</div>
+          </div>
+          <input type="time" id="notifyTimeInput" class="notify-time-input" value="18:00" onclick="event.stopPropagation()" />
+        </div>
       </div>
-      <div class="zone-row">
-        <label><span class="zone-dot" style="background:#f97316"></span>Orange — rush under</label>
-        <input type="number" id="zoneOrange" min="0" max="365" inputmode="numeric" /><span>days</span>
+      <div class="set-group-note">New tasks are announced as they are posted, and one reminder a day covers what is due today or tomorrow. Works while the site is open, even in a background tab — on phones, add it to your home screen first.</div>
+
+      <div class="set-group-label">Tasks</div>
+      <div class="set-group">
+        <div class="set-row stack">
+          <div class="set-row-main">
+            <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-broom"/></svg></div>
+            <div class="set-row-text">
+              <div class="set-row-title">Overdue work</div>
+              <div class="set-row-desc">What happens to a task once its due date has passed. The phone widget follows this too.</div>
+            </div>
+          </div>
+          <div class="theme-grid three">
+            <button class="theme-opt" id="odOptAuto" onclick="setOverdueMode('auto')"><svg class="ic" aria-hidden="true"><use href="#ic-broom"/></svg> Clear<span>Straight away</span></button>
+            <button class="theme-opt" id="odOptTick" onclick="setOverdueMode('tick')"><svg class="ic" aria-hidden="true"><use href="#ic-check-square"/></svg> On tick<span>Default</span></button>
+            <button class="theme-opt" id="odOptKeep" onclick="setOverdueMode('keep')"><svg class="ic" aria-hidden="true"><use href="#ic-tack"/></svg> Keep<span>Until removed</span></button>
+          </div>
+          <div class="set-row-desc" id="overdueHint" style="margin-top:9px"></div>
+        </div>
+
+        <div class="set-row stack">
+          <div class="set-row-main">
+            <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-chart"/></svg></div>
+            <div class="set-row-text">
+              <div class="set-row-title">Progress</div>
+              <div class="set-row-desc">Hold a task's checkmark to say how far through it you are. This is the shape that setup opens with.</div>
+            </div>
+          </div>
+          <div class="theme-grid">
+            <button class="theme-opt" id="pgDefSteps" onclick="setProgDefaultMode('steps')"><svg class="ic" aria-hidden="true"><use href="#ic-puzzle"/></svg> Steps<span>Parts you finish</span></button>
+            <button class="theme-opt" id="pgDefPercent" onclick="setProgDefaultMode('percent')"><svg class="ic" aria-hidden="true"><use href="#ic-trend"/></svg> Percent<span>Slide 0–100%</span></button>
+          </div>
+          <div class="zone-row" id="pgDefTotalRow">
+            <label>Parts to start with</label>
+            <button class="pg-mini-btn" onclick="nudgeProgDefault(-1)" aria-label="Fewer parts">−</button>
+            <span class="pg-mini-val" id="pgDefTotal">5</span>
+            <button class="pg-mini-btn" onclick="nudgeProgDefault(1)" aria-label="More parts">+</button>
+          </div>
+        </div>
       </div>
-      <div class="zone-row">
-        <label><span class="zone-dot" style="background:#f59e0b"></span>Yellow — heads-up under</label>
-        <input type="number" id="zoneYellow" min="0" max="365" inputmode="numeric" /><span>days</span>
+
+      <div class="set-group-label">This device</div>
+      <div class="set-group">
+        <a class="set-row tap" href="tools-widget.html">
+          <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-phone"/></svg></div>
+          <div class="set-row-text">
+            <div class="set-row-title">Home-screen widget</div>
+            <div class="set-row-desc" id="widgetStateHint">Works on iPhone and Android</div>
+          </div>
+          <span class="set-chev">›</span>
+        </a>
       </div>
-      <button class="zone-reset" onclick="resetZones()">Reset to defaults (3 / 7 / 14)</button>
+      <div class="set-group-note">Everything on this screen is saved on this device, not your account — set it up again on your phone.</div>
+
+      <div class="set-group-label">About</div>
+      <div class="set-group">
+        <button class="set-row tap" onclick="closeSettings();openTour()">
+          <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-help"/></svg></div>
+          <div class="set-row-text">
+            <div class="set-row-title">How to use TAS</div>
+            <div class="set-row-desc">Replay the walkthrough</div>
+          </div>
+          <span class="set-chev">›</span>
+        </button>
+        <a class="set-row tap" href="tools.html">
+          <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-toolbox"/></svg></div>
+          <div class="set-row-text">
+            <div class="set-row-title">Tools</div>
+            <div class="set-row-desc">QR codes, short links, receipts and the widget setup</div>
+          </div>
+          <span class="set-chev">›</span>
+        </a>
+      </div>
+
     </div>
 
     <div class="modal-actions">
       <button class="modal-save" onclick="closeSettings()">Done</button>
     </div>
+  </div>
+</div>
+
+<!-- Progress setup — opened by holding a checkmark, or from the detail popup -->
+<div class="modal-overlay" id="progressModal" style="z-index:920">
+  <div class="modal" style="max-width:380px">
+    <h2><svg class="ic" aria-hidden="true"><use href="#ic-chart"/></svg> Progress</h2>
+    <div class="pg-task" id="pgTaskName"></div>
+
+    <div class="set-section">
+      <div class="set-label">How do you want to track it?</div>
+      <div class="theme-grid">
+        <button class="theme-opt" id="pgModeSteps" onclick="setProgSheetMode('steps')"><svg class="ic" aria-hidden="true"><use href="#ic-puzzle"/></svg> Steps<span>Parts you finish</span></button>
+        <button class="theme-opt" id="pgModePercent" onclick="setProgSheetMode('percent')"><svg class="ic" aria-hidden="true"><use href="#ic-trend"/></svg> Percent<span>Slide 0–100%</span></button>
+      </div>
+    </div>
+
+    <div class="set-section" id="pgStepsFields">
+      <div class="set-label">How many parts?</div>
+      <div class="pg-stepper">
+        <button class="pg-step-btn" onclick="nudgeProgTotal(-1)" aria-label="Fewer parts">−</button>
+        <div class="pg-step-val" id="pgTotal">5</div>
+        <button class="pg-step-btn" onclick="nudgeProgTotal(1)" aria-label="More parts">+</button>
+      </div>
+      <div class="set-hint" style="margin:9px 0 0">Tap the bar below to say how many you've finished.</div>
+    </div>
+
+    <div class="set-section" id="pgPercentFields">
+      <div class="set-label">How far along?</div>
+      <input type="range" class="pg-range" id="pgRange" min="0" max="100" step="5" value="0" />
+    </div>
+
+    <div class="set-section">
+      <div class="set-label">Done so far</div>
+      <div class="pg-preview-row">
+        <div id="pgPreview" style="flex:1"></div>
+        <div class="prog-read" id="pgRead"></div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeProgressSheet()">Cancel</button>
+      <button class="modal-save" onclick="saveProgressSheet()">Save progress</button>
+    </div>
+    <button class="zone-reset" id="pgRemove" onclick="removeProgressSheet()" style="display:none;margin-top:10px">Remove progress from this task</button>
   </div>
 </div>
 
@@ -1431,6 +2142,12 @@ function esc(s){
   return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))
 }
 
+// Icon markup for the templates below — mirrors the <symbol> sprite at the
+// top of the body. Callers drop this straight into innerHTML.
+const ico = (name, cls) => `<svg class="ic${cls ? " " + cls : ""}" aria-hidden="true"><use href="#ic-${name}"/></svg>`
+// The coloured dot that used to be a green/red/purple emoji
+const typeDot = (type) => ico("dot", "ic-dot-" + (TYPE_ALIASES[type] || type || "normal"))
+
 // ── Toasts — errors, undo, small confirmations ────────────────
 function toast(msg,{action,onAction,duration=4000,error=false}={}){
   let wrap=document.getElementById("toastWrap")
@@ -1446,6 +2163,82 @@ function toast(msg,{action,onAction,duration=4000,error=false}={}){
   return dismiss
 }
 const saveFailToast=()=>toast("Couldn't save — check your connection and try again",{error:true})
+
+// ── Task progress — "3 of 5 parts" or "45%" ───────────────────
+// Two shapes, chosen per task: steps (discrete parts you tick off) and
+// percent (a slider). Both are stored the same way so everything that
+// renders a bar only has to care about progressPct().
+const PROGRESS_MODES = ["steps", "percent"]
+const PROGRESS_DEFAULT_KEY = "tas_progress_default"
+const PROGRESS_FALLBACK = { mode: "steps", total: 5 }
+const MAX_STEPS = 20
+
+// Anything read back from Firestore is untrusted — an old client, a manual
+// console edit or a half-written doc must not be able to render NaN bars.
+function normProgress(p){
+  if(!p || typeof p !== "object") return null
+  const mode = PROGRESS_MODES.includes(p.mode) ? p.mode : "steps"
+  const total = mode === "percent" ? 100
+              : Math.min(MAX_STEPS, Math.max(2, Math.round(Number(p.total) || PROGRESS_FALLBACK.total)))
+  const value = Math.min(total, Math.max(0, Math.round(Number(p.value) || 0)))
+  return { mode, value, total }
+}
+function sanitizeProgressMap(m){
+  const out = {}
+  if(m && typeof m === "object")
+    for(const [id, p] of Object.entries(m)){ const n = normProgress(p); if(n) out[id] = n }
+  return out
+}
+
+const progressOf   = (id) => userProgressCache[id] || null
+const progressPct  = (p) => !p || !p.total ? 0 : Math.round(p.value / p.total * 100)
+const progressDone = (p) => !!p && p.value >= p.total
+function progressText(p){
+  if(!p) return ""
+  return p.mode === "percent" ? progressPct(p) + "%" : p.value + " of " + p.total
+}
+
+// The mode/size the hold sheet opens with for a task that has no progress yet
+function progressDefaults(){
+  try {
+    const raw = JSON.parse(localStorage.getItem(PROGRESS_DEFAULT_KEY) || "null")
+    if(raw) return { mode: PROGRESS_MODES.includes(raw.mode) ? raw.mode : PROGRESS_FALLBACK.mode,
+                     total: Math.min(MAX_STEPS, Math.max(2, Number(raw.total) || PROGRESS_FALLBACK.total)) }
+  } catch(e){}
+  return { ...PROGRESS_FALLBACK }
+}
+function saveProgressDefaults(d){
+  try { localStorage.setItem(PROGRESS_DEFAULT_KEY, JSON.stringify(d)) } catch(e){}
+}
+
+// Steps render as separate segments so you can read the count without the
+// label; percent (and long step lists) render as one continuous track.
+function progressBarHTML(p, {color = "var(--pink)", cls = "", interactive = false} = {}){
+  if(!p) return ""
+  const extra = (cls ? " " + cls : "") + (interactive ? " live" : "")
+  if(p.mode === "steps" && p.total <= 12){
+    const segs = Array.from({length: p.total}, (_, i) =>
+      `<span class="prog-seg${i < p.value ? " on" : ""}" data-step="${i + 1}"${interactive ? ' role="button" tabindex="0"' : ""}></span>`).join("")
+    return `<div class="prog-bar steps${extra}" style="--pc:${color}">${segs}</div>`
+  }
+  return `<div class="prog-bar${extra}" style="--pc:${color}"><div class="prog-track"><div class="prog-fill" style="width:${progressPct(p)}%"></div></div></div>`
+}
+
+// Optimistic write, same shape as toggleDone: update the cache, persist, and
+// put the old value back if the write fails.
+async function writeProgress(id, next){
+  if(!currentUser) return false
+  const prev = userProgressCache[id] ? { ...userProgressCache[id] } : null
+  if(next) userProgressCache[id] = next
+  else delete userProgressCache[id]
+  const ok = await persistUserProgress(currentUser.uid)
+  if(!ok){
+    if(prev) userProgressCache[id] = prev
+    else delete userProgressCache[id]
+    saveFailToast()
+  }
+  return ok
+}
 
 // ── Quick-takeaway date — "Friday 10th July, 2026" ────────────
 const EN_DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
@@ -1474,10 +2267,10 @@ function cdUpdate(wrapEl,cd){
   const over=diff<0
   const cap=wrapEl.querySelector(".cd-caption")
   if(cd.mode==="marker"){
-    if(cap)cap.textContent=over?"📍 Time since":"📍 Time until"
+    if(cap)cap.innerHTML=ico("pin")+(over?" Time since":" Time until")
   }else{
     wrapEl.classList.toggle("overdue",over)
-    if(cap)cap.textContent=over?"⚠️ Overdue by":"⏱ Time left"
+    if(cap)cap.innerHTML=over?ico("warning")+" Overdue by":ico("timer")+" Time left"
   }
 }
 let dpCountdown=null   // {target:ms, mode:"task"|"marker"} for the detail popup
@@ -1491,10 +2284,10 @@ setInterval(()=>{
 
 // Marker type display info
 const MARKER_INFO = {
-  quiz:  { emoji: "📝", label: "Quiz" },
-  exam:  { emoji: "📋", label: "Exam" },
-  event: { emoji: "🎉", label: "Event" },
-  date:  { emoji: "📌", label: "Important" },
+  quiz:  { icon: "note",      label: "Quiz" },
+  exam:  { icon: "clipboard", label: "Exam" },
+  event: { icon: "party",     label: "Event" },
+  date:  { icon: "tack",      label: "Important" },
 }
 
 // ── Date range: restore last-used range from this device's localStorage ──
@@ -1502,6 +2295,14 @@ const VALID_RANGES = ["week","2weeks","month","semester"]
 let storedRange = localStorage.getItem(RANGE_STORAGE_KEY)
 if(storedRange==="all") storedRange = "week"   // old "Unlimited" became the endless Week
 if(!VALID_RANGES.includes(storedRange)) storedRange = "month"
+
+// ── View mode: the Gantt "timeline", or the month "grid" (also remembered) ──
+const CAL_MODE_KEY = "tas_calendar_mode"
+const VALID_MODES = ["timeline","grid"]
+let calMode = localStorage.getItem(CAL_MODE_KEY)
+if(!VALID_MODES.includes(calMode)) calMode = "timeline"
+// First day of the month the grid is showing — starts on the current month
+let gridMonth = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1)
 
 let tasks=[], personalTasks=[], isMod=false, editingId=null, currentRange=storedRange, hlPct=null, currentView="calendar"
 let tasksLoaded=false   // first shared-tasks snapshot received — until then, show skeletons
@@ -1512,6 +2313,11 @@ let userDoneCache = {}
 // Per-user archive dismissals — deleting from the archive only hides the
 // task for this account (shared tasks stay in Firestore for everyone)
 let userHiddenCache = {}
+// Per-user progress — how far through a task this person is.
+// { [taskId]: { mode:"steps"|"percent", value:Number, total:Number } }
+// Lives in the same userDone/{uid} doc as `done`, because progress is a
+// personal thing: nobody can write to a shared task doc but its author.
+let userProgressCache = {}
 const savingIds = new Set()
 
 let userStateLoaded = false   // true only after the user's real doc was read
@@ -1521,11 +2327,13 @@ async function loadUserDone(uid) {
     const snap = await getDoc(doc(db, "userDone", uid))
     userDoneCache   = snap.exists() ? (snap.data().done || {}) : {}
     userHiddenCache = snap.exists() ? (snap.data().archiveHidden || {}) : {}
+    userProgressCache = snap.exists() ? sanitizeProgressMap(snap.data().progress) : {}
     userStateLoaded = true
   } catch(e) {
     console.warn("Could not load done state:", e)
     userDoneCache = {}
     userHiddenCache = {}
+    userProgressCache = {}
   }
 }
 
@@ -1538,7 +2346,7 @@ async function persistUserState(uid) {
   // roll back and show the save-failed toast.
   if (!userStateLoaded) { console.warn("User state never loaded — refusing to overwrite it"); return false }
   try {
-    await setDoc(doc(db, "userDone", uid), { done: userDoneCache, archiveHidden: userHiddenCache })
+    await setDoc(doc(db, "userDone", uid), { done: userDoneCache, archiveHidden: userHiddenCache, progress: userProgressCache })
     queueWidgetFeed()   // a tick here is a task that should leave the widget
     return true
   } catch(e) {
@@ -1546,8 +2354,9 @@ async function persistUserState(uid) {
     return false
   }
 }
-const persistUserDone   = (uid) => persistUserState(uid)
-const persistUserHidden = (uid) => persistUserState(uid)
+const persistUserDone     = (uid) => persistUserState(uid)
+const persistUserHidden   = (uid) => persistUserState(uid)
+const persistUserProgress = (uid) => persistUserState(uid)
 
 // ── Real role check: the moderator whitelist lives in Firestore ──
 // (same config/modWhitelist document the task formatter uses)
@@ -1635,12 +2444,44 @@ document.getElementById("confirmOverlay").addEventListener("click",e=>{if(e.targ
 
 // Keep the sticky calendar header flush with the real topbar height
 // (the mobile topbar is content-sized, so 96px is only an estimate)
+// The calendar's date ruler sticks at top:var(--topbar-h), and the floating
+// bar's height is content-driven (and changes when it shrinks), so the
+// measurement has to be re-taken rather than hardcoded.
 function syncTopbarH(){
   const tb=document.querySelector(".topbar")
   if(tb&&tb.offsetHeight) document.documentElement.style.setProperty("--topbar-h",tb.offsetHeight+"px")
 }
 window.addEventListener("resize",syncTopbarH)
 window.addEventListener("load",syncTopbarH)
+
+// ── Shrink-on-scroll ──────────────────────────────────────────
+// Hysteresis (shrink past 96px, only grow back above 16px) stops the bar
+// oscillating: without it, the height change moves the page under you and
+// immediately re-crosses the same threshold.
+const SHRINK_ON = 96, SHRINK_OFF = 16
+let navShrunk = false, navRaf = null
+function updateNavShrink(){
+  navRaf = null
+  const y = window.scrollY || document.documentElement.scrollTop || 0
+  const next = navShrunk ? y > SHRINK_OFF : y > SHRINK_ON
+  if(next === navShrunk) return
+  navShrunk = next
+  const tb = document.querySelector(".topbar")
+  if(!tb) return
+  tb.classList.toggle("shrunk", navShrunk)
+  // Measure now for an immediate response, and again once the 0.2s size
+  // transition has actually landed — otherwise the ruler floats for a frame.
+  syncTopbarH()
+  setTimeout(syncTopbarH, 220)
+}
+// Cancel-and-reschedule rather than "skip if one is pending": if a frame is
+// ever dropped, the pending-id guard would stay set and the bar would stop
+// responding to scrolling for the rest of the session.
+window.addEventListener("scroll", () => {
+  if(navRaf !== null) cancelAnimationFrame(navRaf)
+  navRaf = requestAnimationFrame(updateNavShrink)
+}, { passive: true })
+document.querySelector(".topnav")?.addEventListener("transitionend", syncTopbarH)
 
 window.toggleUserDropdown = (e) => {
   e.stopPropagation()
@@ -1657,17 +2498,19 @@ window.handleSignOut = async () => {
 
 // ── "How to use" tour (for everyone) ──────────────────────────
 const TOUR_STEPS=[
-  {emoji:"📅",title:"Read the timeline",text:"Every row is a task. Its bar runs from the start date to the due date — the colour shows urgency (green = plenty of time, red = due very soon)."},
-  {emoji:"👆",title:"Tap for details",text:"Tap any bar to see the full details with a live countdown. Tap a date at the top to drop a highlight line across the calendar."},
-  {emoji:"✅",title:"Track your progress",text:"Tick the checkbox on the right when you finish a task. Ticks are saved to your account — only you can see them."},
-  {emoji:"📍",title:"Markers",text:"Orange lines mark quizzes, exams and events. Tap one to see everything happening on that day."},
-  {emoji:"✏️",title:"My Tasks",text:"Add personal tasks and markers from the My Tasks tab. They show up with a 👤 badge and are visible only to you."},
-  {emoji:"🔭",title:"View range",text:"Use the button at the bottom right to zoom: Week shows 7 days at a time and slides right forever — or pick 2 Weeks, Month, Semester to zoom out."},
+  {icon:"calendar-grid",title:"Read the timeline",text:"Every row is a task. Its bar runs from the start date to the due date — the colour shows urgency (green = plenty of time, red = due very soon)."},
+  {icon:"tap",title:"Tap for details",text:"Tap any bar to see the full details with a live countdown. Tap a date at the top to drop a highlight line across the calendar."},
+  {icon:"check-circle",title:"Tick it off",text:"Tick the checkbox on the right when you finish a task. Ticks are saved to your account — only you can see them."},
+  {icon:"chart",title:"Half-finished work",text:"Press and hold that same checkbox to set up progress: count off parts (\"3 of 5\") or slide a percentage. Open the task any time to nudge it along."},
+  {icon:"pin",title:"Markers",text:"Orange lines mark quizzes, exams and events. Tap one to see everything happening on that day."},
+  {icon:"pencil",title:"My Tasks",text:"Add personal tasks and markers from the My Tasks tab. They show up with a personal badge and are visible only to you."},
+  {icon:"telescope",title:"View range",text:"Use the button at the bottom right to zoom: Week shows 7 days at a time and slides right forever — or pick 2 Weeks, Month, Semester to zoom out."},
+  {icon:"calendar-grid",title:"Month grid",text:"That same button switches to Month grid — a normal calendar where each task stretches across the days it runs, with an arrow head on the day it's due. Use ‹ › to walk through the months."},
 ]
 let tourIdx=0
 function renderTourStep(){
   const s=TOUR_STEPS[tourIdx]
-  document.getElementById("tourEmoji").textContent=s.emoji
+  document.getElementById("tourEmoji").innerHTML=ico(s.icon,"ic-xl")
   document.getElementById("tourTitle").textContent=s.title
   document.getElementById("tourText").textContent=s.text
   document.getElementById("tourDots").innerHTML=TOUR_STEPS.map((_,i)=>`<span class="tour-dot${i===tourIdx?" active":""}"></span>`).join("")
@@ -1688,13 +2531,39 @@ document.getElementById("tourClose").onclick=()=>window.closeTour()
 document.getElementById("tourOverlay").addEventListener("click",e=>{if(e.target.id==="tourOverlay")window.closeTour()})
 
 // ── Settings (placeholder for now) ────────────────────────────
+// The default shape the hold sheet opens with, shown in Settings → Tasks
+window.setProgDefaultMode = function(mode){
+  const d = progressDefaults()
+  saveProgressDefaults({ mode: PROGRESS_MODES.includes(mode) ? mode : "steps", total: d.total })
+  syncProgDefaultUI()
+}
+window.nudgeProgDefault = function(delta){
+  const d = progressDefaults()
+  saveProgressDefaults({ mode: d.mode, total: Math.min(MAX_STEPS, Math.max(2, d.total + delta)) })
+  syncProgDefaultUI()
+}
+function syncProgDefaultUI(){
+  const d = progressDefaults(), steps = d.mode === "steps"
+  const ss = document.getElementById("pgDefSteps"), pp = document.getElementById("pgDefPercent")
+  if(!ss) return
+  ss.classList.toggle("active", steps)
+  pp.classList.toggle("active", !steps)
+  document.getElementById("pgDefTotal").textContent = d.total
+  // A percent default has no part count to set
+  document.getElementById("pgDefTotalRow").classList.toggle("hide", !steps)
+}
+
 window.openSettings=function(){
-  syncZoneInputs();updateNotifyUI();syncOverdueUI()
+  syncZoneInputs();updateNotifyUI();syncOverdueUI();syncProgDefaultUI()
   const wh=document.getElementById("widgetStateHint")
   if(wh) wh.textContent = widgetFeedOn ? "On — tap to get the link or turn it off" : "Works on iPhone and Android"
+  setActivePill("settings")
   document.getElementById("settingsOverlay").classList.add("open")
 }
-window.closeSettings=function(){animCloseOverlay(document.getElementById("settingsOverlay"))}
+window.closeSettings=function(){
+  animCloseOverlay(document.getElementById("settingsOverlay"))
+  setActivePill(currentView)
+}
 document.getElementById("settingsOverlay").addEventListener("click",e=>{if(e.target.id==="settingsOverlay")window.closeSettings()})
 
 // ── Home-screen widget feed ───────────────────────────────────
@@ -1710,7 +2579,8 @@ function queueWidgetFeed(){
   // land moments apart and the feed should see both.
   widgetFeedTimer = setTimeout(()=>{
     publishWidgetFeed(db, currentUser.uid, {
-      personalTasks, done: userDoneCache, zones: rushZones, overdueMode
+      personalTasks, done: userDoneCache, progress: userProgressCache,
+      zones: rushZones, overdueMode
     })
   }, 1500)
 }
@@ -1849,7 +2719,7 @@ window.resetZones = function(){
   if(currentView==="archive") renderArchive(); else renderCalendar()
 }
 
-// ── 🔔 Native notifications (Notification API) ────────────────
+// ── Native notifications (Notification API) ───────────────────
 // While the site is open (foreground or background tab) the OS shows real
 // notifications for newly posted tasks and a once-a-day due-soon reminder.
 const NOTIFY_PREF_KEY = "tas_notify"
@@ -1898,7 +2768,7 @@ function offerInstall(){
       onAction: async ()=>{ const p=installPrompt; installPrompt=null; try{ await p.prompt() }catch(e){} }
     })
   } else if(isIOS){
-    toast("iPhone: tap Share ⬆️ then “Add to Home Screen”, and turn notifications on from the installed app",{duration:9000})
+    toast("iPhone: tap Share then “Add to Home Screen”, and turn notifications on from the installed app",{duration:9000})
   }
 }
 
@@ -1934,7 +2804,7 @@ function updateNotifyUI(){
   if(!sw) return
   sw.classList.toggle("on", notifyReady())
   if(!notifySupported()) hint.textContent = isIOS && !isStandalone()
-    ? "iPhone: add this site to your Home Screen first (Share ⬆️ → Add to Home Screen)"
+    ? "iPhone: add this site to your Home Screen first (Share → Add to Home Screen)"
     : "Not supported in this browser"
   else if(Notification.permission==="denied") hint.textContent="Blocked — allow notifications for this site in your browser settings"
   else hint.textContent = notifyReady() ? "On — you'll be notified on this device" : "Off"
@@ -2045,16 +2915,27 @@ updateNotifyUI()
 // Sync the range FAB UI (active option + label) to whatever currentRange is —
 // used on initial load so the device's last-chosen range is reflected immediately.
 function applyStoredRangeToUI(){
-  document.querySelectorAll(".range-option").forEach(b=>b.classList.toggle("active",b.id==="ro-"+currentRange))
-  const label=document.getElementById("rangeLabel")
-  if(label) label.textContent="📆 "+(RANGE_NAMES[currentRange]||"Month")
+  document.querySelectorAll(".range-option:not(.mode-option)").forEach(b=>b.classList.toggle("active",b.id==="ro-"+currentRange))
+  applyModeToUI()   // sets the FAB label too — it differs per mode
+  applyColourModeToUI()
 }
+
+// Which nav pill is lit. "calendar"/"archive" are real views; "tasks" and
+// "settings" are overlays that borrow the highlight while they're open and
+// hand it back on close — before this they never lit up at all.
+function setActivePill(which){
+  const map = { calendar:"tabCalendar", archive:"tabArchive", tasks:"tabTasks", settings:"tabSettings" }
+  for(const [key, id] of Object.entries(map)){
+    const el = document.getElementById(id)
+    if(el) el.classList.toggle("active", key === which)
+  }
+}
+window.setActivePill = setActivePill
 
 window.switchView = function(view) {
   currentView = view
   animateRows = true
-  document.getElementById("tabCalendar").classList.toggle("active", view==="calendar")
-  document.getElementById("tabArchive").classList.toggle("active", view==="archive")
+  setActivePill(view)
   document.querySelector(".fab-container").style.display = view==="calendar" ? "" : "none"
   if (view==="calendar") renderCalendar()
   else renderArchive()
@@ -2108,7 +2989,7 @@ function renderArchive() {
   }
 
   if (!archived.length) {
-    wrap.innerHTML = `<div class="archive-wrap"><div class="archive-empty"><span class="big">📭</span>Archive is empty<br><span style="font-size:11px">Past-due tasks appear here for ${ARCHIVE_RETENTION_DAYS} days, then clear automatically</span></div></div>`
+    wrap.innerHTML = `<div class="archive-wrap"><div class="archive-empty"><span class="big">${ico("inbox")}</span>Archive is empty<br><span style="font-size:11px">Past-due tasks appear here for ${ARCHIVE_RETENTION_DAYS} days, then clear automatically</span></div></div>`
     return
   }
 
@@ -2126,14 +3007,14 @@ function renderArchive() {
     <input type="checkbox" class="archive-cb" ${sel&&sel===visible.length?"checked":""} onchange="toggleArchiveSelectAll(this)" title="Select all">
     ${sel ? `
       <span class="archive-selinfo">${sel} selected</span>
-      <button class="archive-tb-btn danger" onclick="archiveDeleteSelected()">🗑 Delete</button>
+      <button class="archive-tb-btn danger" onclick="archiveDeleteSelected()">${ico("trash")} Delete</button>
       <button class="archive-tb-btn" onclick="archiveClearSelection()">✕ Clear</button>
     ` : `
       <select class="archive-fselect" onchange="setArchiveSubjectFilter(this.value)">
-        <option value="">📚 All subjects</option>
+        <option value="">All subjects</option>
         ${subjects.map(s=>`<option value="${esc(s)}"${s===archiveFilterSubject?" selected":""}>${esc(s)}</option>`).join("")}
       </select>
-      <div class="archive-fchips">${chip("","All")}${chip("normal","🟢 Send On")}${chip("deadline","🔴 Send Before")}</div>
+      <div class="archive-fchips">${chip("","All")}${chip("normal",typeDot("normal")+" Send On")}${chip("deadline",typeDot("deadline")+" Send Before")}</div>
     `}
   </div>`
 
@@ -2145,30 +3026,30 @@ function renderArchive() {
       <span class="archive-strip ${t.type==="deadline"?"deadline":"normal"}"></span>
       <input type="checkbox" class="archive-cb" ${checked?"checked":""} onclick="event.stopPropagation()" onchange="toggleArchiveSelect('${t.id}',this.checked)">
       <div class="archive-main">
-        <span class="archive-name${isDone?" done":""}">${t._personal?"👤 ":""}${esc(t.name)}</span>
+        <span class="archive-name${isDone?" done":""}">${t._personal?ico("user")+" ":""}${esc(t.name)}</span>
         <span class="archive-subj">${esc(t.subject||"")}</span>
         <span class="archive-chip ${t.type==="deadline"?"deadline":"normal"}">${TYPE_LABEL[t.type]||esc(t.type)}</span>
         <span class="archive-desc">${esc(t.note||"")}</span>
       </div>
       <div class="archive-right">
-        <div class="archive-due">📅 ${shortDate(end)}</div>
+        <div class="archive-due">${ico("calendar-grid")} ${shortDate(end)}</div>
         <div class="archive-days">${Math.abs(dl)}d ago</div>
       </div>
       <div class="archive-acts">
         <button class="archive-act" title="Extend as personal task" onclick="archiveExtendTask(event,'${t.id}')">↻</button>
-        <button class="archive-act danger" title="Delete" onclick="archiveDeleteOne(event,'${t.id}')">🗑</button>
+        <button class="archive-act danger" title="Delete" onclick="archiveDeleteOne(event,'${t.id}')">${ico("trash")}</button>
       </div>
     </div>`
   }).join("")
 
   wrap.innerHTML = `<div class="archive-wrap">
     <div class="archive-head">
-      <div class="archive-title">🗂 Archive <span class="archive-count-pill">${archived.length} past due</span></div>
+      <div class="archive-title">${ico("archive-box")} Archive <span class="archive-count-pill">${archived.length} past due</span></div>
       <div class="archive-sub">Auto-clears ${ARCHIVE_RETENTION_DAYS} days after due date</div>
     </div>
     ${toolbar}
-    <div class="archive-list">${rows || `<div class="archive-empty"><span class="big">🔍</span>No tasks match this filter</div>`}</div>
-    <div class="archive-hint">🗑 removes tasks from <b>your</b> archive only — classmates keep theirs.<br>↻ brings a task back to your calendar as a personal task with new dates.</div>
+    <div class="archive-list">${rows || `<div class="archive-empty"><span class="big">${ico("search")}</span>No tasks match this filter</div>`}</div>
+    <div class="archive-hint">${ico("trash")} removes tasks from <b>your</b> archive only — classmates keep theirs.<br>↻ brings a task back to your calendar as a personal task with new dates.</div>
   </div>`
 }
 
@@ -2271,7 +3152,69 @@ window.archiveExtendTask = function(e,id){
   updatePtPreview()
 }
 
+// Live docs still carry the pre-rename spellings, so every type check goes
+// through here — otherwise an "estimated" date colours like real homework
+const TYPE_ALIASES = {send_on:"normal",send_before:"deadline",estimated:"prediction"}
+const taskType = t => TYPE_ALIASES[t&&t.type] || (t&&t.type) || "normal"
+
+// ── Subject colours ───────────────────────────────────────────
+// Colouring by urgency makes a busy month one wall of orange, so the default
+// is one colour per subject instead. Ordered so neighbouring subjects never
+// land on neighbouring hues; every swatch takes white text comfortably.
+// Marker orange (#ea580c) is deliberately absent — it belongs to quizzes and
+// exams alone, and a subject wearing it would be unreadable as anything else.
+// The first seven are as far apart as seven hues get — most boards never need
+// more. Past that each colour is a deliberately darker sibling of an earlier
+// one, which reads as "related but different" instead of "nearly the same".
+const SUBJECT_PALETTE = [
+  "#2563eb","#dc2626","#16a34a","#d97706","#7c3aed","#0891b2","#db2777",
+  "#4d7c0f","#0369a1","#be123c","#a21caf","#0f766e","#b45309",
+]
+const NO_SUBJECT_COLOR = "#64748b"
+const SUBJ_COLORS_KEY = "tas_subject_colors"
+const COLOUR_MODE_KEY = "tas_cal_colour_mode"
+const VALID_COLOUR_MODES = ["subject","urgency"]
+
+let subjectColors = {}
+try{ subjectColors = JSON.parse(localStorage.getItem(SUBJ_COLORS_KEY) || "{}") || {} }catch(e){}
+let colourMode = localStorage.getItem(COLOUR_MODE_KEY)
+if(!VALID_COLOUR_MODES.includes(colourMode)) colourMode = "subject"
+
+function saveSubjectColors(){
+  try{ localStorage.setItem(SUBJ_COLORS_KEY, JSON.stringify(subjectColors)) }catch(e){}
+}
+// Every subject on the board, in a stable order
+function allSubjects(){
+  return [...new Set([...tasks,...personalTasks].map(t=>(t.subject||"").trim()).filter(Boolean))].sort()
+}
+// Hand each new subject the first palette colour no *current* subject is using,
+// then remember it — so a subject keeps its colour as the board changes, and a
+// stale entry from a finished subject never blocks a slot.
+function ensureSubjectColors(){
+  const subs=allSubjects()
+  const used=new Set(subs.map(s=>subjectColors[s]).filter(Boolean))
+  let changed=false
+  subs.forEach(s=>{
+    if(subjectColors[s]) return
+    const free=SUBJECT_PALETTE.find(c=>!used.has(c))
+      || SUBJECT_PALETTE[Object.keys(subjectColors).length % SUBJECT_PALETTE.length]
+    subjectColors[s]=free; used.add(free); changed=true
+  })
+  if(changed) saveSubjectColors()
+  return subs
+}
+const subjectColor = s => subjectColors[(s||"").trim()] || NO_SUBJECT_COLOR
+
+// The one colour every bar asks for, in either mode. Markers stay orange in
+// both — that's a kind of event, not a subject or a deadline.
+function barColor(t,dl){
+  if(taskType(t)==="marker") return "#ea580c"
+  if(colourMode==="subject") return subjectColor(t.subject)
+  return urgencyColor(taskType(t),dl)
+}
+
 function urgencyColor(type,dl){
+  type = TYPE_ALIASES[type] || type
   if(type==="prediction") return "#8b5cf6"
   if(type==="marker") return "#ea580c"
   if(dl<0) return "#dc2626"
@@ -2310,9 +3253,71 @@ window.setRange=function(key){
   currentRange=key;hlPct=null;animateRows=true
   // Remember this device's chosen range for next time
   try{ localStorage.setItem(RANGE_STORAGE_KEY,key) }catch(e){}
-  document.querySelectorAll(".range-option").forEach(b=>b.classList.toggle("active",b.id==="ro-"+key))
-  document.getElementById("rangeLabel").textContent="📆 "+RANGE_NAMES[key]
+  document.querySelectorAll(".range-option:not(.mode-option)").forEach(b=>b.classList.toggle("active",b.id==="ro-"+key))
+  document.getElementById("rangeLabel").innerHTML=ico("calendar-grid")+" "+RANGE_NAMES[key]
   closeFabs();renderCalendar()
+}
+
+// ── View mode (timeline ⇄ month grid) ─────────────────────────
+// The range picker only means something for the timeline, so it hides in grid
+// mode — the grid always shows exactly one month, walked with ‹ ›.
+function applyModeToUI(){
+  document.querySelectorAll(".mode-option").forEach(b=>b.classList.toggle("active",b.id==="mo-"+calMode))
+  const rs=document.getElementById("rangeSection")
+  if(rs) rs.style.display = calMode==="grid" ? "none" : ""
+  const label=document.getElementById("rangeLabel")
+  if(label) label.innerHTML = ico("calendar-grid")+" "+(calMode==="grid" ? "Month grid" : (RANGE_NAMES[currentRange]||"Month"))
+}
+window.setCalMode=function(mode){
+  if(!VALID_MODES.includes(mode)||mode===calMode){ closeFabs(); return }
+  calMode=mode; hlPct=null; animateRows=true
+  try{ localStorage.setItem(CAL_MODE_KEY,mode) }catch(e){}
+  // Coming back to the grid always lands on the month you're actually in
+  if(mode==="grid") gridMonth=new Date(TODAY.getFullYear(),TODAY.getMonth(),1)
+  applyModeToUI()
+  closeFabs();renderCalendar()
+}
+window.gridNav=function(delta){
+  gridMonth=new Date(gridMonth.getFullYear(),gridMonth.getMonth()+delta,1)
+  animateRows=true;renderCalendar()
+}
+window.gridToday=function(){
+  gridMonth=new Date(TODAY.getFullYear(),TODAY.getMonth(),1)
+  animateRows=true;renderCalendar()
+}
+
+// ── Colour mode + per-subject colours ─────────────────────────
+function applyColourModeToUI(){
+  document.getElementById("colOptSubject")?.classList.toggle("active",colourMode==="subject")
+  document.getElementById("colOptUrgency")?.classList.toggle("active",colourMode==="urgency")
+  const hint=document.getElementById("legendColourHint")
+  if(hint) hint.innerHTML = colourMode==="subject"
+    ? ico("palette")+" Colour = subject (tap a swatch under the grid to change it)"
+    : ico("flame")+" Colour = urgency level"
+}
+window.setColourMode=function(mode){
+  if(!VALID_COLOUR_MODES.includes(mode)) return
+  colourMode=mode
+  try{ localStorage.setItem(COLOUR_MODE_KEY,mode) }catch(e){}
+  applyColourModeToUI()
+  if(currentView==="archive") renderArchive(); else renderCalendar()
+}
+// Legend swatches hand back an index rather than the subject name — a subject
+// with a quote in it would break an inline handler built from the raw string.
+let legendSubjects=[]
+window.setSubjectColorAt=function(i,hex){
+  const s=legendSubjects[i]
+  if(!s||!/^#[0-9a-f]{6}$/i.test(hex)) return
+  subjectColors[s]=hex.toLowerCase()
+  saveSubjectColors()
+  renderCalendar()
+}
+window.resetSubjectColors=async function(){
+  const ok=await confirmDialog({message:"Every subject goes back to its automatic colour."})
+  if(!ok) return
+  subjectColors={}
+  saveSubjectColors()
+  if(currentView==="archive") renderArchive(); else renderCalendar()
 }
 function closeFabs(){
   ["legendPanel","legendToggle","rangePanel","rangeToggle"].forEach(id=>document.getElementById(id).classList.remove("open"))
@@ -2515,36 +3520,46 @@ function archiveSkeletonHTML(){
     </div>
   </div>`
 }
-document.getElementById("calWrap").innerHTML=skeletonHTML()
+document.getElementById("calWrap").innerHTML = calMode==="grid" ? gridSkeletonHTML() : skeletonHTML()
 
 function renderCalendar(){
   const wrap=document.getElementById("calWrap")
   if(!tasksLoaded){
     // Keep the skeleton (and don't consume animateRows) until real data lands —
-    // rebuild it if the view or range changed so tick count and gaps stay true
-    if(!wrap.querySelector(`.cal-skeleton[data-skel="cal"][data-range="${currentRange}"]`)) wrap.innerHTML=skeletonHTML()
+    // rebuild it if the view, mode or range changed so the ghost still matches
+    const want = calMode==="grid"
+      ? '.cal-skeleton[data-skel="grid"]'
+      : `.cal-skeleton[data-skel="cal"][data-range="${currentRange}"]`
+    if(!wrap.querySelector(want)) wrap.innerHTML = calMode==="grid" ? gridSkeletonHTML() : skeletonHTML()
     return
   }
   wrap.classList.toggle("no-anim", !animateRows); animateRows=false
-  // Personal tasks count too — a student with only their own tasks still has a calendar
-  if(!tasks.length&&!personalTasks.length){
-    wrap.innerHTML=`<div class="empty-state"><p>No tasks yet 📭</p><small>${isMod?"Click ➕ Add task to get started":"Check back later!"}</small></div>`
-    return
-  }
+  // Must run before the first bar is drawn — a subject with no colour yet would
+  // otherwise render grey until something else triggered a re-render
+  ensureSubjectColors()
 
-  const sorted = getOrderedTasks()
-  // Row tasks: exclude markers (markers render as vlines/ticks only, not rows)
-  const activeTasks  = sorted.filter(t=>t.type!=="marker"&&(daysLeft(parseDate(t.end))>=0||t.type==="prediction"))
-  const archivedTasks= getArchivedTasks()
-
+  // Archive badge is the same in either mode, so it's counted before the split
+  const archivedTasks=getArchivedTasks()
   const badge=document.getElementById("archiveCount")
   if(badge){
     if(archivedTasks.length){badge.textContent=archivedTasks.length;badge.style.display="inline-block"}
     else badge.style.display="none"
   }
 
+  if(calMode==="grid"){ renderGridCalendar(wrap); return }
+
+  // Personal tasks count too — a student with only their own tasks still has a calendar
+  if(!tasks.length&&!personalTasks.length){
+    wrap.innerHTML=`<div class="empty-state"><p>${ico("inbox","ic-lg")} No tasks yet</p><small>${isMod?"Use Add shared task in your profile menu to get started":"Check back later!"}</small></div>`
+    return
+  }
+
+  const sorted = getOrderedTasks()
+  // Row tasks: exclude markers (markers render as vlines/ticks only, not rows)
+  const activeTasks  = sorted.filter(t=>t.type!=="marker"&&(daysLeft(parseDate(t.end))>=0||t.type==="prediction"))
+
   if(!activeTasks.length){
-    wrap.innerHTML=`<div class="empty-state"><p>No active tasks 🎉</p><small>All tasks are done or archived!</small></div>`
+    wrap.innerHTML=`<div class="empty-state"><p>${ico("party","ic-lg")} No active tasks</p><small>All tasks are done or archived!</small></div>`
     return
   }
 
@@ -2616,7 +3631,7 @@ function renderCalendar(){
     const markerClass=coincidentMarkers.length?" marker-tick":""
     const nameTag=coincidentMarkers.length
       ? (coincidentMarkers.length===1
-          ? (()=>{ const info=MARKER_INFO[coincidentMarkers[0].markerType]||MARKER_INFO.date; return `<div class="marker-name-tag">${info.emoji} ${esc(coincidentMarkers[0].name)}</div>` })()
+          ? (()=>{ const info=MARKER_INFO[coincidentMarkers[0].markerType]||MARKER_INFO.date; return `<div class="marker-name-tag">${ico(info.icon)} ${esc(coincidentMarkers[0].name)}</div>` })()
           : `<div class="marker-name-tag multi-tag">… ${coincidentMarkers.length} Events</div>`)
       : ""
     const markerClick=coincidentMarkers.length
@@ -2635,7 +3650,7 @@ function renderCalendar(){
     .filter(mt=>!mt.hasRegularTick)
     .map(({p,markers})=>{
       const nameTag=markers.length===1
-        ? (()=>{ const info=MARKER_INFO[markers[0].markerType]||MARKER_INFO.date; return `<div class="marker-name-tag">${info.emoji} ${esc(markers[0].name)}</div>` })()
+        ? (()=>{ const info=MARKER_INFO[markers[0].markerType]||MARKER_INFO.date; return `<div class="marker-name-tag">${ico(info.icon)} ${esc(markers[0].name)}</div>` })()
         : `<div class="marker-name-tag multi-tag">… ${markers.length} Events</div>`
       const ids2=markers.map(m=>m.id)
       const idsStr2=ids2.map(id=>`'${id}'`).join(",")
@@ -2678,8 +3693,8 @@ function renderCalendar(){
     const right=pct(end,rangeStart,totalMs)
     const width=Math.max(right-left,0.8)
     const dl=daysLeft(end)
-    const color=urgencyColor(t.type,dl)
-    const isOverdue=dl<0&&!isDone&&t.type!=="prediction"
+    const color=barColor(t,dl)
+    const isOverdue=dl<0&&!isDone&&taskType(t)!=="prediction"
     const isPersonal=!!t._personal
     const delay=(0.06+idx*0.045).toFixed(3)
 
@@ -2692,7 +3707,7 @@ function renderCalendar(){
         <div class="row-name" title="${esc(t.name)}">${esc(t.name)}</div>
         <div class="row-subject" title="${esc(t.subject)}">${esc(t.subject)}</div>
       </div>
-      ${isMod?`<button class="row-del" title="Delete task" onclick="quickDeleteTask(event,'${t.id}')">🗑</button>`:""}
+      ${isMod?`<button class="row-del" title="Delete task" onclick="quickDeleteTask(event,'${t.id}')">${ico("trash")}</button>`:""}
     </div>`
 
     trackHTML+=`<div class="cal-row" data-id="${t.id}" style="animation-delay:${delay}s">
@@ -2704,15 +3719,16 @@ function renderCalendar(){
           style="left:${left}%;width:${width}%;background:${color};animation-delay:${delay}s"
           onclick="showDetail(event,'${t.id}')">
           <span class="gantt-bar-text">${esc(t.name)} · ${shortDate(end)}</span>
-          ${isPersonal?'<span class="personal-badge">👤</span>':''}
+          ${isPersonal?'<span class="personal-badge">'+ico("user")+'</span>':''}
         </div>
         ${outRight}
       </div>
     </div>`
 
-    rightHTML+=`<div class="check-row" id="cr-${t.id}">
-      <input type="checkbox" title="Mark as done" ${isDone?"checked":""}
+    rightHTML+=`<div class="check-row" id="cr-${t.id}" title="Hold to set up progress">
+      <input type="checkbox" title="Mark as done — hold to set up progress" ${isDone?"checked":""}
         onchange="toggleDone('${t.id}',this.checked,this)" />
+      <div class="hold-ring"></div>
       <div class="check-spin"></div>
     </div>`
   })
@@ -2749,7 +3765,174 @@ function renderCalendar(){
   so.addEventListener("scroll",()=>{hs.scrollLeft=so.scrollLeft})
 }
 
-// ── 🎉 Confetti — celebrate marking a task done ───────────────
+// ══ GRID MODE ═══════════════════════════════════════════════════
+// A classic Sun–Sat month grid where every task is one bar stretched from its
+// start day to its due day. A bar that runs past Saturday is cut at the week
+// edge and picked up again on the next row: the piece holding the real due date
+// gets the arrow head, the continuation pieces get a notch on their left edge.
+const DAY_MS = 864e5
+const dayDiff = (a,b) => Math.round((a-b)/DAY_MS)
+
+// Every task/marker as {task, start, end} — markers are one-day events
+function gridEvents(){
+  const out=[]
+  getOrderedTasks().forEach(t=>{
+    if(userHiddenCache[t.id]) return   // deleted from this account's archive
+    let s,e
+    if(taskType(t)==="marker"){
+      const d=(t.date||t.start||"").slice(0,10)
+      if(!d) return
+      s=e=parseDate(d)
+    }else{
+      const sd=(t.start||t.end||"").slice(0,10), ed=(t.end||t.start||"").slice(0,10)
+      if(!sd||!ed) return
+      s=parseDate(sd); e=parseDate(ed)
+      if(e<s) e=s   // bad data: never render a backwards bar
+    }
+    out.push({t,s,e})
+  })
+  return out
+}
+
+function renderGridCalendar(wrap){
+  const first  = new Date(gridMonth.getFullYear(),gridMonth.getMonth(),1)
+  const offset = first.getDay()                                        // Sun-based
+  const dim    = new Date(first.getFullYear(),first.getMonth()+1,0).getDate()
+  const weeks  = Math.ceil((offset+dim)/7)
+  const gridStart = new Date(first); gridStart.setDate(1-offset)
+  const gridEnd   = new Date(gridStart); gridEnd.setDate(gridStart.getDate()+weeks*7-1)
+
+  const evs = gridEvents().filter(ev=>ev.e>=gridStart&&ev.s<=gridEnd)
+
+  let weeksHTML="", barIdx=0
+  for(let w=0;w<weeks;w++){
+    const ws=new Date(gridStart); ws.setDate(gridStart.getDate()+w*7)
+    const we=new Date(ws);        we.setDate(ws.getDate()+6)
+
+    let cellsHTML=""
+    for(let d=0;d<7;d++){
+      const day=new Date(ws); day.setDate(ws.getDate()+d)
+      const out=day.getMonth()!==first.getMonth()
+      const isToday=day.getTime()===TODAY.getTime()
+      cellsHTML+=`<div class="tl-cell${out?" out":""}${(d===0||d===6)?" weekend":""}${isToday?" today":""}">
+        <span class="tl-daynum">${day.getDate()}</span>
+      </div>`
+    }
+
+    // Slice this week's events into segments, then pack them into lanes:
+    // earliest start first, longest first on a tie, each taking the topmost
+    // lane whose last segment already finished before it starts.
+    const segs=evs.filter(ev=>ev.e>=ws&&ev.s<=we).map(ev=>({
+      ev,
+      c0:Math.max(0,dayDiff(ev.s,ws)),
+      c1:Math.min(6,dayDiff(ev.e,ws)),
+      contL:ev.s<ws,
+      contR:ev.e>we
+    })).sort((a,b)=>a.c0-b.c0||(b.c1-b.c0)-(a.c1-a.c0))
+
+    const lanes=[]
+    let barsHTML=""
+    segs.forEach(sg=>{
+      let lane=lanes.findIndex(lastCol=>lastCol<sg.c0)
+      if(lane===-1){lane=lanes.length;lanes.push(-1)}
+      lanes[lane]=sg.c1
+
+      const t=sg.ev.t, type=taskType(t)
+      const isMarker=type==="marker"
+      const isDone=!!userDoneCache[t.id]
+      const dl=daysLeft(sg.ev.e)
+      const color=barColor(t,dl)
+      const isOverdue=dl<0&&!isDone&&!isMarker&&type!=="prediction"
+      const info=isMarker?(MARKER_INFO[t.markerType]||MARKER_INFO.date):null
+      const prefix=isMarker?ico(info.icon)+" ":(t._personal?ico("user")+" ":"")
+      // Shared markers open the events card; personal ones only exist for you,
+      // so they go to the normal detail popup
+      const click=(isMarker&&!t._personal)
+        ? `showMarkersDetail(event,'${t.id}','${esc(t.date||t.start)}')`
+        : `showDetail(event,'${t.id}')`
+      const span=sg.c1-sg.c0+1
+      const cls=["tl-bar",sg.contL?"nl":"",sg.contR?"":"ar",isDone?"done":"",
+                 t._personal?"personal":"",isOverdue?"overdue":"",
+                 span===1?"tiny":""].filter(Boolean).join(" ")
+      const left=sg.c0/7*100, width=span/7*100
+      const tip=`${t.name}${t.subject?" · "+t.subject:""} · ${isMarker?shortDate(sg.ev.s):shortDate(sg.ev.e)}`
+
+      barsHTML+=`<div class="${cls}"
+        style="left:calc(${left.toFixed(4)}% + 3px);width:calc(${width.toFixed(4)}% - 6px);top:calc(var(--tl-lane) * ${lane});background:${color};animation-delay:${(0.04+barIdx*0.016).toFixed(3)}s"
+        title="${esc(tip)}" onclick="${click}">
+        <span class="tl-bar-txt">${prefix}${esc(t.name)}</span>
+      </div>`
+      barIdx++
+    })
+
+    weeksHTML+=`<div class="tl-week" style="--lanes:${Math.max(lanes.length,1)}">
+      ${cellsHTML}
+      <div class="tl-lanes">${barsHTML}</div>
+    </div>`
+  }
+
+  const wdHTML=EN_DAYS.map((n,i)=>
+    `<div class="tl-wd d${i}"><span class="tl-wd-full">${n}</span><span class="tl-wd-abbr">${n.slice(0,3)}</span></div>`
+  ).join("")
+
+  const onThisMonth = first.getFullYear()===TODAY.getFullYear() && first.getMonth()===TODAY.getMonth()
+  const foot = evs.length
+    ? `${evs.length} item${evs.length===1?"":"s"} this month`
+    : ico("inbox")+" Nothing scheduled this month"
+
+  wrap.innerHTML=`
+    <div class="tl-wrap">
+      <div class="tl-head">
+        <button class="tl-nav prev" onclick="gridNav(-1)" title="Previous month" aria-label="Previous month">‹</button>
+        <div class="tl-title">${EN_MONTHS[first.getMonth()]}<span class="tl-yr">${first.getFullYear()}</span></div>
+        ${onThisMonth?"":`<button class="tl-today-btn" onclick="gridToday()">${ico("back")} Today</button>`}
+        <button class="tl-nav next" onclick="gridNav(1)" title="Next month" aria-label="Next month">›</button>
+      </div>
+      ${subjectLegendHTML()}
+      <div class="tl-grid">
+        <div class="tl-wd-row">${wdHTML}</div>
+        ${weeksHTML}
+      </div>
+      <div class="tl-foot">${foot}</div>
+    </div>`
+}
+
+// The key under the grid — every subject with the colour it's drawn in. Each
+// swatch is a real colour input, so the colours are changed where they're read.
+function subjectLegendHTML(){
+  if(colourMode!=="subject") return ""
+  legendSubjects=ensureSubjectColors()
+  if(!legendSubjects.length) return ""
+  const chips=legendSubjects.map((s,i)=>`<label class="tl-leg" title="Change the colour for ${esc(s)}">
+    <input type="color" class="tl-leg-sw" value="${subjectColor(s)}" onchange="setSubjectColorAt(${i},this.value)" />
+    <span class="tl-leg-name">${esc(s)}</span>
+  </label>`).join("")
+  return `<div class="tl-legend">
+    ${chips}
+    <label class="tl-leg marker-leg" title="Quizzes, exams and events"><span class="tl-leg-sw static" style="background:#ea580c"></span><span class="tl-leg-name">Quiz / exam / event</span></label>
+  </div>`
+}
+
+// Grid-mode ghost — the month frame with a few bones where bars will land
+function gridSkeletonHTML(){
+  const wd=Array.from({length:7},()=>`<div class="tl-wd" style="--dc:var(--label)"><div class="skel-bone" style="height:10px;width:56%;margin:1px auto;border-radius:4px"></div></div>`).join("")
+  const bars=[[0,3],[3,3],[1,5],[2,2],[4,3]]
+  const weeks=Array.from({length:5},(_,w)=>{
+    const cells=Array.from({length:7},()=>`<div class="tl-cell"><div class="skel-bone" style="height:11px;width:15px;border-radius:4px"></div></div>`).join("")
+    const [c0,span]=bars[w]
+    return `<div class="tl-week" style="--lanes:2">${cells}
+      <div class="tl-lanes"><div class="skel-bone" style="position:absolute;height:17px;border-radius:5px;left:calc(${(c0/7*100).toFixed(2)}% + 3px);width:calc(${(span/7*100).toFixed(2)}% - 6px);top:0"></div></div>
+    </div>`
+  }).join("")
+  return `<div class="cal-skeleton" data-skel="grid" role="status" aria-label="Loading tasks…">
+    <div class="tl-wrap">
+      <div class="tl-head"><div class="skel-bone" style="height:16px;width:140px;border-radius:5px"></div></div>
+      <div class="tl-grid"><div class="tl-wd-row">${wd}</div>${weeks}</div>
+    </div>
+  </div>`
+}
+
+// ── Confetti — celebrate marking a task done ──────────────────
 // Tiny self-contained canvas burst (no libraries, works offline).
 let cfCanvas=null, cfCtx=null, cfParts=[], cfRAF=null
 function cfColors(){
@@ -2847,6 +4030,273 @@ window.toggleDone = async function(id, checked, checkbox) {
   }
 }
 
+
+// ══ PROGRESS: hold-to-set-up ═══════════════════════════════════
+// Delegated from the document, because renderCalendar() replaces the whole
+// right column with innerHTML on every snapshot — a listener bound to a
+// checkbox would not survive the next render.
+const HOLD_MS = 500
+let holdTimer = null, holdRow = null, holdStart = null, holdFired = false
+
+function cancelHold(){
+  if(holdTimer) clearTimeout(holdTimer)
+  holdTimer = null
+  if(holdRow){ holdRow.classList.remove("holding"); holdRow.style.removeProperty("--hold") }
+  holdRow = null
+  holdStart = null
+}
+
+document.addEventListener("pointerdown", e => {
+  const input = e.target.closest(".check-row input")
+  if(!input) return
+  const row = input.closest(".check-row")
+  if(!row || row.classList.contains("saving")) return
+  const id = row.id.replace(/^cr-/, "")
+  if(!id) return
+  holdRow = row
+  holdStart = { x: e.clientX, y: e.clientY }
+  holdFired = false
+  row.classList.add("holding")
+  // Sweep the ring over the hold so a half-press reads as "not yet"
+  const t0 = performance.now()
+  const tick = () => {
+    if(!holdRow || holdRow !== row) return
+    const pct = Math.min(100, (performance.now() - t0) / HOLD_MS * 100)
+    row.style.setProperty("--hold", pct + "%")
+    if(pct < 100) requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+  holdTimer = setTimeout(() => {
+    holdFired = true
+    cancelHold()
+    navigator.vibrate?.(15)
+    openProgressSheet(id)
+  }, HOLD_MS)
+})
+
+// A drag means the user is scrolling the page, not holding the box
+document.addEventListener("pointermove", e => {
+  if(!holdStart) return
+  if(Math.abs(e.clientX - holdStart.x) > 10 || Math.abs(e.clientY - holdStart.y) > 10) cancelHold()
+}, { passive: true })
+document.addEventListener("pointerup", cancelHold)
+document.addEventListener("pointercancel", cancelHold)
+
+// Swallow the click that follows a fired hold — otherwise lifting the finger
+// ticks the checkbox and marks the task done behind the sheet.
+document.addEventListener("click", e => {
+  if(!holdFired) return
+  if(e.target.closest(".check-row")){ e.preventDefault(); e.stopPropagation() }
+  holdFired = false
+}, true)
+
+// ══ PROGRESS: the setup sheet ══════════════════════════════════
+let pgTaskId = null, pgDraft = null
+
+function pgTaskById(id){
+  return tasks.find(t => t.id === id) || personalTasks.find(t => t.id === id) || null
+}
+
+window.openProgressSheet = function(id){
+  const t = pgTaskById(id)
+  if(!t) return
+  pgTaskId = id
+  const existing = progressOf(id)
+  const d = progressDefaults()
+  pgDraft = existing ? { ...existing } : { mode: d.mode, value: 0, total: d.mode === "percent" ? 100 : d.total }
+  document.getElementById("pgTaskName").textContent = t.name || "This task"
+  document.getElementById("pgRemove").style.display = existing ? "" : "none"
+  syncProgSheet()
+  document.getElementById("progressModal").classList.add("open")
+}
+
+// Escape is handled by the global overlay key handler, which already knows
+// the stacking order (confirm → progress → popup → …)
+window.closeProgressSheet = function(){
+  animCloseOverlay(document.getElementById("progressModal"))
+  pgTaskId = null; pgDraft = null
+}
+
+window.setProgSheetMode = function(mode){
+  if(!pgDraft || !PROGRESS_MODES.includes(mode)) return
+  if(pgDraft.mode === mode) return
+  // Carry how far along they are across the switch, so flipping mode to
+  // compare the two doesn't silently reset their progress to zero.
+  const pct = progressPct(pgDraft)
+  if(mode === "percent"){ pgDraft = { mode, total: 100, value: Math.round(pct / 5) * 5 } }
+  else {
+    const total = progressDefaults().total
+    pgDraft = { mode, total, value: Math.round(pct / 100 * total) }
+  }
+  syncProgSheet()
+}
+
+window.nudgeProgTotal = function(delta){
+  if(!pgDraft || pgDraft.mode !== "steps") return
+  pgDraft.total = Math.min(MAX_STEPS, Math.max(2, pgDraft.total + delta))
+  pgDraft.value = Math.min(pgDraft.value, pgDraft.total)
+  syncProgSheet()
+}
+
+function syncProgSheet(){
+  if(!pgDraft) return
+  const steps = pgDraft.mode === "steps"
+  document.getElementById("pgModeSteps").classList.toggle("active", steps)
+  document.getElementById("pgModePercent").classList.toggle("active", !steps)
+  document.getElementById("pgStepsFields").classList.toggle("hide", !steps)
+  document.getElementById("pgPercentFields").classList.toggle("hide", steps)
+  document.getElementById("pgTotal").textContent = steps ? pgDraft.total : 100
+  const range = document.getElementById("pgRange")
+  if(!steps){ range.value = pgDraft.value; range.style.setProperty("--fill", pgDraft.value + "%") }
+  document.getElementById("pgPreview").innerHTML =
+    progressBarHTML(pgDraft, { cls: "big", interactive: steps })
+  document.getElementById("pgRead").textContent = progressText(pgDraft)
+}
+
+// Tapping a segment in the sheet's preview sets how many parts are done
+document.addEventListener("click", e => {
+  const seg = e.target.closest("#pgPreview .prog-seg")
+  if(!seg || !pgDraft) return
+  const step = Number(seg.dataset.step)
+  // Tapping the segment you're already at means "undo that one"
+  pgDraft.value = pgDraft.value === step ? step - 1 : step
+  syncProgSheet()
+})
+
+window.saveProgressSheet = async function(){
+  if(!pgTaskId || !pgDraft) return
+  const id = pgTaskId, next = normProgress(pgDraft)
+  // Remember the shape they picked, so the next task opens the same way
+  saveProgressDefaults({ mode: next.mode, total: next.mode === "steps" ? next.total : progressDefaults().total })
+  closeProgressSheet()
+  const ok = await writeProgress(id, next)
+  if(ok){
+    refreshProgressUI(id)
+    if(progressDone(next)) offerMarkDone(id)
+  }
+  rerenderCurrentView()
+}
+
+window.removeProgressSheet = async function(){
+  if(!pgTaskId) return
+  const id = pgTaskId
+  closeProgressSheet()
+  await writeProgress(id, null)
+  refreshProgressUI(id)
+  rerenderCurrentView()
+}
+
+function rerenderCurrentView(){
+  if(savingIds.size) return
+  animateRows = false
+  if(currentView === "archive") renderArchive()
+  else renderCalendar()
+  renderPtList()
+}
+
+// Finishing a task's progress suggests the tick rather than taking it — the
+// checkbox stays the user's decision, and half the time the last part is
+// "hand it in tomorrow".
+let markDonePrompted = null
+function offerMarkDone(id){
+  if(userDoneCache[id] || markDonePrompted === id) return
+  markDonePrompted = id
+  toast("That's everything — mark it done?", {
+    action: "Mark done",
+    duration: 6000,
+    onAction: async () => {
+      markDonePrompted = null
+      const box = document.querySelector('#cr-' + CSS.escape(id) + ' input')
+      if(box){ box.checked = true; toggleDone(id, true, box) }
+      else {
+        userDoneCache[id] = true
+        const ok = await persistUserDone(currentUser.uid)
+        if(!ok){ delete userDoneCache[id]; saveFailToast() }
+        rerenderCurrentView()
+      }
+    }
+  })
+}
+
+/// The popup's own progress block. Interactive in place — tapping a segment
+// or dragging the slider saves straight away, so nudging "3 of 5" to "4 of 5"
+// never means reopening the setup sheet.
+function renderDetailProgress(id){
+  const sec = document.getElementById("dp-progress-section")
+  if(!sec) return
+  const t = pgTaskById(id)
+  // Markers have no work to be part-way through
+  if(!t || taskType(t) === "marker"){ sec.style.display = "none"; sec.innerHTML = ""; return }
+  sec.style.display = ""
+  const p = progressOf(id)
+  if(!p){
+    sec.innerHTML = `<button class="dp-prog-set" onclick="openProgressSheet('${id}')">＋ Set up progress</button>`
+    return
+  }
+  const color = barColor(t, daysLeft(parseDate(t.end)))
+  sec.innerHTML = `<div class="dp-prog">
+    <div class="dp-prog-head">
+      <span class="dp-prog-label">Progress</span>
+      <span>
+        <span class="dp-prog-read">${progressText(p)}</span>
+        <button class="dp-prog-edit" title="Change how this is tracked" onclick="openProgressSheet('${id}')">${ico("settings")}</button>
+      </span>
+    </div>
+    ${p.mode === "percent"
+      ? `<input type="range" class="pg-range" id="dpProgRange" min="0" max="100" step="5" value="${p.value}" style="--fill:${p.value}%" />`
+      : progressBarHTML(p, { color, cls: "live", interactive: true })}
+  </div>`
+}
+
+// Tap a segment in the popup → save that many parts done
+document.addEventListener("click", e => {
+  const seg = e.target.closest("#dp-progress-section .prog-seg")
+  if(!seg || !detailTaskId) return
+  const p = progressOf(detailTaskId)
+  if(!p) return
+  const step = Number(seg.dataset.step)
+  applyLiveProgress(detailTaskId, { ...p, value: p.value === step ? step - 1 : step })
+})
+
+// Drag the popup's slider: update the reading live, save once it settles
+document.addEventListener("input", e => {
+  if(e.target.id !== "dpProgRange" || !detailTaskId) return
+  const read = document.querySelector("#dp-progress-section .dp-prog-read")
+  if(read) read.textContent = Number(e.target.value) + "%"
+  e.target.style.setProperty("--fill", e.target.value + "%")
+})
+document.addEventListener("change", e => {
+  if(e.target.id !== "dpProgRange" || !detailTaskId) return
+  const p = progressOf(detailTaskId)
+  if(!p) return
+  applyLiveProgress(detailTaskId, { ...p, value: Number(e.target.value) })
+})
+
+async function applyLiveProgress(id, next){
+  const norm = normProgress(next)
+  const ok = await writeProgress(id, norm)
+  refreshProgressUI(id)
+  if(ok){
+    if(progressDone(norm)) offerMarkDone(id)
+    rerenderCurrentView()
+  }
+}
+
+// The setup sheet's own slider
+document.addEventListener("input", e => {
+  if(e.target.id !== "pgRange" || !pgDraft) return
+  pgDraft.value = Number(e.target.value)
+  e.target.style.setProperty("--fill", e.target.value + "%")
+  document.getElementById("pgPreview").innerHTML = progressBarHTML(pgDraft, { cls: "big" })
+  document.getElementById("pgRead").textContent = progressText(pgDraft)
+})
+
+// Repaint just the places a bar shows, without a full re-render (which would
+// close the popup the user is standing in)
+function refreshProgressUI(id){
+  if(detailTaskId === id) renderDetailProgress(id)
+}
+
 let detailTaskId=null, detailTaskIsPersonal=false
 window.deleteFromDetail=async function(){
   if(!detailTaskId||!currentUser)return
@@ -2886,7 +4336,7 @@ function updateLatestPill(){
   else if(mins<60) timeStr=`${mins} minute${mins===1?"":"s"} ago`
   else if(hrs<24) timeStr=`${hrs} hour${hrs===1?"":"s"} ago`
   else timeStr=`${days} day${days===1?"":"s"} ago`
-  pill.textContent=`🔄 Latest update: ${timeStr}`
+  pill.innerHTML=ico("refresh")+` Latest update: ${timeStr}`
   pill.style.display="inline-flex"
 }
 
@@ -2920,14 +4370,14 @@ window.showDetail=function(e,id){
     dpCountdown=dl===0?null:{target:+markerDate,mode:"marker"}
 
     document.getElementById("dp-name").textContent=t.name
-    document.getElementById("dp-subject").innerHTML=`${esc(t.subject)} · <span class="type-badge badge-marker">${info.emoji} ${info.label}</span>`
-    document.getElementById("dp-due-label").textContent="📍 Date"
+    document.getElementById("dp-subject").innerHTML=`${esc(t.subject)} · <span class="type-badge badge-marker">${ico(info.icon)} ${info.label}</span>`
+    document.getElementById("dp-due-label").innerHTML=ico("pin")+" Date"
     const dd=document.getElementById("dp-due-date")
     dd.textContent=longDate(markerDate)
     dd.classList.remove("overdue")
     const days=document.getElementById("dp-days")
     if(dl===0){
-      days.innerHTML=`<span class="cd-today">📍 Today</span>`
+      days.innerHTML=`<span class="cd-today">${ico("pin")} Today</span>`
     }else{
       days.innerHTML=`<div class="cd-wrap marker"><div class="cd-caption"></div><div class="cd-boxes">${cdBoxesHTML()}</div></div>`
       cdUpdate(days.querySelector(".cd-wrap"),dpCountdown)
@@ -2938,6 +4388,7 @@ window.showDetail=function(e,id){
     if(t.note){document.getElementById("dp-note").textContent=t.note;ns.style.display="block"}else ns.style.display="none"
 
     document.getElementById("dp-mark-done").style.display="none"
+    renderDetailProgress(id)   // markers get nothing — it hides itself
     const delBtn=document.getElementById("dp-delete-btn")
     delBtn.className="detail-delete-btn"+(isMod?" visible":"")
 
@@ -2956,22 +4407,25 @@ window.showDetail=function(e,id){
   const overdueNow=dpCountdown.target-Date.now()<0
 
   document.getElementById("dp-name").textContent=t.name
-  document.getElementById("dp-subject").innerHTML=`${esc(t.subject)} · <span class="type-badge badge-${t.type}">${TYPE_LABEL[t.type]||t.type}</span>`
+  // Normalised so the pre-rename type spellings still get a badge and a label
+  const badgeType=taskType(t)
+  document.getElementById("dp-subject").innerHTML=`${esc(t.subject)} · <span class="type-badge badge-${badgeType}">${TYPE_LABEL[badgeType]||esc(badgeType)}</span>`
   // Big takeaway date first, boxed countdown under it
-  document.getElementById("dp-due-label").textContent="🗓 Due"
+  document.getElementById("dp-due-label").innerHTML=ico("calendar-grid")+" Due"
   const dd=document.getElementById("dp-due-date")
   dd.textContent=longDate(end)
   dd.classList.toggle("overdue",overdueNow)
   const days=document.getElementById("dp-days")
   days.innerHTML=`<div class="cd-wrap"><div class="cd-caption"></div><div class="cd-boxes">${cdBoxesHTML()}</div></div>`
   cdUpdate(days.querySelector(".cd-wrap"),dpCountdown)
-  document.getElementById("dp-dates").innerHTML=`<span>📅 Start: ${shortDate(parseDate(t.start))}</span>`
+  document.getElementById("dp-dates").innerHTML=`<span>${ico("calendar-grid")} Start: ${shortDate(parseDate(t.start))}</span>`
 
   const ns=document.getElementById("dp-note-section")
   if(t.note){document.getElementById("dp-note").textContent=t.note;ns.style.display="block"}else ns.style.display="none"
 
   const isOverdue=dl<0
   const isDone=!!userDoneCache[id]
+  renderDetailProgress(id)
   // Show "Mark as done" unless already personally marked done (regardless of overdue)
   document.getElementById("dp-mark-done").style.display=isDone?"none":"block"
   document.getElementById("dp-mark-done").textContent=isOverdue?"Mark as done (overdue)":"Mark as Done"
@@ -2991,7 +4445,7 @@ function _positionAndShowDetail(e){
   popup.classList.remove("closing")
   popup.style.display="block"
   if(window.innerWidth>480){
-    const anchor=e.target.closest(".gantt-bar,.out-indicator,.archive-card,.marker-vline,.date-tick,.label-row")
+    const anchor=e.target.closest(".gantt-bar,.tl-bar,.out-indicator,.archive-card,.marker-vline,.date-tick,.label-row")
     const rect=anchor?anchor.getBoundingClientRect():{bottom:e.clientY,left:e.clientX}
     let top=rect.bottom+8+window.scrollY
     let left=Math.min(rect.left+window.scrollX,window.innerWidth-312)
@@ -3005,6 +4459,9 @@ function _positionAndShowDetail(e){
 function closeDetailOutside(e){
   // Clicks inside the delete-confirmation dialog must not dismiss the popup
   if(document.getElementById("confirmOverlay").classList.contains("open"))return
+  // Same for the progress sheet, which can be opened from inside the popup —
+  // otherwise the popup dies underneath it and reopens to stale content
+  if(document.getElementById("progressModal").classList.contains("open"))return
   if(!document.getElementById("detailPopup").contains(e.target))closeDetail()
 }
 window.closeDetail=function(){
@@ -3048,7 +4505,7 @@ function updateRoleUI(){
   const at=document.getElementById("ddAddTask")
   if(at) at.style.display=isMod?"flex":"none"
   const dd=document.getElementById("ddModMode")
-  if(dd) dd.textContent=isMod?"🔓 Mod mode on — tap to lock":(isWhitelisted?"🔓 Enable mod mode":"🔒 Mod mode")
+  if(dd) dd.innerHTML=isMod?ico("unlock")+" Mod mode on — tap to lock":(isWhitelisted?ico("unlock")+" Enable mod mode":ico("lock")+" Mod mode")
 }
 function updateModUI(){
   updateRoleUI()
@@ -3056,7 +4513,7 @@ function updateModUI(){
   else renderCalendar()
 }
 
-// Mod quick-delete — the 🗑 on each row while mod mode is on
+// Mod quick-delete — the bin button on each row while mod mode is on
 window.quickDeleteTask=async function(e,id){
   e.stopPropagation()
   if(!currentUser)return
@@ -3152,6 +4609,7 @@ window.setPtType = function(t){
 }
 
 window.openPersonalPanel = function(){
+  setActivePill("tasks")
   document.getElementById("ptOverlay").classList.add("open")
   resetPtForm()
   renderPtList()
@@ -3163,6 +4621,7 @@ function closePtKey(e){ if(e.key==="Escape") closePtPanel() }
 window.closePtPanel = function(e){
   if(e && e.target!==document.getElementById("ptOverlay")) return
   animCloseOverlay(document.getElementById("ptOverlay"))
+  setActivePill(currentView)
   document.removeEventListener("keydown",closePtKey)
 }
 
@@ -3194,7 +4653,7 @@ window.setPtMarkerType = function(type) {
 
 // Live preview
 const PT_TYPE_LABELS = {normal:"Send On",deadline:"Send Before",prediction:"Estimated",marker:"Marker"}
-const PT_MARKER_LABELS = {quiz:"Quiz 📝",exam:"Exam 📋",event:"Event 🎉",date:"Important 📌"}
+const PT_MARKER_LABELS = {quiz:"Quiz",exam:"Exam",event:"Event",date:"Important"}
 const thaiMonthsFull = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"]
 
 function thaiDateFull(str){
@@ -3211,7 +4670,7 @@ window.updatePtPreview = function(){
     <div class="ptp-row1">
       <span class="ptp-dot" style="background:${dotColor}"></span>
       <span class="ptp-name">${esc(name)}</span>
-      <span class="ptp-type">${esc(typeLabel)}</span>
+      <span class="ptp-type">${typeLabel}</span>
     </div>
     <div class="ptp-row2">${line2}</div>`
   if(ptMarkerMode){
@@ -3221,8 +4680,9 @@ window.updatePtPreview = function(){
     const note    = document.getElementById("pt-m-note")?.value.trim()
     const dl = date ? daysLeft(parseDate(date)) : null
     const dayStr = dl===null?"—":dl===0?"Today":dl>0?`In ${dl} day${dl===1?"":"s"}`:`${Math.abs(dl)}d ago`
-    const line2=[subject&&esc(subject),`📅 ${thaiDateFull(date)}`,`⏱ ${dayStr}`,note&&`📌 ${esc(note)}`].filter(Boolean).join(" · ")
-    box.innerHTML = card("👤 Preview — your marker","#ea580c",name,PT_MARKER_LABELS[ptMarkerType]||ptMarkerType,line2)
+    const line2=[subject&&esc(subject),`${ico("calendar-grid")} ${thaiDateFull(date)}`,`${ico("timer")} ${dayStr}`,note&&`${ico("tack")} ${esc(note)}`].filter(Boolean).join(" · ")
+    const typeHTML = ico(MARKER_INFO[ptMarkerType]?.icon || "tack")+" "+esc(PT_MARKER_LABELS[ptMarkerType]||ptMarkerType)
+    box.innerHTML = card(ico("user")+" Preview — your marker","#ea580c",name,typeHTML,line2)
   } else {
     const name    = document.getElementById("pt-name")?.value.trim()    || "—"
     const subject = document.getElementById("pt-subject")?.value.trim()
@@ -3231,8 +4691,8 @@ window.updatePtPreview = function(){
     const dl = end ? daysLeft(parseDate(end)) : null
     const dayStr = dl===null?"—":dl===0?"Due today":dl>0?`${dl} day${dl===1?"":"s"} left`:`${Math.abs(dl)}d overdue`
     const dotColor = dl===null ? "#64748b" : urgencyColor(ptType,dl)
-    const line2=[subject&&esc(subject),`📅 Due ${thaiDateFull(end)}`,`⏱ ${dayStr}`,note&&`📌 ${esc(note)}`].filter(Boolean).join(" · ")
-    box.innerHTML = card("👤 Preview — your task",dotColor,name,PT_TYPE_LABELS[ptType]||ptType,line2)
+    const line2=[subject&&esc(subject),`${ico("calendar-grid")} Due ${thaiDateFull(end)}`,`${ico("timer")} ${dayStr}`,note&&`${ico("tack")} ${esc(note)}`].filter(Boolean).join(" · ")
+    box.innerHTML = card(ico("user")+" Preview — your task",dotColor,name,esc(PT_TYPE_LABELS[ptType]||ptType),line2)
   }
 }
 
@@ -3322,7 +4782,7 @@ function renderPtList(){
   const wrap = document.getElementById("ptListContent")
   if(!wrap) return
   if(!personalTasks.length){
-    wrap.innerHTML=`<div class="pt-list-empty">No personal tasks yet.<br><span>Add one from the ➕ Add tab.</span></div>`
+    wrap.innerHTML=`<div class="pt-list-empty">No personal tasks yet.<br><span>Add one from the <svg class="ic" aria-hidden="true"><use href="#ic-plus"/></svg> Add tab.</span></div>`
     return
   }
   const sorted=[...personalTasks].sort((a,b)=>new Date(a.end||a.date)-new Date(b.end||b.date))
@@ -3331,23 +4791,25 @@ function renderPtList(){
     const dateVal  = isMarker ? t.date : t.end
     const dl       = daysLeft(parseDate(dateVal))
     const color    = urgencyColor(t.type,dl)
+    const prog     = progressOf(t.id)
     const dayStr   = isMarker
       ? (dl===0?"Today":dl>0?`In ${dl}d`:`${Math.abs(dl)}d ago`)
       : (dl<0?`${Math.abs(dl)}d overdue`:dl===0?"Due today":`${dl}d left`)
     const typeTag  = isMarker
-      ? `📍 ${(MARKER_INFO[t.markerType]||MARKER_INFO.date).label}`
+      ? `${ico("pin")} ${(MARKER_INFO[t.markerType]||MARKER_INFO.date).label}`
       : TYPE_LABEL[t.type]||t.type
     return `<div class="pt-list-card">
       <span class="pt-list-strip" style="background:${color}"></span>
       <div class="pt-list-info">
         <div class="pt-list-name">${esc(t.name)}</div>
         <div class="pt-list-sub">${t.subject?esc(t.subject)+" · ":""}${typeTag}</div>
+        ${prog?`<div class="pt-list-prog">${progressBarHTML(prog,{color})}<span class="prog-read">${progressText(prog)}</span></div>`:""}
       </div>
       <div class="pt-list-right">
         <div class="pt-list-due" style="color:${color}">${shortDate(parseDate(dateVal))}</div>
         <div class="pt-list-days">${dayStr}</div>
       </div>
-      <button class="pt-list-del" title="Delete" onclick="deletePtTask(event,'${t.id}')">🗑</button>
+      <button class="pt-list-del" title="Delete" onclick="deletePtTask(event,'${t.id}')">${ico("trash")}</button>
     </div>`
   }).join("")
   updatePtCount()
@@ -3359,11 +4821,17 @@ window.deletePtTask = async function(e,id){
   const t=personalTasks.find(x=>x.id===id)
   const ok=await confirmDialog({title:"Delete personal task?",message:`"${t?t.name:"This task"}" will be deleted permanently.`})
   if(!ok) return
-  try{ await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",id)); toast("Task deleted") }
+  try{
+    await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",id))
+    // Don't leave progress behind for an id that no longer exists
+    if(userProgressCache[id]){ delete userProgressCache[id]; persistUserProgress(currentUser.uid) }
+    toast("Task deleted")
+  }
   catch(err){ console.warn("Could not delete personal task:",err); toast("Couldn't delete the task — try again",{error:true}) }
 }
 
 document.getElementById("taskModal").addEventListener("click",function(e){if(e.target===this)closeModal()})
+document.getElementById("progressModal").addEventListener("click",function(e){if(e.target===this)closeProgressSheet()})
 
 // Re-render on resize, debounced — dragging a window edge shouldn't rebuild
 // the whole calendar dozens of times per second
@@ -3379,6 +4847,7 @@ document.addEventListener("keydown",e=>{
   const open=id=>document.getElementById(id).classList.contains("open")
   if(open("confirmOverlay")) return resolveConfirm(false)
   if(document.getElementById("pwOverlay").classList.contains("active")) return closePw()
+  if(open("progressModal")) return closeProgressSheet()
   if(open("detailPopup")) return closeDetail()
   if(open("taskModal"))   return closeModal()
   if(open("settingsOverlay")) return closeSettings()

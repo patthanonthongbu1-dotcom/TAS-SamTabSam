@@ -126,6 +126,10 @@
     /* These are spans (a row is one flat line of markup) so they need an
        explicit block, or the subject runs on after the task name. */
     .wg-main{min-width:0; flex:1; display:block}
+    /* Progress: a hairline under the subject, so a started task reads as
+       started from across the room without costing a row of height. */
+    .wg-prog{display:block; height:0.16rem; border-radius:99px; background:var(--brd); margin-top:0.19rem; overflow:hidden}
+    .wg-prog-fill{display:block; height:100%; border-radius:99px}
     .wg-name{
       display:block;
       font-size:0.78rem; font-weight:500; line-height:1.25;
@@ -303,6 +307,7 @@
     var z = Object.assign({}, ZONE_DEFAULTS, data.zones || {})
     var doneSet = {}
     ;(data.done || []).forEach(function(id){ doneSet[id] = true })
+    var prog = data.progress || {}
 
     // How far back "Missing" reaches, per the calendar's Overdue setting:
     // clear straight away (nothing overdue at all), on tick (the retention
@@ -351,12 +356,16 @@
       for (var i = 0; i < list.length && shown < maxRows; i++, shown++){
         var x = list[i]
         var dl = daysLeft(t, x.end)
+        var pc = prog[x.id] || 0
         html += '<div class="wg-row' + (isMissing ? ' missing' : '') + '">' +
                   '<span class="wg-dot" style="background:' + urgencyColor(dl, z) + '"></span>' +
                   '<span class="wg-main">' +
                     '<span class="wg-name">' + esc(x.name || "Untitled") + '</span>' +
                     '<span class="wg-sub">' + esc(x.subject || "") +
-                      (x.personal ? " · mine" : "") + '</span>' +
+                      (x.personal ? " · mine" : "") +
+                      (pc ? " · " + pc + "%" : "") + '</span>' +
+                    (pc ? '<span class="wg-prog"><span class="wg-prog-fill" style="width:' + pc +
+                          '%;background:' + urgencyColor(dl, z) + '"></span></span>' : "") +
                   '</span>' +
                   '<span class="wg-when' + (isMissing ? ' missing' : '') + '">' +
                     esc(whenLabel(dl)) + '</span>' +
@@ -446,6 +455,7 @@
         zones: feed.zones || null,
         overdueMode: feed.overdueMode || "tick",
         done: feed.done || [],
+        progress: feed.progress || {},
         tasks: taskDocs.map(function(d){
           var f = unwrap(d.fields || {})
           f.id = idOf(d.name)
