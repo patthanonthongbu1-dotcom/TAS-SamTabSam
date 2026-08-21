@@ -53,28 +53,28 @@
       display:none;max-width:100%;max-height:100%;width:auto;height:auto;
       aspect-ratio:1/1;border-radius:8px;animation:fadeIn 0.3s ease both;
     }
-    .qr-placeholder{text-align:center;color:var(--label);font-size:12.5px;font-weight:300;line-height:1.7}
+    .qr-placeholder{text-align:center;color:var(--label);font-size:14.5px;font-weight:300;line-height:1.7}
     .qr-placeholder .ico{display:block;margin:0 auto 10px;opacity:0.45}
 
     .qr-meta{
-      display:none;margin-top:12px;font-size:11px;color:var(--label);
+      display:none;margin-top:12px;font-size:12.5px;color:var(--label);
       text-align:center;font-weight:300;line-height:1.7;word-break:break-all;
     }
     .qr-meta.show{display:block}
     .qr-dim{
       display:none;margin-top:8px;text-align:center;
-      font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
+      font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;
       letter-spacing:0.08em;color:var(--pink);
     }
     .qr-dim.show{display:block}
     .qr-err{display:none;margin-top:12px;padding:10px 12px;border-radius:10px;
             background:var(--red-light);border:1px solid var(--red-mid);
-            color:var(--red-text);font-size:12px;line-height:1.6}
+            color:var(--red-text);font-size:14px;line-height:1.6}
     .qr-err.show{display:block}
 
     .privacy-note{
       display:flex;gap:9px;align-items:flex-start;margin-top:1.1rem;
-      font-size:11.5px;font-weight:300;color:var(--label);line-height:1.65;
+      font-size:13px;font-weight:300;color:var(--label);line-height:1.65;
     }
     .privacy-note .ico{margin-top:1px}
 
@@ -82,7 +82,7 @@
     @media (max-width:520px){ .two{grid-template-columns:1fr} }
 
     .size-row{display:grid;grid-template-columns:1fr 96px;gap:8px;align-items:center}
-    .size-row input{text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+    .size-row input{text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14.5px}
 
     /* Presets show the actual colours they'd apply */
     .preset-row{display:flex;flex-wrap:wrap;gap:7px}
@@ -104,8 +104,8 @@
     }
     .toggle-row:hover{background:rgba(255,255,255,0.15)}
     .toggle-row.active{background:var(--accent-soft);border-color:var(--pink)}
-    .toggle-label{font-size:12.5px;font-weight:400}
-    .toggle-sub{font-size:10px;font-weight:300;color:var(--label);margin-top:2px}
+    .toggle-label{font-size:14.5px;font-weight:400}
+    .toggle-sub{font-size:11.5px;font-weight:300;color:var(--label);margin-top:2px}
     .switch{width:34px;height:18px;border-radius:18px;background:rgba(255,255,255,0.25);position:relative;transition:background 0.2s;flex-shrink:0}
     .switch::before{content:'';position:absolute;left:2px;top:2px;width:14px;height:14px;background:white;border-radius:50%;transition:transform 0.2s}
     .toggle-row.active .switch{background:var(--pink)}

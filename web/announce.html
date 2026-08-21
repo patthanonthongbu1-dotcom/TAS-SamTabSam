@@ -82,7 +82,7 @@
     .skel-line { height: 12px; }
     .skel-pill { width: 118px; height: 40px; border-radius: 20px; flex-shrink: 0; }
     .skel-card { width: 100%; border-radius: 20px; margin-bottom: 1rem; }
-    .gate-note { text-align: center; color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 1.5rem; letter-spacing: 0.02em; }
+    .gate-note { text-align: center; color: rgba(255,255,255,0.5); font-size: 14px; margin-top: 1.5rem; letter-spacing: 0.02em; }
 
     /* ── Layout ─────────────────────────────────────────────────── */
     .container { width: 100%; max-width: 600px; position: relative; z-index: 1; }
@@ -93,22 +93,22 @@
       0%, 100% { filter: drop-shadow(0 0 3px rgba(255,255,255,0.25)); }
       50%      { filter: drop-shadow(0 0 14px rgba(255,255,255,0.8)); }
     }
-    .header-text h1 { font-size: 25px; font-weight: 700; letter-spacing: -0.3px; }
-    .header-text p { font-size: 13px; color: var(--muted); margin-top: 4px; font-weight: 300; }
+    .header-text h1 { font-size: 27px; font-weight: 700; letter-spacing: -0.3px; }
+    .header-text p { font-size: 15px; color: var(--muted); margin-top: 4px; font-weight: 300; }
 
     /* ── Profile pill + dropdown (glassy) ───────────────────────── */
     .user-pill {
       display: none; align-items: center; gap: 8px;
       background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16);
       border-radius: 22px; padding: 5px 12px 5px 5px;
-      font-size: 12px; font-weight: 500; color: #fff;
+      font-size: 14px; font-weight: 500; color: #fff;
       cursor: pointer; transition: background 0.15s, transform 0.12s; position: relative; user-select: none;
     }
     .user-pill:hover { background: rgba(255,255,255,0.14); }
     .user-pill:active { transform: scale(0.98); }
     .user-pill.visible { display: flex; }
     .user-pill img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.25); flex-shrink: 0; }
-    .user-pill-fallback { width: 28px; height: 28px; border-radius: 50%; background: var(--pink); color: white; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .user-pill-fallback { width: 28px; height: 28px; border-radius: 50%; background: var(--pink); color: white; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .user-dropdown {
       position: absolute; top: calc(100% + 8px); right: 0;
       background: rgba(18,27,48,0.97); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
@@ -120,10 +120,10 @@
     @keyframes dropIn { from { opacity:0; transform:translateY(-6px) scale(0.97); } to { opacity:1; transform:none; } }
     .user-dropdown.open { display: flex; }
     .user-dropdown-info { padding: 8px 10px 11px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 3px; }
-    .user-dropdown-name { font-size: 13px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .user-dropdown-email { font-size: 11px; color: var(--muted); font-weight: 300; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-    .user-dropdown-role { display: inline-block; margin-top: 6px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--pink); border: 1px solid rgba(255,79,163,0.4); border-radius: 20px; padding: 2px 8px; }
-    .user-dropdown-btn { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 9px; border: none; background: transparent; font-family: 'Kanit', sans-serif; font-size: 13px; color: rgba(255,255,255,0.85); cursor: pointer; transition: background 0.13s, color 0.13s; text-align: left; width: 100%; }
+    .user-dropdown-name { font-size: 15px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-dropdown-email { font-size: 12.5px; color: var(--muted); font-weight: 300; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+    .user-dropdown-role { display: inline-block; margin-top: 6px; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--pink); border: 1px solid rgba(255,79,163,0.4); border-radius: 20px; padding: 2px 8px; }
+    .user-dropdown-btn { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 9px; border: none; background: transparent; font-family: 'Kanit', sans-serif; font-size: 15px; color: rgba(255,255,255,0.85); cursor: pointer; transition: background 0.13s, color 0.13s; text-align: left; width: 100%; }
     .user-dropdown-btn.menu:hover { background: rgba(255,79,163,0.16); color: #ffc2e0; }
     .user-dropdown-btn.signout:hover { background: rgba(192,57,43,0.18); color: var(--red); }
 
@@ -133,10 +133,10 @@
       border: 1px solid var(--glass-brd); border-radius: 20px; padding: 1.5rem 1.5rem 1.75rem; margin-bottom: 1rem;
       box-shadow: 0 20px 50px -22px rgba(0,0,0,0.6);
     }
-    .section-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--label); margin-bottom: 14px; }
+    .section-label { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--label); margin-bottom: 14px; }
     .field { margin-bottom: 1.1rem; }
     .field:last-child { margin-bottom: 0; }
-    .field > label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+    .field > label { display: block; font-size: 14px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
 
     input[type="text"], input[type="date"], textarea, select {
       width: 100%; padding: 10px 12px; border: 1px solid var(--field-brd); border-radius: 10px;
@@ -153,7 +153,7 @@
 
     /* ── Buttons ────────────────────────────────────────────────── */
     .btn {
-      width: 100%; padding: 15px; font-size: 15px; font-weight: 600; font-family: 'Kanit', sans-serif;
+      width: 100%; padding: 15px; font-size: 17.5px; font-weight: 600; font-family: 'Kanit', sans-serif;
       background: linear-gradient(180deg, #ff5fac 0%, #c02e7e 100%); color: white; border: none; border-radius: 14px;
       cursor: pointer; transition: filter 0.15s, transform 0.12s, box-shadow 0.15s; touch-action: manipulation;
       box-shadow: 0 12px 28px -10px rgba(255,79,163,0.55);
@@ -162,10 +162,10 @@
     .btn:hover { filter: brightness(1.07); transform: translateY(-2px); box-shadow: 0 18px 34px -12px rgba(255,79,163,0.6); }
     .btn:active { transform: translateY(0) scale(0.99); }
     .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
-    .task-count-badge { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 20px; background: rgba(255,255,255,0.25); font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+    .task-count-badge { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 20px; background: rgba(255,255,255,0.25); font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
 
     .action-btn {
-      display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px; font-size: 12px; font-weight: 500;
+      display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px; font-size: 14px; font-weight: 500;
       font-family: 'Kanit', sans-serif; border-radius: 9px; border: 1px solid rgba(255,255,255,0.14);
       background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85);
       cursor: pointer; transition: background 0.15s, border-color 0.15s; white-space: nowrap; touch-action: manipulation; min-height: 36px;
@@ -184,7 +184,7 @@
       padding: 13px; min-height: 46px; margin-bottom: 0.5rem;
       border: 1.5px dashed rgba(255,79,163,0.42); border-radius: 13px;
       background: rgba(255,79,163,0.08); color: #ffc2e0;
-      font-family: 'Kanit', sans-serif; font-size: 13px; font-weight: 600;
+      font-family: 'Kanit', sans-serif; font-size: 15px; font-weight: 600;
       cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.12s; touch-action: manipulation;
     }
     .btn-add-section:hover { background: rgba(255,79,163,0.16); border-color: rgba(255,79,163,0.7); }
@@ -192,23 +192,23 @@
     .btn-add-subject {
       display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; min-height: 36px; border-radius: 9px;
       background: rgba(47,111,237,0.18); color: var(--blue); border: 1px solid rgba(47,111,237,0.36);
-      font-family: 'Kanit', sans-serif; font-size: 12px; font-weight: 500;
+      font-family: 'Kanit', sans-serif; font-size: 14px; font-weight: 500;
       cursor: pointer; transition: background 0.15s; touch-action: manipulation;
     }
     .btn-add-subject:hover { background: rgba(47,111,237,0.28); }
 
     /* ── Status + save indicator ────────────────────────────────── */
-    .status { margin-top: 1rem; padding: 12px 16px; border-radius: 12px; font-size: 13px; text-align: center; display: none; font-weight: 400; line-height: 1.5; }
+    .status { margin-top: 1rem; padding: 12px 16px; border-radius: 12px; font-size: 15px; text-align: center; display: none; font-weight: 400; line-height: 1.5; }
     .s-success { background: rgba(29,158,117,0.2); color: var(--green); display: block; }
     .s-error { background: rgba(192,57,43,0.22); color: var(--red); display: block; }
     .s-info { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.82); display: block; }
-    .save-indicator { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--label); font-weight: 400; padding: 4px 10px; border-radius: 20px; transition: color 0.3s, background 0.3s; }
+    .save-indicator { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--label); font-weight: 400; padding: 4px 10px; border-radius: 20px; transition: color 0.3s, background 0.3s; }
     .save-indicator.saved { color: var(--green); background: rgba(29,158,117,0.16); }
     .save-indicator.saving { color: var(--amber); background: rgba(234,179,8,0.14); }
     .save-indicator-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
     .save-indicator.saving .save-indicator-dot { animation: savePulse 0.6s ease-in-out infinite alternate; }
     @keyframes savePulse { to { opacity: 0.3; } }
-    .fb-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); flex-shrink: 0; }
+    .fb-status { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--muted); flex-shrink: 0; }
     .fb-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--label); flex-shrink: 0; transition: background 0.3s; }
     .fb-dot.ready { background: var(--green); }
     .fb-dot.error { background: var(--red); }
@@ -218,37 +218,37 @@
        The header corners are rounded directly instead. */
     .section-block { border: 1px solid rgba(255,255,255,0.1); border-left: 3px solid rgba(255,79,163,0.5); border-radius: 14px; margin-bottom: 12px; background: var(--glass-2); }
     .section-header { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1); border-radius: 13px 13px 0 0; }
-    .icon-select { width: 54px !important; flex-shrink: 0; padding: 7px 2px !important; font-size: 17px !important; text-align: center; border-radius: 9px !important; }
-    .section-title-input { flex: 1; font-size: 14px !important; font-weight: 500 !important; min-width: 0; }
+    .icon-select { width: 54px !important; flex-shrink: 0; padding: 7px 2px !important; font-size: 19.5px !important; text-align: center; border-radius: 9px !important; }
+    .section-title-input { flex: 1; font-size: 16px !important; font-weight: 500 !important; min-width: 0; }
     .section-body { padding: 12px 14px; }
     /* Nested one level in, with a left guide rail */
     .subject-block { padding: 12px 0 12px 12px; border-top: 1px dashed rgba(255,255,255,0.12); border-left: 2px solid rgba(255,255,255,0.09); margin: 2px 0 0 2px; }
     .subject-block:first-child { border-top: none; padding-top: 4px; margin-top: 0; }
     .subject-row { display: flex; align-items: flex-start; gap: 8px; }
-    .subject-num { font-size: 12px; font-weight: 600; color: var(--label); min-width: 18px; padding-top: 11px; text-align: right; flex-shrink: 0; }
+    .subject-num { font-size: 14px; font-weight: 600; color: var(--label); min-width: 18px; padding-top: 11px; text-align: right; flex-shrink: 0; }
     .subject-body { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
     .subject-top { display: flex; align-items: center; gap: 6px; }
-    .work-icon-select { width: 50px !important; flex-shrink: 0; padding: 7px 2px !important; font-size: 15px !important; text-align: center; border-radius: 9px !important; }
-    .subject-title-input { flex: 1; font-size: 13px !important; min-width: 0; }
+    .work-icon-select { width: 50px !important; flex-shrink: 0; padding: 7px 2px !important; font-size: 17.5px !important; text-align: center; border-radius: 9px !important; }
+    .subject-title-input { flex: 1; font-size: 15px !important; min-width: 0; }
 
     /* ── Calendar-task fields (pink accent) ─────────────────────── */
     .task-fields { background: rgba(255,79,163,0.1); border: 1px solid rgba(255,79,163,0.28); border-radius: 10px; padding: 11px 12px; display: flex; flex-direction: column; gap: 8px; }
-    .task-fields-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #ffb3d6; margin-bottom: 2px; }
-    .task-fields input, .task-fields select { font-size: 13px !important; padding: 7px 10px !important; border-color: rgba(255,79,163,0.32) !important; background: rgba(255,255,255,0.06) !important; }
+    .task-fields-label { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #ffb3d6; margin-bottom: 2px; }
+    .task-fields input, .task-fields select { font-size: 15px !important; padding: 7px 10px !important; border-color: rgba(255,79,163,0.32) !important; background: rgba(255,255,255,0.06) !important; }
     .task-fields input:focus, .task-fields select:focus { border-color: var(--pink) !important; }
     .task-fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .task-fields .field { margin-bottom: 0; }
-    .task-fields .field > label { font-size: 11px; color: #ffb3d6; }
+    .task-fields .field > label { font-size: 12.5px; color: #ffb3d6; }
 
     /* ── Bullets + per-bullet marker (orange accent) ────────────── */
     .bullet-list { display: flex; flex-direction: column; gap: 6px; }
     .bullet-block { display: flex; flex-direction: column; gap: 6px; }
     .bullet-row { display: flex; align-items: center; gap: 6px; }
-    .bullet-dash { color: var(--label); font-size: 13px; flex-shrink: 0; padding-left: 2px; }
-    .bullet-row input { flex: 1; font-size: 13px !important; padding: 7px 10px !important; min-width: 0; background: rgba(255,255,255,0.14) !important; border-color: rgba(255,255,255,0.22) !important; }
+    .bullet-dash { color: var(--label); font-size: 15px; flex-shrink: 0; padding-left: 2px; }
+    .bullet-row input { flex: 1; font-size: 15px !important; padding: 7px 10px !important; min-width: 0; background: rgba(255,255,255,0.14) !important; border-color: rgba(255,255,255,0.22) !important; }
     .bullet-row input:focus { background: rgba(255,255,255,0.2) !important; border-color: var(--pink) !important; }
     .bullet-marker-btn {
-      display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px; font-size: 11px; font-weight: 500;
+      display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px; font-size: 12.5px; font-weight: 500;
       font-family: 'Kanit', sans-serif; border-radius: 7px; cursor: pointer; white-space: nowrap; touch-action: manipulation;
       background: rgba(234,88,12,0.15); color: var(--orange); border: 1px solid rgba(251,146,60,0.32);
       transition: background 0.15s; flex-shrink: 0;
@@ -256,17 +256,17 @@
     .bullet-marker-btn.active { background: #ea580c; color: white; border-color: #ea580c; }
     .bullet-marker-btn:hover { filter: brightness(1.08); }
     .bullet-marker-fields { margin-left: 28px; background: rgba(234,88,12,0.12); border: 1px solid rgba(251,146,60,0.3); border-radius: 9px; padding: 10px 11px; display: flex; flex-direction: column; gap: 8px; }
-    .bullet-marker-fields-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--orange); }
-    .bullet-marker-fields input { font-size: 13px !important; padding: 7px 10px !important; border-color: rgba(251,146,60,0.32) !important; background: rgba(255,255,255,0.06) !important; }
+    .bullet-marker-fields-label { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--orange); }
+    .bullet-marker-fields input { font-size: 15px !important; padding: 7px 10px !important; border-color: rgba(251,146,60,0.32) !important; background: rgba(255,255,255,0.06) !important; }
     .bullet-marker-fields input:focus { border-color: #ea580c !important; }
     .marker-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-    .marker-type-btn { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 8px 10px; border: 1.5px solid rgba(251,146,60,0.3); border-radius: 8px; background: rgba(255,255,255,0.05); font-family: 'Kanit', sans-serif; font-size: 12px; font-weight: 400; color: rgba(255,255,255,0.72); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+    .marker-type-btn { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 8px 10px; border: 1.5px solid rgba(251,146,60,0.3); border-radius: 8px; background: rgba(255,255,255,0.05); font-family: 'Kanit', sans-serif; font-size: 14px; font-weight: 400; color: rgba(255,255,255,0.72); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
     .marker-type-btn.active { background: #ea580c; color: white; border-color: #ea580c; font-weight: 500; }
 
     /* ── Note (amber accent) ────────────────────────────────────── */
     .note-field { display: none; }
     .note-field.visible { display: block; }
-    .note-input { font-size: 13px !important; padding: 8px 11px !important; border-color: rgba(234,179,8,0.32) !important; background: rgba(234,179,8,0.1) !important; color: var(--amber) !important; }
+    .note-input { font-size: 15px !important; padding: 8px 11px !important; border-color: rgba(234,179,8,0.32) !important; background: rgba(234,179,8,0.1) !important; color: var(--amber) !important; }
     .subject-actions { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
 
     /* ── "+ Add" dropdown (per subject) — NOT clipped by parents ─── */
@@ -274,11 +274,11 @@
     .add-dd-btn {
       display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; min-height: 36px;
       border-radius: 9px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16);
-      color: #fff; font-family: 'Kanit', sans-serif; font-size: 12px; font-weight: 500;
+      color: #fff; font-family: 'Kanit', sans-serif; font-size: 14px; font-weight: 500;
       cursor: pointer; transition: background 0.15s; touch-action: manipulation;
     }
     .add-dd-btn:hover { background: rgba(255,255,255,0.15); }
-    .add-dd-btn .caret { font-size: 9px; opacity: 0.6; transition: transform 0.2s ease; }
+    .add-dd-btn .caret { font-size: 10.5px; opacity: 0.6; transition: transform 0.2s ease; }
     .add-dd-btn.open .caret { transform: rotate(180deg); }
     .add-dd-menu {
       position: absolute; top: calc(100% + 6px); left: 0; z-index: 100;
@@ -293,7 +293,7 @@
     .add-dd-item {
       display: flex; align-items: center; gap: 9px; padding: 9px 11px; border: none; border-radius: 8px;
       background: transparent; color: rgba(255,255,255,0.85); font-family: 'Kanit', sans-serif;
-      font-size: 12.5px; font-weight: 400; text-align: left; cursor: pointer; transition: background 0.13s, color 0.13s;
+      font-size: 14.5px; font-weight: 400; text-align: left; cursor: pointer; transition: background 0.13s, color 0.13s;
     }
     .add-dd-item .dd-ico { display: inline-flex; align-items: center; justify-content: center; width: 20px; flex-shrink: 0; }
     .add-dd-item .dd-check { margin-left: auto; opacity: 0.9; }
@@ -310,7 +310,7 @@
     .pv-toggle { display: flex; gap: 2px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 9px; padding: 3px; }
     .pv-btn {
       display: flex; align-items: center; gap: 5px; border: none; background: transparent; border-radius: 7px;
-      padding: 5px 11px; font-family: 'Kanit', sans-serif; font-size: 11.5px; font-weight: 500;
+      padding: 5px 11px; font-family: 'Kanit', sans-serif; font-size: 13px; font-weight: 500;
       color: rgba(255,255,255,0.65); cursor: pointer; transition: background 0.15s, color 0.15s; touch-action: manipulation;
     }
     .pv-btn:hover:not(.active) { background: rgba(255,255,255,0.09); color: #fff; }
@@ -325,18 +325,18 @@
     }
     .preview-card-stage.show { display: flex; }
     @keyframes fadeSwap { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-    .pv-note { display: none; font-size: 11px; font-weight: 300; color: var(--label); text-align: center; margin-top: 9px; line-height: 1.6; }
+    .pv-note { display: none; font-size: 12.5px; font-weight: 300; color: var(--label); text-align: center; margin-top: 9px; line-height: 1.6; }
     .pv-note.show { display: block; }
 
     .link-toggles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
     /* Publish action picker — same chips as the link toggles */
-    .publish-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; color: var(--label); margin-bottom: 8px; }
-    .publish-hint { font-size: 11px; font-weight: 300; color: var(--label); line-height: 1.6; margin: -4px 0 12px; min-height: 1px; }
+    .publish-label { font-size: 12px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; color: var(--label); margin-bottom: 8px; }
+    .publish-hint { font-size: 12.5px; font-weight: 300; color: var(--label); line-height: 1.6; margin: -4px 0 12px; min-height: 1px; }
     .link-chip.busy { opacity: 0.7; }
     .link-chip.done { background: rgba(29,158,117,0.2); border-color: rgba(29,158,117,0.42); color: var(--green); }
     .link-chip.failed { background: rgba(192,57,43,0.18); border-color: rgba(192,57,43,0.42); color: #ff9b8a; }
     .link-chip {
-      display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; font-size: 12px; font-weight: 500;
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; font-size: 14px; font-weight: 500;
       font-family: 'Kanit', sans-serif; border-radius: 999px; border: 1px solid rgba(255,255,255,0.14);
       background: rgba(255,255,255,0.06); color: var(--label);
       cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s; touch-action: manipulation;
@@ -345,12 +345,12 @@
     .link-chip .chip-check { display: none; font-weight: 600; }
     .link-chip.active { background: rgba(255,79,163,0.16); border-color: rgba(255,79,163,0.42); color: var(--pink-soft); }
     .link-chip.active .chip-check { display: inline; }
-    .preview-box { background: rgba(0,0,0,0.24); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 1rem 1.1rem; font-size: 13px; line-height: 1.9; white-space: pre-wrap; color: rgba(255,255,255,0.9); font-family: 'Kanit', sans-serif; font-weight: 300; min-height: 80px; word-break: break-word; }
+    .preview-box { background: rgba(0,0,0,0.24); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 1rem 1.1rem; font-size: 15px; line-height: 1.9; white-space: pre-wrap; color: rgba(255,255,255,0.9); font-family: 'Kanit', sans-serif; font-weight: 300; min-height: 80px; word-break: break-word; }
     .divider { height: 1px; background: rgba(255,255,255,0.1); margin: 1.35rem 0; }
 
     /* ── Merged footer (lives INSIDE the card / body) ───────────── */
     .footer-row { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 12px; }
-    .empty-hint { text-align: center; color: var(--label); font-size: 12px; font-weight: 300; padding: 18px 12px; border: 1px dashed rgba(255,255,255,0.12); border-radius: 12px; margin-bottom: 10px; }
+    .empty-hint { text-align: center; color: var(--label); font-size: 14px; font-weight: 300; padding: 18px 12px; border: 1px dashed rgba(255,255,255,0.12); border-radius: 12px; margin-bottom: 10px; }
 
     /* ── Box add / remove animations ────────────────────────────── */
     @keyframes boxIn { from { opacity: 0; transform: translateY(-8px) scale(0.985); } to { opacity: 1; transform: none; } }
@@ -385,14 +385,14 @@
     .modal-overlay.closing .modal { animation: modalShrink 0.16s ease forwards; }
     @keyframes modalExpand { from { opacity: 0; transform: scale(0.82) translateY(12px); } to { opacity: 1; transform: none; } }
     @keyframes modalShrink { to { opacity: 0; transform: scale(0.9); } }
-    .confirm-icon { font-size: 36px; margin-bottom: 8px; }
-    .confirm-title { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+    .confirm-icon { font-size: 39px; margin-bottom: 8px; }
+    .confirm-title { font-size: 20.5px; font-weight: 600; color: #fff; margin-bottom: 6px; }
     /* pre-line so the Publish confirm can list the chosen actions on
        their own lines — the message is set with textContent. */
-    .confirm-msg { font-size: 13px; font-weight: 300; color: var(--muted); line-height: 1.55; margin-bottom: 1.4rem; white-space: pre-line; }
+    .confirm-msg { font-size: 15px; font-weight: 300; color: var(--muted); line-height: 1.55; margin-bottom: 1.4rem; white-space: pre-line; }
     .confirm-actions, .tour-actions { display: flex; gap: 10px; }
     .btn-ghost, .btn-solid {
-      flex: 1; padding: 12px; border-radius: 11px; font-family: 'Kanit', sans-serif; font-size: 14px; font-weight: 500;
+      flex: 1; padding: 12px; border-radius: 11px; font-family: 'Kanit', sans-serif; font-size: 16px; font-weight: 500;
       cursor: pointer; transition: background 0.15s, filter 0.15s, transform 0.1s; touch-action: manipulation; border: none;
     }
     .btn-ghost { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16); color: rgba(255,255,255,0.85); }
@@ -403,9 +403,9 @@
     .btn-solid.danger { background: linear-gradient(180deg, #e05a4a 0%, #a52a1e 100%); box-shadow: 0 10px 24px -10px rgba(192,57,43,0.55); }
     .tour-close { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: none; border-radius: 9px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); cursor: pointer; transition: background 0.15s, color 0.15s; }
     .tour-close:hover { background: rgba(255,255,255,0.14); color: #fff; }
-    .tour-emoji { font-size: 42px; margin-bottom: 10px; }
-    .tour-title { font-size: 19px; font-weight: 600; color: #fff; margin-bottom: 8px; }
-    .tour-text { font-size: 13px; font-weight: 300; color: var(--muted); line-height: 1.6; min-height: 66px; }
+    .tour-emoji { font-size: 45.5px; margin-bottom: 10px; }
+    .tour-title { font-size: 22px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+    .tour-text { font-size: 15px; font-weight: 300; color: var(--muted); line-height: 1.6; min-height: 66px; }
     .tour-body.step-anim { animation: stepIn 0.24s ease; }
     @keyframes stepIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
     .tour-dots { display: flex; justify-content: center; gap: 7px; margin: 1.1rem 0 1.3rem; }
@@ -416,7 +416,7 @@
     @media (max-width: 480px) {
       body { padding: 1.5rem 0.85rem 3rem; }
       .header { margin-bottom: 1.35rem; }
-      .header-text h1 { font-size: 22px; }
+      .header-text h1 { font-size: 24px; }
       .card { padding: 1.15rem 1.15rem 1.5rem; }
       .section-body { padding: 11px 11px; }
       .task-fields-row { grid-template-columns: 1fr; }
@@ -462,7 +462,7 @@
       <div class="user-pill" id="userPill" onclick="toggleUserDropdown(event)">
         <div id="pillAvatar"></div>
         <span id="pillName"></span>
-        <span style="opacity:0.5;font-size:9px;margin-left:2px;">▾</span>
+        <span style="opacity:0.5;font-size:10.5px;margin-left:2px;">▾</span>
       </div>
       <div class="user-dropdown" id="userDropdown">
         <div class="user-dropdown-info">
@@ -653,30 +653,30 @@ let pendingUser = null
 function showPasswordPrompt(user) {
   document.getElementById("authGate").innerHTML = `
     <div style="margin:auto;width:100%;max-width:320px;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;z-index:1;">
-      <div style="font-size:34px;margin-bottom:2px">🔐</div>
-      <div style="font-size:17px;font-weight:600;color:#fff;">Password required</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.6);font-weight:300;margin-bottom:18px;text-align:center;max-width:270px;line-height:1.5">
+      <div style="font-size:36.5px;margin-bottom:2px">🔐</div>
+      <div style="font-size:19.5px;font-weight:600;color:#fff;">Password required</div>
+      <div style="font-size:15px;color:rgba(255,255,255,0.6);font-weight:300;margin-bottom:18px;text-align:center;max-width:270px;line-height:1.5">
         Your account isn't on the whitelist.<br>Enter the panel password to continue.
       </div>
       <div style="width:100%;display:flex;flex-direction:column;gap:10px;">
         <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:12px;padding:9px 12px;">
           <img src="${user.photoURL || ''}" onerror="this.style.display='none'" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;" />
           <div style="min-width:0;">
-            <div style="font-size:12px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${user.displayName || user.email}</div>
-            <div style="font-size:10px;color:rgba(255,255,255,0.55);font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${user.email}</div>
+            <div style="font-size:14px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${user.displayName || user.email}</div>
+            <div style="font-size:11.5px;color:rgba(255,255,255,0.55);font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${user.email}</div>
           </div>
         </div>
         <input type="password" id="gatePasswordInput" placeholder="Panel password"
-          style="width:100%;padding:12px 14px;border:1.5px solid rgba(255,255,255,0.16);border-radius:11px;font-family:'Kanit',sans-serif;font-size:14px;outline:none;letter-spacing:2px;background:rgba(255,255,255,0.07);color:#fff;transition:border-color 0.15s;"
+          style="width:100%;padding:12px 14px;border:1.5px solid rgba(255,255,255,0.16);border-radius:11px;font-family:'Kanit',sans-serif;font-size:16px;outline:none;letter-spacing:2px;background:rgba(255,255,255,0.07);color:#fff;transition:border-color 0.15s;"
           onkeydown="if(event.key==='Enter')window._submitGatePassword()"
           onfocus="this.style.borderColor='#ff4fa3'" onblur="this.style.borderColor='rgba(255,255,255,0.16)'" />
-        <div id="gatePasswordError" style="display:none;font-size:12px;color:#ff9b8a;text-align:center;padding:7px 10px;background:rgba(192,57,43,0.2);border-radius:9px;">❌ Incorrect password</div>
+        <div id="gatePasswordError" style="display:none;font-size:14px;color:#ff9b8a;text-align:center;padding:7px 10px;background:rgba(192,57,43,0.2);border-radius:9px;">❌ Incorrect password</div>
         <button id="gatePasswordBtn" onclick="window._submitGatePassword()"
-          style="width:100%;padding:13px;background:linear-gradient(180deg,#ff5fac,#c02e7e);color:white;border:none;border-radius:11px;font-family:'Kanit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 12px 26px -10px rgba(255,79,163,0.55);">
+          style="width:100%;padding:13px;background:linear-gradient(180deg,#ff5fac,#c02e7e);color:white;border:none;border-radius:11px;font-family:'Kanit',sans-serif;font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 12px 26px -10px rgba(255,79,163,0.55);">
           Enter Panel
         </button>
         <button onclick="window._cancelGatePassword()"
-          style="background:none;border:none;font-family:'Kanit',sans-serif;font-size:12px;color:rgba(255,255,255,0.5);cursor:pointer;padding:5px;">
+          style="background:none;border:none;font-family:'Kanit',sans-serif;font-size:14px;color:rgba(255,255,255,0.5);cursor:pointer;padding:5px;">
           ← Use a different account
         </button>
       </div>

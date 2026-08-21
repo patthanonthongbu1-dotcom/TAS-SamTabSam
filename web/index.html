@@ -139,9 +139,9 @@
       width: 100%; max-width: 340px; margin: 0 auto;
       padding: 2rem;
     }
-    .card-title { font-size: 16px; font-weight: 500; color: white; text-align: center; }
-    .card-sub { font-size: 12px; color: rgba(255,255,255,0.6); text-align: center; font-weight: 300; margin-top: -0.5rem; }
-    .status { padding: 11px 14px; border-radius: 10px; font-size: 12px; text-align: center; font-weight: 400; display: none; line-height: 1.5; width: 100%; }
+    .card-title { font-size: 18.5px; font-weight: 500; color: white; text-align: center; }
+    .card-sub { font-size: 14px; color: rgba(255,255,255,0.6); text-align: center; font-weight: 300; margin-top: -0.5rem; }
+    .status { padding: 11px 14px; border-radius: 10px; font-size: 14px; text-align: center; font-weight: 400; display: none; line-height: 1.5; width: 100%; }
     .s-error { background: rgba(192,57,43,0.18); color: #ff9b8a; display: block; }
     .s-success { background: rgba(29,158,117,0.18); color: #6fe3bd; display: block; }
     .s-loading { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.75); display: block; }
@@ -153,7 +153,7 @@
       border: 1.5px solid transparent;
       border-radius: 12px;
       font-family: 'Prompt', sans-serif;
-      font-size: 14px; font-weight: 500; color: var(--text);
+      font-size: 16px; font-weight: 500; color: var(--text);
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s, transform 0.1s;
       touch-action: manipulation;
@@ -161,13 +161,13 @@
     .btn-google:hover { background: #fff6fb; border-color: var(--pink); }
     .btn-google:active { transform: scale(0.99); }
     .btn-google:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .hint { font-size: 11px; color: rgba(255,255,255,0.45); text-align: center; line-height: 1.6; }
+    .hint { font-size: 12.5px; color: rgba(255,255,255,0.45); text-align: center; line-height: 1.6; }
 
     /* ── Dashboard (userPanel) ──────────────────────────────────── */
     #userPanel { flex: 1; display: flex; flex-direction: column; padding: 2.75rem 3.5rem; }
     .rp-top, .rp-middle, .rp-bottom { position: relative; z-index: 1; }
     .rp-top { display: flex; justify-content: flex-end; }
-    #todayDate { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.75); }
+    #todayDate { font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.75); }
     .rp-middle { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2.25rem; width: 100%; max-width: 480px; margin: 0 auto; }
     .rp-bottom { display: flex; justify-content: flex-end; }
 
@@ -178,11 +178,11 @@
        z-index on the tooltip alone can't escape; we rank the blocks here. */
     .welcome-row { display: flex; align-items: center; gap: 18px; position: relative; z-index: 3; }
     .user-avatar { width: 60px; height: 60px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.25); object-fit: cover; }
-    .user-avatar-fallback { width: 60px; height: 60px; border-radius: 50%; background: var(--pink); color: white; font-size: 21px; font-weight: 500; display: flex; align-items: center; justify-content: center; }
-    .welcome-hi { font-size: 13px; color: rgba(255,255,255,0.65); font-weight: 300; }
-    .welcome-name { font-size: 34px; font-weight: 700; letter-spacing: 0.3px; line-height: 1.15; }
+    .user-avatar-fallback { width: 60px; height: 60px; border-radius: 50%; background: var(--pink); color: white; font-size: 22.5px; font-weight: 500; display: flex; align-items: center; justify-content: center; }
+    .welcome-hi { font-size: 15px; color: rgba(255,255,255,0.65); font-weight: 300; }
+    .welcome-name { font-size: 36.5px; font-weight: 700; letter-spacing: 0.3px; line-height: 1.15; }
     .role-line { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-    .welcome-role { font-size: 11px; letter-spacing: 0.15em; color: rgba(255,255,255,0.55); text-transform: uppercase; transition: color 0.25s ease; }
+    .welcome-role { font-size: 12.5px; letter-spacing: 0.15em; color: rgba(255,255,255,0.55); text-transform: uppercase; transition: color 0.25s ease; }
     .welcome-role.checking { animation: softPulse 1.1s ease-in-out infinite; }
     .welcome-role.is-mod { color: var(--pink); }
     @keyframes softPulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
@@ -192,7 +192,7 @@
       position: relative;
       display: inline-flex; align-items: center; justify-content: center;
       width: 17px; height: 17px; border-radius: 50%;
-      font-size: 11px; font-weight: 600; font-style: normal; line-height: 1;
+      font-size: 12.5px; font-weight: 600; font-style: normal; line-height: 1;
       color: rgba(255,255,255,0.6);
       border: 1px solid rgba(255,255,255,0.32);
       cursor: help; user-select: none; flex-shrink: 0;
@@ -208,7 +208,7 @@
       background: rgba(11,20,38,0.98); color: rgba(255,255,255,0.9);
       border: 1px solid rgba(255,255,255,0.12); border-radius: 12px;
       padding: 11px 13px;
-      font-size: 11.5px; font-weight: 300; line-height: 1.55;
+      font-size: 13px; font-weight: 300; line-height: 1.55;
       letter-spacing: normal; text-transform: none; text-align: left;
       box-shadow: 0 18px 38px -14px rgba(0,0,0,0.75);
       opacity: 0; visibility: hidden; pointer-events: none;
@@ -261,17 +261,17 @@
        text still reads — same bright-to-dark shape as the other two. */
     .pill-tools    { background: linear-gradient(180deg, #f5b52e 0%, #6b4207 100%); }
     .pill-icon svg { display: block; }
-    .pill-icon { position: relative; z-index: 1; font-size: 28px; line-height: 1; flex-shrink: 0; display: flex; align-items: center; }
+    .pill-icon { position: relative; z-index: 1; font-size: 30px; line-height: 1; flex-shrink: 0; display: flex; align-items: center; }
     .pill-labels { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; }
-    .pill-title { font-size: 21px; font-weight: 700; letter-spacing: 0.2px; }
-    .pill-sub { font-size: 10px; font-weight: 500; letter-spacing: 0.18em; opacity: 0.85; margin-top: 2px; }
-    .pill-chevron { position: relative; z-index: 1; margin-left: auto; font-size: 22px; line-height: 1; opacity: 0.85; flex-shrink: 0; }
+    .pill-title { font-size: 22.5px; font-weight: 700; letter-spacing: 0.2px; }
+    .pill-sub { font-size: 11.5px; font-weight: 500; letter-spacing: 0.18em; opacity: 0.85; margin-top: 2px; }
+    .pill-chevron { position: relative; z-index: 1; margin-left: auto; font-size: 24px; line-height: 1; opacity: 0.85; flex-shrink: 0; }
     .pill-dot { position: absolute; top: 10px; right: 14px; width: 8px; height: 8px; border-radius: 50%; background: white; box-shadow: 0 0 0 3px rgba(255,255,255,0.15); z-index: 1; }
 
     .logout-link {
       display: flex; align-items: center; gap: 6px;
       background: none; border: none;
-      font-family: 'Prompt', sans-serif; font-size: 13px; font-weight: 400;
+      font-family: 'Prompt', sans-serif; font-size: 15px; font-weight: 400;
       color: rgba(255,255,255,0.55);
       cursor: pointer; padding: 6px 2px;
       transition: color 0.15s;
@@ -303,7 +303,7 @@
         backdrop-filter: blur(4px);
       }
       #userPanel .mobile-brand { width: 104px; height: auto; }
-      #todayDate { font-size: 12.5px; }
+      #todayDate { font-size: 14.5px; }
 
       .rp-middle {
         justify-content: flex-start;
@@ -312,13 +312,13 @@
       }
       .welcome-row { gap: 16px; }
       .user-avatar, .user-avatar-fallback { width: 64px; height: 64px; }
-      .welcome-name { font-size: 30px; }
+      .welcome-name { font-size: 32.5px; }
 
       .nav-pills { gap: 16px; }
       .nav-pill { min-height: 92px; border-radius: 24px; }
 
       .rp-bottom { justify-content: center; padding: 0.5rem 1.4rem 1.8rem; }
-      .logout-link { font-size: 14px; padding: 10px; }
+      .logout-link { font-size: 16px; padding: 10px; }
 
       .role-tip { width: 240px; }
     }
@@ -327,13 +327,13 @@
     @media (max-width: 420px) {
       #loginPanel { padding: 2rem 1.3rem; }
       #userPanel .mobile-brand { width: 92px; }
-      #todayDate { font-size: 12px; }
+      #todayDate { font-size: 14px; }
       .rp-middle { padding: 1.75rem 1.25rem 1rem; gap: 1.6rem; }
-      .welcome-name { font-size: 26px; }
+      .welcome-name { font-size: 28px; }
       .user-avatar, .user-avatar-fallback { width: 56px; height: 56px; }
       .nav-pill { min-height: 84px; padding: 16px 20px; }
-      .pill-title { font-size: 19px; }
-      .pill-icon { font-size: 25px; }
+      .pill-title { font-size: 22px; }
+      .pill-icon { font-size: 27px; }
     }
 
     /* ── Motion: entrance animations + richer hovers ──────────────── */

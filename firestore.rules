@@ -55,6 +55,15 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
     }
 
+    // ── To Do list + Focus Deck ───────────────────────────────
+    // Doc id = the owner's uid, holding one `items` array. Strictly
+    // private: unlike widgetFeed this is never read by anything that
+    // can't sign in, and the free-form notes on each item are exactly
+    // the sort of thing that shouldn't be world-readable.
+    match /todo/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
     // ── Home-screen widget feed ───────────────────────────────
     // Doc id = the owner's uid. A home-screen widget has nowhere to sign
     // in, so the calendar publishes the one thing the widget can't work
