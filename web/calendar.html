@@ -52,6 +52,10 @@
       --red:#ff6b6b;--red-text:#ff9b8a;--red-light:rgba(229,62,62,0.18);--red-mid:rgba(229,62,62,0.4);
       --amber:#fbbf24;--amber-light:rgba(234,179,8,0.15);--amber-mid:rgba(234,179,8,0.35);
       --marker:#ea580c;--marker-light:rgba(234,88,12,0.15);--marker-border:rgba(251,146,60,0.35);--marker-dark:#fdba74;
+      --marker-sub:rgba(253,215,170,0.75);
+      /* Timeline bar: the scrim over the unfinished stretch, and the
+         hairline where done meets to-do. */
+      --bar-scrim:rgba(9,17,36,0.55);--bar-edge:rgba(255,255,255,0.6);
       /* Glass theme (matches index / announce) */
       --navy:#16305e;--navy-dark:#0b1c3d;
       --pink:#ff4fa3;--pink-soft:#ffd6ea;
@@ -163,20 +167,34 @@
     .topnav-brand{
       display:flex;align-items:center;gap:10px;min-width:0;flex-shrink:0;
       text-decoration:none;color:inherit;border-radius:14px;
-      transition:opacity 0.15s;
+      border:none;background:transparent;padding:2px 8px 2px 2px;cursor:pointer;
+      font-family:'Kanit',sans-serif;text-align:left;
+      transition:background 0.15s;
       animation:brandIn 0.5s cubic-bezier(0.16,1,0.3,1) 0.05s backwards;
+      -webkit-tap-highlight-color:transparent;
     }
-    .topnav-brand:hover{opacity:0.78}
+    .topnav-brand:hover{background:var(--glass)}
+    .topnav-brand:active{transform:scale(0.98)}
     @keyframes brandIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+    .brand-chevron{
+      font-size:15px;line-height:1;color:var(--muted);opacity:0.75;flex-shrink:0;
+      align-self:center;transition:transform 0.2s,opacity 0.2s,color 0.2s;
+    }
+    .topnav-brand:hover .brand-chevron{opacity:1;color:var(--pink)}
+    .topnav-brand[aria-expanded="true"] .brand-chevron{transform:rotate(180deg);opacity:1;color:var(--pink)}
+    .topbar.shrunk .brand-chevron{font-size:13px}
+    /* Bigger than a favicon: the mark is the app's identity and, now, the
+       way out of whatever view you are in. */
     .brand-chip{
-      width:38px;height:38px;border-radius:12px;flex-shrink:0;
-      background:rgba(255,255,255,0.10);border:1px solid var(--glass-brd);
+      width:46px;height:46px;border-radius:14px;flex-shrink:0;
+      background:rgba(255,255,255,0.13);border:1px solid var(--glass-brd);
       display:flex;align-items:center;justify-content:center;
       box-shadow:0 4px 14px -6px rgba(0,0,0,0.5);
-      transition:width 0.2s,height 0.2s,border-radius 0.2s;
+      transition:width 0.2s,height 0.2s,border-radius 0.2s,background 0.2s;
     }
-    .topbar.shrunk .brand-chip{width:30px;height:30px;border-radius:10px}
-    .brand-mini{width:78%;height:78%;object-fit:contain;display:block;animation:logoGlow 4.5s ease-in-out infinite}
+    .topnav-brand:hover .brand-chip{background:rgba(255,255,255,0.2)}
+    .topbar.shrunk .brand-chip{width:36px;height:36px;border-radius:11px}
+    .brand-mini{width:88%;height:88%;object-fit:contain;display:block;animation:logoGlow 4.5s ease-in-out infinite}
     @keyframes logoGlow{
       0%,100%{filter:drop-shadow(0 0 2px rgba(255,255,255,0.2))}
       50%{filter:drop-shadow(0 0 9px rgba(255,255,255,0.7))}
@@ -253,6 +271,18 @@
     }
     @keyframes dropIn{from{opacity:0;transform:translateY(-6px) scale(0.97)}to{opacity:1;transform:none}}
     .user-dropdown.open{display:flex}
+    /* Same menu, hung off the other end of the bar — mirror the inset
+       trick rather than the window's padding, or it drifts off the bar on
+       wide screens exactly as the profile menu used to. */
+    .brand-dropdown{
+      right:auto;left:calc(max(14px, (100% - 1180px) / 2) + 8px);
+      min-width:206px;
+    }
+    .brand-dd-label{
+      font-size:10.5px;font-weight:600;letter-spacing:0.11em;text-transform:uppercase;
+      color:var(--label);padding:7px 10px 4px;
+    }
+    .brand-dd-label:not(:first-child){margin-top:3px;border-top:1px solid var(--divider);padding-top:9px}
     .user-dropdown-info{padding:8px 10px 11px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:3px}
     .user-dropdown-name{font-size:15px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .user-dropdown-email{font-size:12.5px;color:var(--muted);font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
@@ -405,7 +435,60 @@
     @keyframes barIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
     .gantt-bar:hover{filter:brightness(1.12);transform:scaleY(1.07)}
     .gantt-bar.done{opacity:0.14!important;pointer-events:none}
-    .gantt-bar-text{font-size:var(--font-bar);font-weight:500;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    /* The shadow is what keeps the label readable where it crosses from
+       the solid stretch onto the dimmed one */
+    .gantt-bar-text{font-size:var(--font-bar);font-weight:500;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;z-index:2;text-shadow:0 1px 3px rgba(0,0,0,0.4);min-width:0;flex:0 1 auto}
+
+    /* ── Progress, drawn on the bar ──
+       The bar is the task's colour; `.gantt-rest` dims the stretch that
+       isn't done. Solid = finished, faded = still to do. Both layers sit
+       under the text, which is why the label carries its own z-index. */
+    .gantt-rest{
+      position:absolute;top:0;bottom:0;right:0;z-index:1;pointer-events:none;
+      background:var(--bar-scrim);
+      border-left:1.5px solid var(--bar-edge);
+      transition:left 0.32s cubic-bezier(0.34,1.4,0.64,1);
+    }
+    /* Steps get countable dividers; a percentage is one smooth split */
+    .gantt-div{position:absolute;top:0;bottom:0;width:1px;z-index:1;pointer-events:none;
+      background:rgba(255,255,255,0.28)}
+    /* "3 of 5", pinned to whichever comes first: the bar's own end or the
+       right edge of the visible track (see syncBarChips). It is absolutely
+       positioned rather than a flex item so sliding it left costs nothing
+       but a transform, and it carries its own pill because it can now come
+       to rest over the bar's label instead of the empty tail. */
+    .gantt-pct{
+      position:absolute;right:10px;top:50%;margin-top:-9px;z-index:3;pointer-events:none;
+      padding:1px 7px;border-radius:99px;
+      background:rgba(9,17,36,0.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+      font-size:calc(var(--font-bar) - 1px);font-weight:600;color:#fff;line-height:16px;
+      text-shadow:0 1px 3px rgba(0,0,0,0.5);white-space:nowrap;
+      /* No transition: this tracks the scroll, and easing it would leave
+         the chip lagging behind the finger. */
+    }
+    .gantt-bar{container-type:inline-size}
+    /* Keep the name clear of where the chip comes to rest. Once the chip
+       slides inward it does float over the label — that is the trade for
+       always being able to read it, and the pill is what carries it. */
+    .gantt-bar.has-pct{padding-right:62px}
+    /* Below this the chip would leave the name a stub, so the bar's own
+       fill carries the progress on its own. */
+    @container (max-width: 175px){
+      .gantt-pct{display:none}
+      .gantt-bar.has-pct{padding-right:13px}
+    }
+    /* Urgency cap: in subject-colour mode the bar body says which subject,
+       so the leading edge is where "how soon" still gets a say. */
+    .gantt-cap{
+      position:absolute;left:0;top:0;bottom:0;width:4px;z-index:2;pointer-events:none;
+      border-radius:9px 0 0 9px;box-shadow:1px 0 4px -1px rgba(0,0,0,0.45);
+    }
+    /* A side quest wears the same dashed edge as a personal task, plus the
+       moon in its label — it is a personal task, just an optional one. */
+    .gantt-bar.sidequest{border:2px dashed rgba(255,255,255,0.62);opacity:0.9}
+    .gantt-bar-text .ic{width:1em;height:1em;vertical-align:-2px;margin-right:1px}
+    .row-sq{color:var(--pink);margin-right:4px}
+    .row-sq .ic{width:12px;height:12px;vertical-align:-1px}
     .gantt-bar.overdue-pulse{animation:barIn 0.38s ease backwards,overdueGlow 2s ease-in-out 0.38s infinite}
     @keyframes overdueGlow{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}50%{box-shadow:0 0 0 5px rgba(220,38,38,0.30)}}
     .out-indicator{position:absolute;top:11px;bottom:11px;width:7px;border-radius:3.5px;z-index:4;cursor:pointer;opacity:0.7;transition:opacity 0.15s}
@@ -595,7 +678,121 @@
     .legend-item{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);padding:4px 0}
     .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
     .dot-sendon{background:var(--green)}.dot-deadline{background:#ef4444}.dot-prediction{background:#8b5cf6}.dot-marker{background:var(--marker)}
+    /* A miniature of the real bar — cheaper to read than a sentence */
+    .legend-bar-key{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--label);margin-top:7px}
+    .lbk-bar{position:relative;width:56px;height:13px;border-radius:5px;background:#2563eb;overflow:hidden;flex-shrink:0}
+    .lbk-cap{position:absolute;left:0;top:0;bottom:0;width:3px;background:#f97316}
+    .lbk-rest{position:absolute;left:58%;top:0;bottom:0;right:0;background:var(--bar-scrim);border-left:1.5px solid var(--bar-edge)}
     .legend-hint{font-size:11.5px;color:var(--label);margin-top:6px;padding-top:6px;border-top:1px solid var(--glass-brd);line-height:1.6}
+    .legend-hint .ic{width:12px;height:12px;vertical-align:-1px;margin-right:2px}
+
+    /* ── Filters ──
+       Same 46px round shape as the legend FAB — it belongs to that family
+       of controls — but it both opens a panel and latches, so it carries
+       an accent fill while anything is filtered and a count of how many. */
+    .filter-fab{pointer-events:all;position:relative}
+    .filter-toggle{
+      width:46px;height:46px;border-radius:50%;position:relative;
+      background:var(--col);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+      border:1px solid var(--field-brd);box-shadow:0 4px 18px rgba(0,0,0,0.35);
+      display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;
+      color:var(--pink);
+      transition:background 0.22s,border-color 0.22s,color 0.22s,transform 0.18s;
+      animation:fabIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.3s backwards;
+    }
+    .filter-toggle .ic{width:21px;height:21px}
+    .filter-toggle:hover{transform:scale(1.08)}
+    .filter-toggle:active{transform:scale(0.95)}
+    .filter-toggle.on,.filter-toggle.open{background:var(--accent-grad);border-color:transparent;color:#fff}
+    /* How many filters are on — otherwise a quiet board looks like a bug */
+    .filter-count{
+      position:absolute;top:-2px;right:-2px;min-width:18px;padding:0 4px;
+      border-radius:10px;background:var(--pink);color:#fff;
+      font-family:'Kanit',sans-serif;font-size:11px;font-weight:600;line-height:18px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.35);
+    }
+    .filter-toggle.on .filter-count{background:#fff;color:#c02e7e}
+
+    /* Centred over its button rather than pinned to an edge, since this
+       FAB sits in the middle of the row. */
+    /* A sheet that slides up from the bottom edge, not a popover pinned to
+       the button — the same shape and easing as the task detail sheet, so
+       the two things that come up from the bottom of the calendar behave
+       alike. position:fixed inside the (untransformed) .fab-container is
+       still relative to the viewport, so it can leave the FAB row behind. */
+    .filter-panel{
+      position:fixed;z-index:610;left:50%;bottom:0;top:auto;
+      width:min(460px,100%);max-width:460px;
+      max-height:82vh;overflow-y:auto;overscroll-behavior:contain;
+      background:var(--sheet);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+      border:1px solid rgba(255,255,255,0.14);border-bottom:none;
+      border-radius:22px 22px 0 0;padding:0 15px 18px;
+      box-shadow:0 -12px 44px -8px rgba(0,0,0,0.7);
+      transform:translate(-50%,100%);opacity:1;pointer-events:none;
+      transition:transform 0.3s cubic-bezier(0.32,0.72,0,1);
+    }
+    .filter-panel.open{transform:translate(-50%,0);pointer-events:all}
+    /* The grab handle is what reads as "sheet" rather than "stray panel" */
+    .filter-panel::before{
+      content:'';display:block;width:38px;height:4px;flex-shrink:0;
+      background:rgba(255,255,255,0.25);border-radius:2px;margin:10px auto 4px;
+    }
+    .filter-head{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      position:sticky;top:0;z-index:2;padding:6px 0 8px;
+      background:var(--sheet);
+    }
+    .filter-close{
+      width:30px;height:30px;flex-shrink:0;border:none;border-radius:9px;
+      background:var(--field-bg);color:var(--muted);font-size:15px;cursor:pointer;
+      display:grid;place-items:center;transition:background 0.15s,color 0.15s,transform 0.12s;
+    }
+    .filter-close:hover{background:var(--accent-soft);color:var(--accent-soft-text)}
+    .filter-close:active{transform:scale(0.9)}
+    .filter-head .range-label-hd{padding:0}
+    .filter-clear{
+      background:none;border:none;padding:2px 4px;cursor:pointer;
+      font-family:'Kanit',sans-serif;font-size:12.5px;font-weight:500;color:var(--pink);
+      text-decoration:underline;text-underline-offset:2px;transition:opacity 0.15s;
+    }
+    .filter-clear:disabled{opacity:0.35;cursor:default;text-decoration:none}
+    /* Says which of the two lenses you are looking at — these filters only
+       change this calendar, the side-quest one changes the whole app. */
+    .filter-scope{
+      display:block;font-size:10.5px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;
+      color:var(--label);margin:11px 0 6px;padding-top:8px;border-top:1px solid var(--glass-brd);
+    }
+    .filter-head + .filter-scope{margin-top:8px;padding-top:0;border-top:none}
+    .filter-group{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+    .filter-chip{
+      display:inline-flex;align-items:center;gap:6px;
+      background:transparent;border:1px solid var(--glass-brd);color:var(--muted);
+      font-family:'Kanit',sans-serif;font-size:12.5px;border-radius:20px;padding:4px 11px;
+      cursor:pointer;white-space:nowrap;
+      transition:background 0.15s,color 0.15s,border-color 0.15s,transform 0.1s;
+    }
+    .filter-chip:hover{background:var(--glass);color:var(--text)}
+    .filter-chip:active{transform:scale(0.93)}
+    .filter-chip.active{background:var(--accent-soft);color:var(--accent-soft-text);border-color:var(--accent-brd)}
+    .filter-swatch{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+    .filter-switch-row{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
+      background:none;border:none;padding:7px 2px;cursor:pointer;
+      font-family:'Kanit',sans-serif;text-align:left;border-radius:9px;transition:background 0.15s;
+    }
+    .filter-switch-row:hover{background:var(--glass)}
+    .filter-switch-lab{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text)}
+    .filter-switch-lab .ic{width:14px;height:14px;color:var(--pink)}
+    .filter-note{font-size:11px;font-weight:300;color:var(--label);line-height:1.5;margin:6px 2px 0}
+    /* The way out of a board you have filtered down to nothing */
+    .empty-clear{
+      margin-top:14px;padding:9px 18px;border-radius:11px;border:none;
+      background:var(--accent-grad);color:#fff;box-shadow:0 10px 24px -10px var(--accent-shadow);
+      font-family:'Kanit',sans-serif;font-size:14.5px;font-weight:500;cursor:pointer;
+      transition:filter 0.15s,transform 0.12s;
+    }
+    .empty-clear:hover{filter:brightness(1.07)}
+    .empty-clear:active{transform:scale(0.97)}
 
     .range-fab{pointer-events:all;position:relative}
     .range-toggle{height:46px;padding:0 18px;border-radius:23px;background:var(--col);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--field-brd);box-shadow:0 4px 18px rgba(0,0,0,0.35);display:flex;align-items:center;gap:7px;font-family:'Kanit',sans-serif;font-size:15px;font-weight:500;color:#fff;cursor:pointer;white-space:nowrap;transition:background 0.22s,color 0.22s,border-color 0.22s,transform 0.18s;animation:fabIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.35s backwards}
@@ -695,7 +892,7 @@
       width:5px;height:5px;border-radius:50%;background:#a9c8ff;flex-shrink:0;
     }
     .marker-table-type{
-      font-size:17.5px;font-weight:400;color:rgba(255,255,255,0.85);flex-shrink:0;
+      font-size:17.5px;font-weight:400;color:var(--muted);flex-shrink:0;
     }
     .marker-modal-footer{
       padding:1rem 1.5rem 1.4rem;
@@ -754,13 +951,25 @@
     }
     /* Sticky so the ✕ stays reachable when a long note scrolls */
     .detail-close{position:sticky!important;float:right;top:8px;margin-right:12px;z-index:2}
-    .detail-header{padding:0.75rem 1.25rem 0.75rem;border-bottom:1px solid rgba(255,255,255,0.1)}
+    .detail-header{padding:0.75rem 1.25rem 0.75rem;border-bottom:1px solid var(--divider)}
     .detail-popup h3{font-size:18.5px;font-weight:600;margin-bottom:2px;color:var(--text);padding-right:24px}
     .detail-subject{font-size:14px;color:var(--muted)}
     .detail-body{padding:1rem 1.25rem}
     .detail-note-section{margin-bottom:1rem}
     .detail-note-label{font-size:12.5px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
-    .detail-note{font-size:15px;color:rgba(255,255,255,0.85);font-weight:300;line-height:1.6}
+    .detail-note{font-size:15px;color:var(--muted);font-weight:300;line-height:1.6}
+    /* Side-quest switch in the detail popup — a row you press, not a
+       link, so it reads as a setting rather than an action. */
+    .dp-sq-row{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
+      margin-bottom:1rem;padding:9px 11px;border-radius:11px;
+      border:1px solid var(--field-brd);background:var(--field-bg);
+      font-family:'Kanit',sans-serif;cursor:pointer;text-align:left;
+      transition:border-color 0.15s,background 0.15s;
+    }
+    .dp-sq-row:hover{border-color:var(--accent-brd);background:var(--accent-soft)}
+    .dp-sq-label{display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:500;color:var(--text)}
+    .dp-sq-label .ic{width:15px;height:15px;color:var(--pink)}
     .detail-mark-done{background:none;border:none;font-size:15px;color:var(--green-text);cursor:pointer;font-family:'Kanit',sans-serif;font-weight:500;padding:0;text-decoration:underline;text-underline-offset:2px;display:block;margin-bottom:1rem}
     .detail-delete-btn{background:none;border:none;font-size:15px;color:var(--red-text);cursor:pointer;font-family:'Kanit',sans-serif;font-weight:500;padding:0;display:none;margin-bottom:1rem;opacity:0.8;transition:opacity 0.15s}
     .detail-delete-btn:hover{opacity:1}
@@ -872,7 +1081,15 @@
       .topbar{padding:8px 8px 0}
       .topnav{gap:8px;padding:6px 8px 6px 6px;border-radius:17px}
       .topbar.shrunk .topnav{padding:2px 7px 2px 5px;border-radius:14px}
+      /* The mark keeps a little of its new size — it is the quick-nav
+         button now, not decoration — but not so much that it crowds the
+         tabs it has to share the row with. */
       .brand-text{display:none}
+      .brand-chip{width:40px;height:40px;border-radius:12px}
+      .topbar.shrunk .brand-chip{width:32px;height:32px;border-radius:10px}
+      .brand-chevron{font-size:12px}
+      .topnav-brand{padding:2px 4px 2px 2px;gap:4px}
+      .brand-dropdown{left:14px;right:14px;min-width:0}
       .latest-pill{display:none!important}
       .topnav-tabs{gap:1px}
       .nav-pill{padding:5px 7px;border-radius:12px}
@@ -920,7 +1137,18 @@
       /* Modals slide up from bottom */
       .modal{border-radius:16px 16px 0 0;max-height:85vh;margin-top:auto}
       .modal-overlay{align-items:flex-end;padding:0}
+      /* Three controls now share the bottom row, so they shrink a little
+         to keep the range label from being squeezed off its own button. */
       .fab-container{bottom:1.25rem;left:0.875rem;right:0.875rem}
+      .legend-toggle,.filter-toggle{width:42px;height:42px}
+      .filter-toggle .ic{width:19px;height:19px}
+      /* Full-bleed on a phone, like the detail sheet */
+      .filter-panel{
+        left:0;right:0;width:100%;max-width:100%;
+        border-radius:20px 20px 0 0;transform:translateY(100%);
+      }
+      .filter-panel.open{transform:translateY(0)}
+      .range-toggle{height:42px;padding:0 14px;font-size:14px}
 
       /* The sheet behaviour itself lives in the base rules now and is shared
          with desktop; a phone only needs it to go full-bleed. */
@@ -972,39 +1200,149 @@
       .cal-header-left{padding-left:20px}
     }
     /* ── Personal task panel — dark glass ─────────────────────── */
-    .pt-overlay{position:fixed;inset:0;background:rgba(5,10,22,0.62);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);z-index:800;display:none;align-items:flex-end;justify-content:center}
-    .pt-overlay.open{display:flex;animation:fadeIn 0.18s ease both}
-    .pt-panel{
-      background:var(--sheet);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-      border:1px solid rgba(255,255,255,0.14);
-      border-radius:22px 22px 0 0;width:100%;max-width:560px;
-      height:96vh;overflow:hidden;display:flex;flex-direction:column;
-      box-shadow:0 -8px 40px rgba(0,0,0,0.5);
-      animation:ptSlideUp 0.3s cubic-bezier(0.32,0.72,0,1) both;
-    }
-    @keyframes ptSlideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-
-    /* drag handle */
-    .pt-panel::before{content:'';display:block;width:36px;height:4px;background:rgba(255,255,255,0.25);border-radius:2px;margin:10px auto 0;flex-shrink:0}
-
-    .pt-header{padding:0.75rem 1.25rem 0.6rem;border-bottom:1px solid var(--glass-brd);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0}
-    .pt-header-title{font-size:18.5px;font-weight:600;color:var(--text);margin-bottom:2px}
-    .pt-header-desc{font-size:11.5px;color:var(--muted);font-weight:300;line-height:1.4;max-width:320px}
-    .pt-close{background:none;border:none;font-size:20.5px;cursor:pointer;color:var(--label);padding:2px;line-height:1;transition:color 0.15s;flex-shrink:0}
-    .pt-close:hover{color:var(--text)}
-
-    .pt-tabs{display:flex;gap:4px;padding:8px 1.25rem 0;flex-shrink:0}
-    .pt-tab{flex:1;padding:7px 12px;border:none;border-radius:10px 10px 0 0;font-family:'Kanit',sans-serif;font-size:15px;font-weight:500;cursor:pointer;color:var(--muted);background:var(--glass-2);border:1px solid var(--glass-brd);border-bottom:none;transition:background 0.15s,color 0.15s}
-    .pt-tab.active{background:rgba(255,255,255,0.12);color:var(--text);box-shadow:0 -2px 8px rgba(0,0,0,0.2)}
     .pt-count{display:inline-block;margin-left:5px;background:var(--pink);color:white;font-size:11.5px;font-weight:600;border-radius:10px;padding:0 5px;line-height:16px;vertical-align:middle}
+    /* ── My Tasks — a page, and one question at a time ──────────
+       This was a bottom sheet; it is a view now, laid out to the same
+       1180px inset as the top bar and the To Do lanes so the three views
+       sit in the same column. */
+    .mt-page{max-width:1180px;margin:0 auto;width:100%;padding:14px 14px 28px;
+      display:flex;flex-direction:column;gap:14px}
+    .mt-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap}
+    .mt-head h2{font-size:20px;font-weight:600;color:var(--text);margin:0;display:flex;align-items:center;gap:9px}
+    .mt-head h2 .ic{width:19px;height:19px}
+    .mt-head-text p{font-size:12.5px;font-weight:300;color:var(--muted);margin:3px 0 0;line-height:1.5}
+    .mt-tabs{display:flex;gap:4px;flex-shrink:0}
+    .mt-tab{
+      display:flex;align-items:center;gap:6px;padding:8px 15px;border-radius:12px;
+      border:1px solid var(--glass-brd);background:var(--glass-2);
+      font-family:'Kanit',sans-serif;font-size:14.5px;font-weight:500;
+      color:var(--muted);cursor:pointer;transition:background 0.15s,color 0.15s,border-color 0.15s;
+    }
+    .mt-tab .ic{width:14px;height:14px}
+    .mt-tab:hover{color:var(--text);border-color:var(--accent-brd)}
+    .mt-tab.active{background:var(--accent-grad);border-color:transparent;color:#fff;
+      box-shadow:0 6px 18px -8px var(--accent-shadow)}
+    .mt-tab.active .pt-count{background:#fff;color:#c02e7e}
+    .mt-pane{
+      background:var(--glass-2);border:1px solid var(--glass-brd);border-radius:18px;
+      padding:16px 18px 14px;display:flex;flex-direction:column;gap:14px;min-width:0;
+      animation:todoIn 0.34s cubic-bezier(0.16,1,0.3,1) both;
+    }
 
-    /* Pane fills remaining space, no scroll */
-    .pt-pane{flex:1;overflow:hidden;padding:0.75rem 1.25rem;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--glass-brd)}
-    .pt-pane.pt-pane-list{overflow-y:auto}
+    /* The rail: where you are, what is behind you, what is left. Also the
+       way back — an earlier step is one tap away. */
+    .mt-rail{display:flex;align-items:center;gap:4px;list-style:none;margin:0;padding:0;flex-wrap:wrap}
+    .mt-rail-step{
+      display:flex;align-items:center;gap:7px;padding:5px 11px 5px 5px;border-radius:99px;
+      font-size:12.5px;font-weight:500;color:var(--label);cursor:pointer;
+      transition:background 0.16s,color 0.16s;
+    }
+    .mt-rail-step + .mt-rail-step::before{
+      content:"";width:14px;height:1.5px;border-radius:1px;background:var(--glass-brd);
+      margin-left:-4px;margin-right:3px;flex-shrink:0;
+    }
+    .mt-rail-dot{
+      width:22px;height:22px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;
+      background:var(--field-bg);border:1px solid var(--field-brd);
+      font-size:11.5px;font-weight:600;transition:background 0.16s,border-color 0.16s,color 0.16s;
+    }
+    .mt-rail-dot .ic{width:12px;height:12px}
+    .mt-rail-step:hover{color:var(--text)}
+    .mt-rail-step.done{color:var(--muted)}
+    .mt-rail-step.done .mt-rail-dot{background:var(--accent-soft);border-color:var(--accent-brd);color:var(--pink)}
+    .mt-rail-step.now{color:var(--text);background:var(--accent-soft)}
+    .mt-rail-step.now .mt-rail-dot{background:var(--accent-grad);border-color:transparent;color:#fff}
 
-    /* Single-column add layout: scrolling form, save pinned at the bottom */
-    .pt-pane-add{gap:10px}
-    .pt-form-scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding-right:4px}
+    /* Only the live step is in view; the rest stay in the DOM so nothing
+       typed is lost on the way back. */
+    .mt-steps{min-height:236px;display:flex;flex-direction:column}
+    .mt-step{display:none;flex-direction:column;gap:11px}
+    .mt-step.active{display:flex;animation:mtStepIn 0.24s cubic-bezier(0.16,1,0.3,1) both}
+    @keyframes mtStepIn{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+    .mt-q{font-size:18px;font-weight:600;color:var(--text);margin:0 0 2px}
+    .mt-hint{font-size:12.5px;font-weight:300;color:var(--muted);line-height:1.55;margin:-6px 0 2px}
+
+    /* Big pick-one cards, for the two steps that are a choice rather than
+       a field: what kind of thing this is, and how it gets measured. */
+    .mt-kinds,.mt-work-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .mt-work-grid{grid-template-columns:repeat(3,1fr)}
+    .mt-kind,.mt-work{
+      display:flex;flex-direction:column;align-items:flex-start;gap:3px;
+      padding:15px 15px 14px;border-radius:14px;text-align:left;cursor:pointer;
+      border:1.5px solid var(--field-brd);background:var(--field-bg);
+      font-family:'Kanit',sans-serif;transition:border-color 0.16s,background 0.16s,transform 0.12s;
+    }
+    .mt-kind:hover,.mt-work:hover{border-color:var(--accent-brd);background:var(--accent-soft)}
+    .mt-kind:active,.mt-work:active{transform:scale(0.985)}
+    .mt-kind.active,.mt-work.active{border-color:var(--pink);background:var(--accent-soft)}
+    .mt-kind-ic{color:var(--pink);display:block;margin-bottom:4px}
+    .mt-kind-ic .ic{width:21px;height:21px}
+    .mt-kind-name{font-size:15.5px;font-weight:600;color:var(--text);line-height:1.25}
+    .mt-kind-sub{font-size:12px;font-weight:300;color:var(--muted);line-height:1.45}
+    .mt-work-detail{
+      margin-top:2px;padding:13px 14px;border-radius:12px;
+      background:var(--group-bg);border:1px solid var(--glass-brd);
+    }
+    .mt-work-preview{margin-top:11px;display:flex;flex-direction:column;gap:7px}
+    .mt-work-read{font-size:12px;font-weight:400;color:var(--muted)}
+
+    /* Back / where you are / Next, pinned under the step */
+    .mt-nav{
+      display:flex;align-items:center;gap:12px;padding-top:13px;
+      border-top:1px solid var(--divider);
+    }
+    .mt-count{font-size:12.5px;font-weight:500;color:var(--label);margin:0 auto}
+    .mt-btn{
+      display:flex;align-items:center;gap:6px;padding:10px 20px;border-radius:12px;
+      border:none;font-family:'Kanit',sans-serif;font-size:15px;font-weight:500;
+      cursor:pointer;transition:filter 0.15s,background 0.15s,transform 0.12s,opacity 0.15s;
+    }
+    .mt-btn .ic{width:14px;height:14px}
+    .mt-btn.ghost{background:var(--field-bg);border:1px solid var(--field-brd);color:var(--muted)}
+    .mt-btn.ghost:hover{background:var(--accent-soft);color:var(--text)}
+    .mt-btn.solid{background:var(--accent-grad);color:#fff;box-shadow:0 10px 24px -10px var(--accent-shadow)}
+    .mt-btn.solid:hover{filter:brightness(1.07)}
+    .mt-btn:active{transform:scale(0.97)}
+    /* Next simply isn't available until the step is answered — better than
+       letting someone reach Save and be told no. */
+    .mt-btn:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none;filter:none}
+
+    /* The tick that came over from the timeline, at row scale */
+    .pt-check.check-row{min-height:0;margin-bottom:0;flex-shrink:0}
+    .pt-check.check-row input{width:20px;height:20px;border-radius:5px}
+    .pt-check.check-row input:checked::after{font-size:13.5px}
+    .pt-check .hold-ring{width:27px;height:27px;margin:-13.5px 0 0 -13.5px;
+      -webkit-mask:radial-gradient(circle,transparent 9px,#000 9.5px);
+              mask:radial-gradient(circle,transparent 9px,#000 9.5px)}
+
+    @media(max-width:640px){
+      .mt-page{padding:12px 10px 26px}
+      .mt-pane{padding:13px 13px 12px;border-radius:15px}
+      .mt-head{align-items:stretch}
+      .mt-tabs{width:100%}
+      .mt-tab{flex:1;justify-content:center}
+      .mt-kinds,.mt-work-grid{grid-template-columns:1fr}
+      .mt-rail-lab{display:none}
+      .mt-rail-step{padding:5px}
+      .mt-steps{min-height:0}
+      .mt-btn{padding:10px 15px}
+    }
+
+    html[data-theme="light"] .mt-pane{background:#ffffff;border-color:#dde3dd}
+    html[data-theme="light"] .mt-tab{background:#f7faf7;border-color:#dde3dd;color:#5c6b5c}
+    html[data-theme="light"] .mt-kind,html[data-theme="light"] .mt-work{background:#f7faf7;border-color:#dde3dd}
+    html[data-theme="light"] .mt-work-detail{background:#f7faf7;border-color:#dde3dd}
+    html[data-theme="light"] .mt-btn.ghost{background:#f7faf7;border-color:#dde3dd;color:#4a564a}
+    /* These have to be restated at the theme's own specificity: the plain
+       light rules above would otherwise outrank the .active state and
+       leave the chosen tab and card looking exactly like the rest. */
+    html[data-theme="light"] .mt-tab.active{background:var(--accent-grad);border-color:transparent;color:#fff}
+    html[data-theme="light"] .mt-tab.active .pt-count{background:#fff;color:#0F6E56}
+    html[data-theme="light"] .mt-kind.active,html[data-theme="light"] .mt-work.active{
+      background:var(--accent-soft);border-color:var(--pink)}
+    html[data-theme="light"] .mt-kind:hover,html[data-theme="light"] .mt-work:hover{
+      background:var(--accent-soft);border-color:var(--accent-brd)}
+
 
     .pt-field{display:flex;flex-direction:column;gap:4px}
     .pt-field label{font-size:11.5px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
@@ -1025,7 +1363,15 @@
     .pt-marker-toggle:hover{background:rgba(234,88,12,0.24)}
     .pt-marker-toggle.active{background:rgba(234,88,12,0.22);border-color:var(--marker)}
     .pt-marker-toggle-title{font-size:14px;font-weight:500;color:var(--marker-dark)}
-    .pt-marker-toggle-sub{font-size:10.5px;color:rgba(253,215,170,0.75);font-weight:300;margin-top:1px}
+    .pt-marker-toggle-sub{font-size:10.5px;color:var(--marker-sub);font-weight:300;margin-top:1px}
+    /* Same row, the accent instead of marker orange: a side quest is a
+       kind of work, not a kind of event. */
+    .sq-row{background:var(--accent-soft);border-color:var(--accent-brd)}
+    .sq-row:hover{background:var(--accent-ring)}
+    .sq-row.active{background:var(--accent-soft);border-color:var(--pink)}
+    .sq-row .pt-marker-toggle-title{color:var(--accent-soft-text)}
+    .sq-row .pt-marker-toggle-title .ic{width:13px;height:13px;margin-right:5px;vertical-align:-2px}
+    .sq-row .pt-marker-toggle-sub{color:var(--muted)}
     .pt-switch{width:34px;height:18px;border-radius:18px;background:rgba(255,255,255,0.25);position:relative;transition:background 0.2s;flex-shrink:0}
     .pt-switch::before{content:'';position:absolute;left:2px;top:2px;width:14px;height:14px;background:white;border-radius:50%;transition:transform 0.2s}
     .pt-switch.on{background:var(--marker)}
@@ -1054,7 +1400,9 @@
     /* List tab */
     .pt-list-empty{text-align:center;padding:2.5rem 1rem;color:var(--label);font-size:15px;line-height:1.8}
     .pt-list-empty span{font-size:12.5px;font-weight:300}
-    .pt-list-card{background:var(--glass-2);border:1px solid var(--glass-brd);border-radius:11px;padding:11px 12px 11px 18px;display:flex;align-items:center;gap:10px;transition:box-shadow 0.15s,border-color 0.15s,background 0.15s;position:relative;overflow:hidden;flex-shrink:0}
+    /* The rows own their own spacing now that they are the whole pane */
+    #ptListContent{display:flex;flex-direction:column;gap:9px}
+    .pt-list-card{background:var(--glass-2);border:1px solid var(--glass-brd);border-radius:11px;padding:11px 12px 11px 18px;display:flex;align-items:center;gap:10px;transition:box-shadow 0.15s,border-color 0.15s,background 0.15s;position:relative;overflow:hidden;flex-shrink:0;cursor:pointer}
     .pt-list-card:hover{box-shadow:0 2px 10px rgba(0,0,0,0.3);border-color:rgba(255,255,255,0.28);background:rgba(255,255,255,0.07)}
     .pt-list-strip{position:absolute;left:0;top:0;bottom:0;width:4px;opacity:0.9}
     .pt-list-info{flex:1;min-width:0}
@@ -1080,23 +1428,14 @@
       pointer-events:none;
     }
 
-    @media(min-width:481px){
-      .pt-overlay{align-items:center;padding:1rem}
-      .pt-panel{border-radius:20px;height:auto;max-height:90vh}
-      .pt-panel::before{display:none}
-    }
-
     /* ── Closing animations: overlays shrink/fade out instead of vanishing ── */
     @keyframes fadeOut{to{opacity:0}}
     @keyframes modalShrink{to{opacity:0;transform:scale(0.92) translateY(8px)}}
-    @keyframes ptSlideDown{to{transform:translateY(110%)}}
     @keyframes popOut{to{opacity:0;transform:scale(0.92)}}
     .modal-overlay.closing{display:flex;animation:fadeOut 0.18s ease forwards}
     .modal-overlay.closing .modal{animation:modalShrink 0.18s ease forwards}
     .marker-modal-overlay.closing{display:flex;animation:fadeOut 0.18s ease forwards}
     .marker-modal-overlay.closing .marker-modal{animation:modalShrink 0.18s ease forwards}
-    .pt-overlay.closing{display:flex;animation:fadeOut 0.22s ease forwards}
-    .pt-overlay.closing .pt-panel{animation:ptSlideDown 0.26s cubic-bezier(0.32,0.72,0,1) forwards}
     .pw-overlay.closing{display:flex;animation:fadeOut 0.18s ease forwards}
     .pw-overlay.closing .pw-box{animation:modalShrink 0.18s ease forwards}
     /* Slides back down rather than shrinking — it's a sheet now, not a popup */
@@ -1129,7 +1468,7 @@
     .tour-close{position:absolute;top:12px;right:12px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:none;border-radius:9px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);cursor:pointer;transition:background 0.15s,color 0.15s}
     .tour-close:hover{background:rgba(255,255,255,0.16);color:#fff}
     .tour-emoji{font-size:45.5px;margin-bottom:10px}
-    .tour-title{font-size:22px;font-weight:600;color:#fff;margin-bottom:8px}
+    .tour-title{font-size:22px;font-weight:600;color:var(--text);margin-bottom:8px}
     .tour-text{font-size:15px;font-weight:300;color:var(--muted);line-height:1.6;min-height:66px}
     .tour-body.step-anim{animation:stepIn 0.24s ease}
     @keyframes stepIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
@@ -1314,6 +1653,11 @@
       --red:#e53e3e;--red-text:#e53e3e;--red-light:#fff5f5;--red-mid:#fed7d7;
       --amber:#d97706;--amber-light:#fffbeb;--amber-mid:#fde68a;
       --marker-dark:#c2410c;--marker-light:#fff7ed;--marker-border:#fed7aa;
+      /* the dark theme's pale-orange caption is invisible on cream */
+      --marker-sub:#9a5528;
+      /* Still a dark wash, just lighter: the bar's label is white in both
+         themes, so a white scrim would swallow it. */
+      --bar-scrim:rgba(16,28,48,0.36);--bar-edge:rgba(255,255,255,0.95);
     }
     html[data-theme="light"] body{background:#f4f6f4}
     html[data-theme="light"] .bg-orbs{display:none}
@@ -1324,6 +1668,17 @@
       box-shadow:0 1px 2px rgba(20,40,15,0.06), 0 16px 40px -22px rgba(20,40,15,0.30);
     }
     html[data-theme="light"] .brand-chip{background:#ffffff;border-color:#dde3dd;box-shadow:0 2px 8px -2px rgba(0,0,0,0.12)}
+    html[data-theme="light"] .topnav-brand:hover{background:rgba(0,0,0,0.04)}
+    html[data-theme="light"] .topnav-brand:hover .brand-chip{background:#ffffff;border-color:#c8d4c8}
+    html[data-theme="light"] .brand-dropdown{border-color:#dde3dd;box-shadow:0 18px 44px -12px rgba(0,0,0,0.18)}
+    html[data-theme="light"] .filter-toggle{box-shadow:0 4px 18px rgba(0,0,0,0.13)}
+    html[data-theme="light"] .filter-toggle.on,html[data-theme="light"] .filter-toggle.open{color:#fff}
+    html[data-theme="light"] .filter-toggle.on .filter-count{color:#0F6E56}
+    html[data-theme="light"] .filter-panel{border-color:#dde3dd;box-shadow:0 8px 28px rgba(0,0,0,0.12)}
+    html[data-theme="light"] .filter-chip:hover{background:rgba(0,0,0,0.05)}
+    html[data-theme="light"] .filter-switch-row:hover{background:rgba(0,0,0,0.04)}
+    html[data-theme="light"] .dp-sq-row{background:#f7faf7;border-color:#dde3dd}
+    html[data-theme="light"] .dp-sq-row:hover{background:var(--accent-soft);border-color:var(--accent-brd)}
     html[data-theme="light"] .user-dropdown-name{color:#1a1a1a}
     html[data-theme="light"] .brand-mini{animation:none}
     html[data-theme="light"] .cal-header-scroll{background:rgba(244,246,244,0.88)}
@@ -1361,11 +1716,13 @@
     html[data-theme="light"] .range-toggle{color:var(--pink)}
     html[data-theme="light"] .range-toggle.open{color:#ffffff}
     html[data-theme="light"] .range-option{color:#3a463a}
+    /* Restated at the theme's specificity — the plain rule above would
+       otherwise win and leave dark text on the accent fill. */
+    html[data-theme="light"] .range-option.active{color:#fff}
     html[data-theme="light"] .modal-overlay,html[data-theme="light"] .marker-modal-overlay,
-    html[data-theme="light"] .pt-overlay,html[data-theme="light"] .pw-overlay{background:rgba(0,0,0,0.35)}
+    html[data-theme="light"] .pw-overlay{background:rgba(0,0,0,0.35)}
     html[data-theme="light"] .modal,html[data-theme="light"] .marker-modal,
     html[data-theme="light"] .pw-box,html[data-theme="light"] .detail-popup,
-    html[data-theme="light"] .pt-panel{border-color:#e4e9e4;box-shadow:0 20px 60px -20px rgba(0,0,0,0.3)}
     html[data-theme="light"] .modal-field input::placeholder,html[data-theme="light"] .modal-field textarea::placeholder,
     html[data-theme="light"] .pt-field input::placeholder,html[data-theme="light"] .pw-box input::placeholder{color:rgba(0,0,0,0.35)}
     html[data-theme="light"] input[type="date"]{color-scheme:light}
@@ -1376,13 +1733,15 @@
     html[data-theme="light"] .tour-close{background:#f1f4f1;color:#6b7b6b}
     html[data-theme="light"] .tour-close:hover{background:#e5eae5;color:#1a1a1a}
     html[data-theme="light"] .tour-dot{background:rgba(0,0,0,0.15)}
+    html[data-theme="light"] .tour-dot.active{background:var(--pink)}
     html[data-theme="light"] .marker-table-dot{background:#1e3a8a}
     html[data-theme="light"] .marker-days-btn.past{background:rgba(107,123,107,0.55);color:#f0f0f0}
     html[data-theme="light"] .marker-name-tag.multi-tag{background:#fff0ea;border-color:#ffbbaa;color:#b94010}
     html[data-theme="light"] .pt-switch{background:#d1d5db}
+    /* Without this the switch never looks on in light mode at all */
+    html[data-theme="light"] .pt-switch.on{background:var(--pink)}
     html[data-theme="light"] .pt-tab.active{background:#ffffff;box-shadow:0 -2px 8px rgba(0,0,0,0.06)}
     html[data-theme="light"] .pt-preview-card{background:#f8faf8}
-    html[data-theme="light"] .pt-panel::before{background:#dde3dd}
     html[data-theme="light"] .archive-row:hover{background:#f4f7f4}
     html[data-theme="light"] .archive-fchip:hover{background:rgba(0,0,0,0.05)}
     html[data-theme="light"] .archive-act:hover{background:rgba(0,0,0,0.06);color:#1a1a1a}
@@ -1398,11 +1757,13 @@
     }
 
     /* ── To Do view ─────────────────────────────────────────────
-       Three lanes: the task pool you pull from, the list you order,
-       and the Focus Deck. Renders into #calWrap like the other views. */
+       Two lanes: the tasks you can pull from, and the list you order.
+       Renders into #calWrap like the other views. */
+    /* Inset to the same width and gutter as the floating top bar, so the
+       two lanes sit under it rather than running past it into the edges. */
     .todo-view{
-      display:grid;grid-template-columns:300px minmax(0,1fr) 300px;gap:14px;
-      align-items:start;padding:4px 0 28px;
+      display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;
+      align-items:start;padding:14px 14px 28px;max-width:1180px;margin:0 auto;width:100%;
     }
     .todo-col{
       background:var(--glass-2);border:1px solid var(--glass-brd);border-radius:16px;
@@ -1410,16 +1771,11 @@
       animation:todoIn 0.4s cubic-bezier(0.16,1,0.3,1) both;
     }
     .todo-list-col{animation-delay:0.06s}
-    .todo-deck-col{animation-delay:0.12s}
     @keyframes todoIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
     /* Dropping an item rebuilds the markup; without this the columns
        replay their entrance every time you move something. */
     .todo-view.no-anim .todo-col{animation:none}
-    /* The deck is meant to stay with you while the list scrolls. */
-    .todo-deck-col{
-      position:sticky;top:calc(var(--topbar-h) + 12px);
-      border-color:var(--accent-brd);background:var(--accent-soft);
-    }
+    .todo-pool-col{position:sticky;top:calc(var(--topbar-h) + 12px)}
     .todo-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-shrink:0}
     .todo-head h2{
       font-size:15px;font-weight:600;letter-spacing:0.02em;color:var(--text);
@@ -1428,10 +1784,8 @@
     .todo-head .ic{width:15px;height:15px}
     .todo-count{
       margin-left:auto;font-size:12.5px;font-weight:600;padding:2px 8px;border-radius:99px;
-      background:rgba(255,255,255,0.12);color:var(--muted);
+      background:var(--surface);color:var(--muted);
     }
-    .todo-deck-col .todo-count{background:var(--accent-brd);color:#fff}
-    .todo-count.full{background:var(--pink);color:#fff}
     .todo-addnote{
       margin-left:6px;border:1px solid var(--glass-brd);background:var(--glass);
       color:var(--muted);border-radius:9px;padding:4px 9px;cursor:pointer;
@@ -1447,27 +1801,31 @@
       font-family:'Kanit',sans-serif;font-size:14.5px;font-weight:300;outline:none;
     }
     .todo-search::placeholder{color:var(--label)}
-    .todo-search:focus{border-color:var(--accent-brd);background:rgba(255,255,255,0.14)}
+    .todo-search:focus{border-color:var(--accent-brd)}
     .todo-scroll{display:flex;flex-direction:column;gap:7px;overflow-y:auto}
-    .todo-pool-col .todo-scroll,.todo-list-col .todo-scroll{max-height:calc(100vh - var(--topbar-h) - 190px)}
+    .todo-scroll{max-height:calc(100vh - var(--topbar-h) - 200px)}
+    .todo-foot{
+      margin-top:9px;font-size:11.5px;font-weight:300;color:var(--label);
+      text-align:center;flex-shrink:0;line-height:1.5;
+    }
     /* A lane you can drop into needs to look like one the moment a drag
-       is over it — otherwise the only feedback is the cursor. The height
-       floor is here rather than on every lane because it exists to keep a
-       drop target big enough to hit, and the pool isn't one. */
-    .todo-drop{border-radius:12px;transition:background 0.15s,box-shadow 0.15s;padding:2px;min-height:120px}
+       is over it — otherwise the only feedback is the ghost. */
+    .todo-drop{border-radius:12px;transition:background 0.15s,box-shadow 0.15s;padding:2px;min-height:130px}
     .todo-drop.drag-over{
       background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent-brd);
     }
 
-    /* ── Pool cards ─────────────────────────────────────────── */
+    /* ── Cards and rows ─────────────────────────────────────── */
     .todo-pool-card,.todo-item{
       display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:12px;
-      background:var(--card);border:1px solid var(--border);cursor:grab;
+      background:var(--card);border:1px solid var(--border);cursor:pointer;
       position:relative;transition:background 0.16s,border-color 0.16s,transform 0.12s;
+      /* The drag is pointer-driven, so the row must not also be a scroll
+         surface — otherwise a finger drag scrolls the lane instead. */
+      touch-action:none;-webkit-user-select:none;user-select:none;
     }
-    .todo-pool-card:active,.todo-item:active{cursor:grabbing}
-    .todo-pool-card:hover,.todo-item:hover{background:rgba(255,255,255,0.13);border-color:var(--accent-brd)}
-    .todo-pool-card.dragging,.todo-item.dragging{opacity:0.4}
+    .todo-pool-card:hover,.todo-item:hover{background:var(--surface);border-color:var(--accent-brd)}
+    .todo-pool-card.dragging,.todo-item.dragging{opacity:0.32}
     .todo-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
     .todo-pool-info,.todo-item-info{min-width:0;flex:1}
     .todo-pool-name,.todo-item-name{
@@ -1489,14 +1847,19 @@
     .todo-pool-add .ic{width:14px;height:14px}
     .todo-pool-add:hover{background:var(--accent-soft);color:var(--pink)}
     .todo-pool-add:active{transform:scale(0.9)}
+    /* The moon a side quest wears everywhere else on the page */
+    .todo-sq{color:var(--pink);margin-right:4px}
+    .todo-sq .ic{width:12px;height:12px;vertical-align:-1px}
 
-    /* ── List / deck items ──────────────────────────────────── */
     .todo-item{flex-wrap:wrap}
-    .todo-grip{color:rgba(255,255,255,0.28);display:flex;flex-shrink:0}
+    .todo-grip{color:var(--label);opacity:0.5;display:flex;flex-shrink:0}
     .todo-grip .ic{width:13px;height:13px}
-    .todo-item:hover .todo-grip{color:var(--label)}
+    .todo-item:hover .todo-grip{opacity:1}
     .todo-item.orphan{border-style:dashed;opacity:0.72}
     .todo-item.orphan .todo-item-name{text-decoration:line-through;color:var(--muted)}
+    /* Ticked off on the timeline is ticked off here — one done state */
+    .todo-item.done{opacity:0.55}
+    .todo-item.done .todo-item-name{text-decoration:line-through;color:var(--muted)}
     .todo-item-acts{display:flex;gap:2px;flex-shrink:0}
     .todo-act{
       border:none;background:transparent;color:var(--label);cursor:pointer;
@@ -1504,35 +1867,48 @@
       transition:all 0.16s;
     }
     .todo-act .ic{width:13px;height:13px}
-    .todo-act:hover{background:rgba(255,255,255,0.14);color:var(--text)}
+    .todo-act:hover{background:var(--surface);color:var(--text)}
     .todo-act.danger:hover{background:var(--red-light);color:var(--red-text)}
     .todo-act.has-notes{color:var(--pink)}
     .todo-act:active{transform:scale(0.9)}
+    /* The timeline's own check control, shrunk to row height. It keeps the
+       `.check-row` class and the cr-<id> id because the page's delegated
+       hold-to-set-progress handler finds it by those. */
+    .todo-check.check-row{
+      min-height:0;margin-bottom:0;flex-shrink:0;touch-action:manipulation;
+    }
+    .todo-check.check-row input{width:20px;height:20px;border-radius:5px}
+    .todo-check.check-row input:checked::after{font-size:13.5px}
+    .todo-check .hold-ring{width:27px;height:27px;margin:-13.5px 0 0 -13.5px;
+      -webkit-mask:radial-gradient(circle,transparent 9px,#000 9.5px);
+              mask:radial-gradient(circle,transparent 9px,#000 9.5px)}
+    /* The same bar the detail popup draws, at row scale */
+    .todo-item-prog{display:flex;align-items:center;gap:7px;margin-top:5px}
+    .todo-item-prog .prog-bar{max-width:150px}
+    .todo-item-progread{font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
     .todo-notes{
       width:100%;margin-top:7px;padding:7px 9px;border-radius:9px;resize:vertical;
-      background:rgba(0,0,0,0.18);border:1px solid var(--field-brd);color:var(--text);
+      background:var(--field-bg);border:1px solid var(--field-brd);color:var(--text);
       font-family:'Kanit',sans-serif;font-size:13px;font-weight:300;line-height:1.45;outline:none;
+      touch-action:auto;-webkit-user-select:text;user-select:text;
     }
     .todo-notes::placeholder{color:var(--label)}
     .todo-notes:focus{border-color:var(--accent-brd)}
-    .todo-item.notes-open{background:rgba(255,255,255,0.13)}
+    .todo-item.notes-open{background:var(--surface)}
 
-    /* Deck cards read differently from list rows on purpose: this is the
-       panel you actually look at, so the name gets a line of its own
-       rather than being truncated into the date column, and the meta and
-       actions drop underneath it. */
-    .todo-deck-col .todo-item{align-items:flex-start;padding:10px 11px}
-    .todo-deck-col .todo-grip{display:none}
-    .todo-deck-col .todo-dot{margin-top:5px}
-    .todo-deck-col .todo-item-info{flex:1 1 calc(100% - 17px)}
-    .todo-deck-col .todo-item-name{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.3}
-    .todo-deck-col .todo-item-right{
-      display:flex;align-items:baseline;gap:6px;text-align:left;margin-left:17px;
+    /* ── Dragging ───────────────────────────────────────────────
+       The ghost is a clone that follows the finger, so the row itself can
+       stay put and the list doesn't reflow underneath the drag. */
+    .todo-ghost{
+      position:fixed;left:0;top:0;z-index:2000;pointer-events:none;
+      opacity:0.94;transform-origin:top left;
+      box-shadow:0 18px 40px -12px rgba(0,0,0,0.6);
+      border-color:var(--accent-brd)!important;
+      transition:none;
     }
-    .todo-deck-col .todo-item-right::after{content:"·";color:var(--label);order:1;font-size:11.5px}
-    .todo-deck-col .todo-item-due{order:0}
-    .todo-deck-col .todo-item-days{order:2}
-    .todo-deck-col .todo-item-acts{margin-left:auto}
+    .todo-ghost .todo-pool-add,.todo-ghost .todo-item-acts,.todo-ghost .todo-notes{display:none}
+    body.todo-dragging{cursor:grabbing}
+    body.todo-dragging *{cursor:grabbing!important}
 
     /* Insertion line while reordering — a caret between rows, not a box. */
     .todo-item.drop-before::before,.todo-item.drop-after::after{
@@ -1552,44 +1928,28 @@
     .todo-empty .big{display:block;margin-bottom:8px;opacity:0.5}
     .todo-empty .big .ic{width:26px;height:26px}
     .todo-empty span{font-size:12px;opacity:0.8}
-    .todo-empty em{color:var(--pink);font-style:normal;font-weight:500}
-    .todo-deck-foot{
-      margin-top:9px;font-size:11.5px;font-weight:300;color:var(--label);text-align:center;flex-shrink:0;
-    }
 
-    /* A full deck refusing a fourth item — it has to read as "full",
-       not as a drop that quietly did nothing. */
-    @keyframes deckReject{
-      0%,100%{transform:translateX(0)}
-      20%{transform:translateX(-6px)}40%{transform:translateX(5px)}
-      60%{transform:translateX(-3px)}80%{transform:translateX(2px)}
-    }
-    .todo-deck-col.deck-reject{animation:deckReject 0.42s ease;border-color:var(--red)}
-
-    /* Below three columns the deck stops being a side panel and becomes a
-       band across the top — it should still be the first thing you see. */
-    @media(max-width:1000px){
-      .todo-view{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-      .todo-deck-col{grid-column:1/-1;grid-row:1;position:static;order:-1}
-      .todo-deck-col .todo-scroll{min-height:0}
-      .todo-pool-col .todo-scroll,.todo-list-col .todo-scroll{max-height:none}
-    }
-    @media(max-width:680px){
+    /* One column below two: the list first, because that is the answer to
+       "what am I doing", and the pool is only where you go to add to it. */
+    @media(max-width:820px){
       .todo-view{grid-template-columns:minmax(0,1fr);gap:11px}
       .todo-col{padding:10px 10px 8px}
+      .todo-pool-col{position:static;order:1}
+      .todo-list-col{order:0}
+      .todo-scroll{max-height:none}
     }
 
     html[data-theme="light"] .todo-col{background:#ffffff;border-color:#dde3dd}
-    html[data-theme="light"] .todo-deck-col{background:rgba(29,158,117,0.07);border-color:var(--accent-brd)}
     html[data-theme="light"] .todo-count{background:#eef2ee;color:#5c6b5c}
     html[data-theme="light"] .todo-pool-card,html[data-theme="light"] .todo-item{background:#f7faf7;border-color:#dde3dd}
     html[data-theme="light"] .todo-pool-card:hover,html[data-theme="light"] .todo-item:hover{background:#ffffff;box-shadow:0 2px 10px rgba(0,0,0,0.07)}
     html[data-theme="light"] .todo-item.notes-open{background:#ffffff}
     html[data-theme="light"] .todo-notes{background:#f4f7f4;border-color:#dde3dd}
-    html[data-theme="light"] .todo-grip{color:#c2ccc2}
+    html[data-theme="light"] .todo-grip{color:#8d9a8d}
     html[data-theme="light"] .todo-act:hover{background:rgba(0,0,0,0.06);color:#1a1a1a}
     html[data-theme="light"] .todo-search{background:#f4f7f4;border-color:#dde3dd}
     html[data-theme="light"] .todo-empty{border-color:#dde3dd}
+    html[data-theme="light"] .todo-ghost{box-shadow:0 18px 40px -12px rgba(0,0,0,0.28)}
 
     @media (prefers-reduced-motion: reduce){
       *,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}
@@ -1728,6 +2088,9 @@
   <symbol id="ic-broom" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M19.6 3.8 12.2 11.2"/><path d="M13.6 9.4 6.4 16.6l3.4 3.4 7.2-7.2z"/><path d="M6.4 16.6 3.6 20.4l3.4-.4"/>
   </symbol>
+  <symbol id="ic-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3.5 5h17l-6.6 7.8v5.4l-3.8 2.3v-7.7z"/>
+  </symbol>
   <symbol id="ic-puzzle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M10 4.2a1.9 1.9 0 0 1 3.8 0v.9h3a1 1 0 0 1 1 1v3h.9a1.9 1.9 0 0 1 0 3.8h-.9v3a1 1 0 0 1-1 1h-3v-.9a1.9 1.9 0 0 0-3.8 0v.9h-3a1 1 0 0 1-1-1v-3h-.9a1.9 1.9 0 0 1 0-3.8h.9v-3a1 1 0 0 1 1-1h3z"/>
   </symbol>
@@ -1774,13 +2137,17 @@
 
 <div class="topbar">
   <nav class="topnav" id="topnav">
-    <a class="topnav-brand" href="index.html" title="Back to the TAS menu">
+    <!-- The mark is the quick-nav now: everything the app can show you is
+         one tap from it, including the menu it used to link straight to. -->
+    <button class="topnav-brand" id="brandBtn" onclick="toggleBrandDropdown(event)"
+            aria-haspopup="true" aria-expanded="false" title="Go somewhere">
       <span class="brand-chip"><img class="brand-mini" src="TASLogoLIGHT.png" alt="3/3 Academic System" /></span>
       <span class="brand-text">
         <span class="brand-title">TAS Calendar</span>
         <span class="brand-sub">Academic System</span>
       </span>
-    </a>
+      <span class="brand-chevron" aria-hidden="true">▾</span>
+    </button>
 
     <span class="latest-pill" id="latestPill" style="display:none"></span>
 
@@ -1799,7 +2166,7 @@
         <span class="nav-lab">To Do</span>
         <span class="tab-count" id="todoCount" style="display:none"></span>
       </button>
-      <button class="nav-pill" id="tabTasks" onclick="openPersonalPanel()">
+      <button class="nav-pill" id="tabTasks" onclick="switchView('tasks')">
         <svg class="nav-ic"><use href="#ic-mine"/></svg>
         <span class="nav-lab">My Tasks</span>
         <span class="tab-count" id="ptTopCount" style="display:none"></span>
@@ -1816,6 +2183,21 @@
       </button>
     </div>
   </nav>
+
+  <!-- Quick navigation, hung off the mark. Reuses .user-dropdown* so both
+       menus stay one thing to theme and one thing to restyle. -->
+  <div class="user-dropdown brand-dropdown" id="brandDropdown">
+    <div class="brand-dd-label">Views</div>
+    <button class="user-dropdown-btn menu" onclick="goFromBrand('calendar')"><svg class="ic" aria-hidden="true"><use href="#ic-calendar"/></svg> Calendar</button>
+    <button class="user-dropdown-btn menu" onclick="goFromBrand('todo')"><svg class="ic" aria-hidden="true"><use href="#ic-check-square"/></svg> To Do</button>
+    <button class="user-dropdown-btn menu" onclick="goFromBrand('archive')"><svg class="ic" aria-hidden="true"><use href="#ic-archive"/></svg> Archive</button>
+    <button class="user-dropdown-btn menu" onclick="goFromBrand('tasks')"><svg class="ic" aria-hidden="true"><use href="#ic-mine"/></svg> My Tasks</button>
+    <button class="user-dropdown-btn menu" onclick="goFromBrand('settings')"><svg class="ic" aria-hidden="true"><use href="#ic-settings"/></svg> Settings</button>
+    <div class="brand-dd-label">Elsewhere</div>
+    <a class="user-dropdown-btn menu" href="announce.html" style="text-decoration:none;"><svg class="ic" aria-hidden="true"><use href="#ic-note"/></svg> Task formatter</a>
+    <a class="user-dropdown-btn menu" href="tools.html" style="text-decoration:none;"><svg class="ic" aria-hidden="true"><use href="#ic-toolbox"/></svg> Tools</a>
+    <button class="user-dropdown-btn menu" onclick="handleReturnToMenu()"><svg class="ic" aria-hidden="true"><use href="#ic-home"/></svg> Return to menu</button>
+  </div>
 
   <div class="user-dropdown" id="userDropdown">
     <div class="user-dropdown-info">
@@ -1847,12 +2229,61 @@
       <div class="legend-item"><div class="legend-dot dot-deadline"></div>Send Before</div>
       <div class="legend-item"><div class="legend-dot dot-prediction"></div>Estimated</div>
       <div class="legend-item"><div class="legend-dot dot-marker"></div>Marker (quiz/exam/event)</div>
-      <div class="legend-hint"><svg class="ic" aria-hidden="true"><use href="#ic-check-circle"/></svg> Check = personal done mark (synced to your account)<br><span id="legendColourHint"><svg class="ic" aria-hidden="true"><use href="#ic-palette"/></svg> Colour = subject (tap a swatch under the grid to change it)</span><br><svg class="ic" aria-hidden="true"><use href="#ic-pin"/></svg> Orange line = marked date<br><svg class="ic" aria-hidden="true"><use href="#ic-tack"/></svg> Tap date to highlight</div>
+      <div class="legend-bar-key">
+        <span class="lbk-bar"><span class="lbk-cap"></span><span class="lbk-rest"></span></span>
+        <span>Solid = done, faded = still to do</span>
+      </div>
+      <div class="legend-hint"><svg class="ic" aria-hidden="true"><use href="#ic-check-circle"/></svg> Check = personal done mark (synced to your account)<br><svg class="ic" aria-hidden="true"><use href="#ic-chart"/></svg> Bar fill = your progress · left edge = how soon it's due<br><span id="legendColourHint"><svg class="ic" aria-hidden="true"><use href="#ic-palette"/></svg> Colour = subject (tap a swatch under the grid to change it)</span><br><svg class="ic" aria-hidden="true"><use href="#ic-moon"/></svg> Dashed + moon = a side quest of yours<br><svg class="ic" aria-hidden="true"><use href="#ic-pin"/></svg> Orange line = marked date<br><svg class="ic" aria-hidden="true"><use href="#ic-tack"/></svg> Tap date to highlight</div>
     </div>
     <button class="legend-toggle" id="legendToggle" onclick="toggleLegend()" title="Legend">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pink);transition:color 0.22s">
         <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
       </svg>
+    </button>
+  </div>
+  <!-- Everything that changes *what is on the board* lives here, in the
+       middle: the legend on the left explains it and the range on the
+       right frames it, but this is the one that takes things away. The
+       side-quest lens moved in here rather than keeping a button of its
+       own — it was always a filter. -->
+  <div class="filter-fab">
+    <div class="filter-panel" id="filterPanel">
+      <div class="filter-head">
+        <span class="range-label-hd">Filter &amp; sort</span>
+        <button class="filter-clear" id="filterClear" onclick="clearCalFilters()">Reset</button>
+        <button class="filter-close" onclick="closeFabs()" aria-label="Close">✕</button>
+      </div>
+
+      <!-- Only the calendar has rows to sort and kinds to draw, so these
+           step aside on the other views rather than sitting there inert -->
+      <div id="filterCalOnly">
+        <span class="filter-scope">Sort rows by</span>
+        <div class="filter-group" id="filterSort"></div>
+
+        <span class="filter-scope">Show on this calendar</span>
+        <div class="filter-group" id="filterTypes"></div>
+        <button class="filter-switch-row" onclick="toggleFilterDone()">
+          <span class="filter-switch-lab"><svg class="ic" aria-hidden="true"><use href="#ic-check-circle"/></svg> Hide finished</span>
+          <span class="pt-switch" id="filterDoneSwitch"></span>
+        </button>
+        <button class="filter-switch-row" onclick="toggleFilterMarkers()">
+          <span class="filter-switch-lab"><svg class="ic" aria-hidden="true"><use href="#ic-pin"/></svg> Hide markers</span>
+          <span class="pt-switch" id="filterMarkersSwitch"></span>
+        </button>
+      </div>
+      <p class="filter-note" id="filterCalHint" style="display:none">Sorting and the kind filters belong to the calendar — open it to use them.</p>
+
+      <span class="filter-scope">Everywhere</span>
+      <button class="filter-switch-row" onclick="toggleSideQuests(event)">
+        <span class="filter-switch-lab"><svg class="ic" aria-hidden="true"><use href="#ic-moon"/></svg> Hide side quests</span>
+        <span class="pt-switch" id="filterSqSwitch"></span>
+      </button>
+      <p class="filter-note" id="filterSqNote">Side quests stay hidden in the To Do list and the archive too — everything above only changes this calendar.</p>
+    </div>
+    <button class="filter-toggle" id="filterToggle" onclick="toggleFilterPanel(event)"
+            aria-expanded="false" title="Filters">
+      <svg class="ic" aria-hidden="true"><use href="#ic-filter"/></svg>
+      <span class="filter-count" id="filterCount" style="display:none"></span>
     </button>
   </div>
   <div class="range-fab">
@@ -1888,6 +2319,11 @@
       <div class="detail-note" id="dp-note"></div>
     </div>
     <div id="dp-progress-section" style="display:none"></div>
+    <!-- Only ever shown for your own tasks — see showDetail -->
+    <button class="dp-sq-row" id="dp-sq-row" style="display:none" onclick="toggleDetailSideQuest()">
+      <span class="dp-sq-label"><svg class="ic" aria-hidden="true"><use href="#ic-moon"/></svg> Side quest</span>
+      <span class="pt-switch" id="dp-sq-switch"></span>
+    </button>
     <button class="detail-mark-done" id="dp-mark-done" onclick="markDoneFromDetail()">Mark as Done</button>
     <button class="detail-delete-btn" id="dp-delete-btn" onclick="deleteFromDetail()"><svg class="ic" aria-hidden="true"><use href="#ic-trash"/></svg> Delete task</button>
   </div>
@@ -1903,86 +2339,7 @@
 </div>
 
 <!-- PERSONAL TASK PANEL -->
-<div class="pt-overlay" id="ptOverlay" onclick="closePtPanel(event)">
-  <div class="pt-panel" onclick="event.stopPropagation()">
-    <!-- Header -->
-    <div class="pt-header">
-      <div>
-        <div class="pt-header-title"><svg class="ic" aria-hidden="true"><use href="#ic-pencil"/></svg> My Tasks</div>
-        <div class="pt-header-desc">Personal tasks visible only to you — not shared with the class. Supports markers too.</div>
-      </div>
-      <button class="pt-close" onclick="closePtPanel()">✕</button>
-    </div>
-
-    <!-- Tab bar -->
-    <div class="pt-tabs">
-      <button class="pt-tab active" id="ptTabAdd" onclick="switchPtTab('add')"><svg class="ic" aria-hidden="true"><use href="#ic-plus"/></svg> Add</button>
-      <button class="pt-tab" id="ptTabList" onclick="switchPtTab('list')"><svg class="ic" aria-hidden="true"><use href="#ic-clipboard"/></svg> My list <span class="pt-count" id="ptCount" style="display:none"></span></button>
-    </div>
-
-    <!-- ADD TAB — one clean column: toggle → fields → live preview → save -->
-    <div id="ptAddPane" class="pt-pane pt-pane-add">
-      <div class="pt-form-scroll">
-
-        <!-- Marker toggle -->
-        <div class="pt-marker-toggle" id="ptMarkerToggleRow" onclick="togglePtMarker()">
-          <div>
-            <div class="pt-marker-toggle-title"><svg class="ic" aria-hidden="true"><use href="#ic-pin"/></svg> Marker mode</div>
-            <div class="pt-marker-toggle-sub">Mark a date for a quiz, exam or event instead of a task range</div>
-          </div>
-          <div class="pt-switch" id="ptMarkerSwitch"></div>
-        </div>
-
-        <!-- Extend-from-archive banner -->
-        <div class="pt-extend-banner" id="ptExtendBanner"></div>
-
-        <!-- Regular fields -->
-        <div id="ptRegularFields" style="display:flex;flex-direction:column;gap:9px">
-          <div class="pt-field"><label>Task name</label><input type="text" id="pt-name" placeholder="e.g. อ่านหนังสือ Math" oninput="updatePtPreview()" /></div>
-          <div class="pt-field"><label>Subject</label><input type="text" id="pt-subject" placeholder="e.g. คณิตศาสตร์" oninput="updatePtPreview()" /></div>
-          <div class="pt-field"><label>Type</label>
-            <div class="pt-type-grid" id="ptTypeGrid">
-              <button type="button" class="pt-type-btn active" data-ptype="normal" onclick="setPtType('normal')"><svg class="ic ic-dot-normal" aria-hidden="true"><use href="#ic-dot"/></svg> Send On</button>
-              <button type="button" class="pt-type-btn" data-ptype="deadline" onclick="setPtType('deadline')"><svg class="ic ic-dot-deadline" aria-hidden="true"><use href="#ic-dot"/></svg> Send Before</button>
-              <button type="button" class="pt-type-btn" data-ptype="prediction" onclick="setPtType('prediction')"><svg class="ic ic-dot-prediction" aria-hidden="true"><use href="#ic-dot"/></svg> Estimated</button>
-            </div>
-          </div>
-          <div class="pt-date-row">
-            <div class="pt-field"><label>Start date</label><input type="date" id="pt-start" oninput="updatePtPreview()" /></div>
-            <div class="pt-field"><label>Due date</label><input type="date" id="pt-end" oninput="updatePtPreview()" /></div>
-          </div>
-          <div class="pt-field"><label>Note (optional)</label><input type="text" id="pt-note" placeholder="Extra info..." oninput="updatePtPreview()" /></div>
-        </div>
-
-        <!-- Marker fields -->
-        <div id="ptMarkerFields" style="display:none;flex-direction:column;gap:9px">
-          <div class="pt-field"><label>Event name</label><input type="text" id="pt-m-name" placeholder="e.g. สอบ Math midterm" oninput="updatePtPreview()" /></div>
-          <div class="pt-field"><label>Subject / Topic</label><input type="text" id="pt-m-subject" placeholder="e.g. คณิตศาสตร์" oninput="updatePtPreview()" /></div>
-          <div class="pt-field"><label>Date</label><input type="date" id="pt-m-date" oninput="updatePtPreview()" /></div>
-          <div class="pt-field"><label>Type</label>
-            <div class="pt-marker-type-grid">
-              <button class="pt-mtype-btn active" data-type="quiz" onclick="setPtMarkerType('quiz')"><svg class="ic" aria-hidden="true"><use href="#ic-note"/></svg> Quiz</button>
-              <button class="pt-mtype-btn" data-type="exam" onclick="setPtMarkerType('exam')"><svg class="ic" aria-hidden="true"><use href="#ic-clipboard"/></svg> Exam</button>
-              <button class="pt-mtype-btn" data-type="event" onclick="setPtMarkerType('event')"><svg class="ic" aria-hidden="true"><use href="#ic-party"/></svg> Event</button>
-              <button class="pt-mtype-btn" data-type="date" onclick="setPtMarkerType('date')"><svg class="ic" aria-hidden="true"><use href="#ic-tack"/></svg> Important</button>
-            </div>
-          </div>
-          <div class="pt-field"><label>Note (optional)</label><input type="text" id="pt-m-note" placeholder="Extra info..." oninput="updatePtPreview()" /></div>
-        </div>
-
-        <!-- Live preview -->
-        <div class="pt-preview-card" id="ptPreview"><span class="ptp-empty">Fill in the fields to see a preview…</span></div>
-
-      </div>
-      <button class="pt-save-btn" onclick="savePtTask()"><svg class="ic" aria-hidden="true"><use href="#ic-save"/></svg> Save task</button>
-    </div>
-
-    <!-- LIST TAB -->
-    <div id="ptListPane" class="pt-pane pt-pane-list" style="display:none">
-      <div id="ptListContent"><div class="pt-list-empty">No personal tasks yet.<br><span>Add one from the <svg class="ic" aria-hidden="true"><use href="#ic-plus"/></svg> Add tab.</span></div></div>
-    </div>
-  </div>
-</div>
+<!-- My Tasks is a view now (renderMyTasks), not an overlay. -->
 
 <!-- MOD ADD/EDIT MODAL (kept for mod use) -->
 <div class="modal-overlay" id="taskModal">
@@ -2177,6 +2534,14 @@
 
       <div class="set-group-label">Tasks</div>
       <div class="set-group">
+        <div class="set-row tap" onclick="toggleSideQuests(event)">
+          <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-moon"/></svg></div>
+          <div class="set-row-text">
+            <div class="set-row-title">Hide side quests</div>
+            <div class="set-row-desc">Takes your own optional work off every screen so only the main jobs are left. The moon button at the bottom does the same thing.</div>
+          </div>
+          <div class="set-switch" id="sqSwitch"></div>
+        </div>
         <div class="set-row stack">
           <div class="set-row-main">
             <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-broom"/></svg></div>
@@ -2463,6 +2828,40 @@ function progressBarHTML(p, {color = "var(--pink)", cls = "", interactive = fals
   return `<div class="prog-bar${extra}" style="--pc:${color}"><div class="prog-track"><div class="prog-fill" style="width:${progressPct(p)}%"></div></div></div>`
 }
 
+/* ── Progress on the timeline bar itself ──────────────────────
+   The bar keeps the task's own colour, and a scrim is laid over the part
+   that isn't done yet — so solid means finished and translucent means
+   left, with no colour arithmetic to go wrong on thirteen palette
+   entries across two themes.
+
+   The two progress modes read differently on purpose, which is the whole
+   reason they exist: a percentage is one smooth split, while steps are a
+   countable number of pieces, so they get dividers you can count off
+   against the "3 of 5" in the popup. Past a dozen the dividers stop being
+   countable and would just be noise, so it falls back to the smooth
+   split — the same threshold progressBarHTML() uses. */
+const BAR_SEG_MAX = 12
+
+function barProgressHTML(id){
+  const p = progressOf(id)
+  if(!p || !p.total) return ""
+  const pct = Math.max(0, Math.min(100, progressPct(p)))
+  const scrim = `<span class="gantt-rest" style="left:${pct}%"></span>`
+  if(p.mode !== "steps" || p.total > BAR_SEG_MAX) return scrim
+  // total-1 dividers: the edges of the bar already close the first and last
+  const divs = Array.from({length: p.total - 1}, (_, i) =>
+    `<span class="gantt-div" style="left:${((i + 1) / p.total * 100).toFixed(3)}%"></span>`).join("")
+  return scrim + divs
+}
+
+// "3 of 5" / "60%" at the tail of the bar. CSS hides it on bars too narrow
+// to hold it, so a one-day task doesn't lose its name to the chip.
+function barProgressChip(id){
+  const p = progressOf(id)
+  if(!p || !p.total) return ""
+  return `<span class="gantt-pct">${esc(progressText(p))}</span>`
+}
+
 // Optimistic write, same shape as toggleDone: update the cache, persist, and
 // put the old value back if the write fails.
 async function writeProgress(id, next){
@@ -2628,6 +3027,9 @@ onAuthStateChanged(auth, async user => {
   updateRoleUI()
   syncTopbarH()
   applyStoredRangeToUI()
+  applyFilterUI()      // filters are remembered per device, so they are on before the first paint
+  // A device that had reminders on before this existed has no prefs doc yet
+  if(notifyPref) publishNotifyPrefs()
   startTasksListener()
   startPersonalTasksListener(user.uid)
   initTodoView(user.uid)
@@ -2723,11 +3125,43 @@ window.addEventListener("scroll", () => {
 }, { passive: true })
 document.querySelector(".topnav")?.addEventListener("transitionend", syncTopbarH)
 
+/* Two menus hang off the same bar, so opening either has to shut the
+   other — otherwise they overlap the tabs between them. */
+function closeMenus(){
+  document.getElementById("userDropdown")?.classList.remove("open")
+  const bd = document.getElementById("brandDropdown")
+  if(bd) bd.classList.remove("open")
+  document.getElementById("brandBtn")?.setAttribute("aria-expanded","false")
+}
+window.closeMenus = closeMenus
+
 window.toggleUserDropdown = (e) => {
   e.stopPropagation()
-  document.getElementById("userDropdown").classList.toggle("open")
+  const open = document.getElementById("userDropdown").classList.contains("open")
+  closeMenus()
+  if(!open) document.getElementById("userDropdown").classList.add("open")
 }
-document.addEventListener("click", () => document.getElementById("userDropdown")?.classList.remove("open"))
+
+window.toggleBrandDropdown = (e) => {
+  e.stopPropagation()
+  const dd = document.getElementById("brandDropdown")
+  const open = dd.classList.contains("open")
+  closeMenus()
+  if(!open){
+    dd.classList.add("open")
+    document.getElementById("brandBtn").setAttribute("aria-expanded","true")
+  }
+}
+
+/* The menu's five entries. Four are real views now that My Tasks is one;
+   Settings is still a sheet, which is the one case that goes elsewhere. */
+window.goFromBrand = (where) => {
+  closeMenus()
+  if(where === "settings") openSettings()
+  else switchView(where)
+}
+
+document.addEventListener("click", closeMenus)
 
 window.handleReturnToMenu = () => { window.location.href = LOGIN_URL }
 
@@ -2855,6 +3289,7 @@ function startPersonalTasksListener(uid) {
     queueWidgetFeed()
     renderPtList()
     updatePtCount()
+    applyFilterUI()   // the side-quest switch reflects this list, so it moves with it
     if (savingIds.size === 0) renderCurrentView()
   }, err => {
     console.warn("Personal tasks listener error:", err)
@@ -3069,8 +3504,32 @@ window.toggleNotify = async function(){
     offerInstall()   // phones get notifications most reliably from the installed app
   }
   try{ localStorage.setItem(NOTIFY_PREF_KEY, notifyPref?"on":"off") }catch(e){}
+  publishNotifyPrefs()
   updateNotifyUI()
   if(notifyPref) sendDueReminders()
+}
+
+/* ── The daily reminder's account-level half ──────────────────
+   sendDueReminders() below only runs while this page is open, which is
+   exactly when you least need reminding. The real job is done by the
+   scheduled function in netlify/functions/reminder.js, which fires at
+   the chosen time whether anything is open or not — but a cron job
+   can't read localStorage, so the two settings it needs have to live
+   on the account.
+
+   Its own doc rather than a corner of userDone/{uid}: that one is
+   written whole with setDoc() and no merge, so it would erase the
+   `lastSent` stamp the function writes back. */
+async function publishNotifyPrefs(){
+  if(!currentUser) return
+  try{
+    await setDoc(doc(db, "notifyPrefs", currentUser.uid), {
+      on: !!notifyPref,
+      time: notifyTime,
+      tz: (Intl.DateTimeFormat().resolvedOptions().timeZone) || "Asia/Bangkok",
+      updatedAt: Date.now()
+    }, { merge: true })   // merge, or the function's lastSent goes with it
+  }catch(e){ console.warn("Could not save the reminder preference:", e) }
 }
 
 function sendNotification(title, body, tag){
@@ -3140,6 +3599,7 @@ if(notifyTimeInput){
     if(!/^\d{1,2}:\d{2}$/.test(v)){ notifyTimeInput.value=notifyTime; return }
     notifyTime=v
     try{ localStorage.setItem(NOTIFY_TIME_KEY,v) }catch(e){}
+    publishNotifyPrefs()  // the scheduled function reads the time from the account
     queueDueReminders()   // fires right away if the new time has already passed
   })
 }
@@ -3156,9 +3616,8 @@ function applyStoredRangeToUI(){
   applyColourModeToUI()
 }
 
-// Which nav pill is lit. "calendar"/"archive" are real views; "tasks" and
-// "settings" are overlays that borrow the highlight while they're open and
-// hand it back on close — before this they never lit up at all.
+// Which nav pill is lit. Four are real views; "settings" is the last sheet
+// left, and borrows the highlight while it's open, handing it back on close.
 function setActivePill(which){
   const map = { calendar:"tabCalendar", archive:"tabArchive", todo:"tabTodo", tasks:"tabTasks", settings:"tabSettings" }
   for(const [key, id] of Object.entries(map)){
@@ -3172,9 +3631,20 @@ window.switchView = function(view) {
   currentView = view
   animateRows = true
   setActivePill(view)
-  document.querySelector(".fab-container").style.display = view==="calendar" ? "" : "none"
+  // The legend and the range only mean anything on the calendar, but the
+  // side-quest lens applies to every view, so the bar itself stays put.
+  // visibility, not display: they keep their slots so the moon stays put
+  // in the middle of the bar instead of sliding to the left edge.
+  const onCal = view==="calendar"
+  document.querySelector(".legend-fab").style.visibility = onCal ? "" : "hidden"
+  document.querySelector(".range-fab").style.visibility  = onCal ? "" : "hidden"
+  if(!onCal) closeFabs()
+  applyFilterUI()   // the panel shows less away from the calendar
   if (view==="calendar") renderCalendar()
   else if (view==="todo") openTodoView()
+  // Arriving is the one time the form is rebuilt and reset — every later
+  // repaint leaves what's half-typed alone.
+  else if (view==="tasks") renderMyTasks(true)
   else renderArchive()
 }
 
@@ -3194,7 +3664,13 @@ function initTodoView(uid){
     helpers: {
       esc, ico, toast, urgencyColor, taskType, parseDate, daysLeft, shortDate,
       TYPE_LABEL,
-      isDone: id => !!userDoneCache[id]
+      isDone: id => !!userDoneCache[id],
+      // The row's tick, its bar and the sheet it opens are all the
+      // calendar's own — a task cannot read one way here and another way
+      // on the timeline, because there is only one of each.
+      showDetail: (e, id) => showDetail(e, id),
+      progressOf, progressBarHTML, progressText,
+      isSideQuest, isHidden: isHiddenTask
     }
   })
 }
@@ -3226,6 +3702,7 @@ window.updateTodoCount = updateTodoCount
 function renderCurrentView(){
   if(currentView==="archive") renderArchive()
   else if(currentView==="todo"){ TodoUI.render(); updateTodoCount() }
+  else if(currentView==="tasks") renderMyTasks(false)   // list only — never the form
   else renderCalendar()
 }
 window.renderCurrentView = renderCurrentView
@@ -3315,7 +3792,7 @@ function renderArchive() {
       <span class="archive-strip ${t.type==="deadline"?"deadline":"normal"}"></span>
       <input type="checkbox" class="archive-cb" ${checked?"checked":""} onclick="event.stopPropagation()" onchange="toggleArchiveSelect('${t.id}',this.checked)">
       <div class="archive-main">
-        <span class="archive-name${isDone?" done":""}">${t._personal?ico("user")+" ":""}${esc(t.name)}</span>
+        <span class="archive-name${isDone?" done":""}">${isSideQuest(t)?ico("moon")+" ":t._personal?ico("user")+" ":""}${esc(t.name)}</span>
         <span class="archive-subj">${esc(t.subject||"")}</span>
         <span class="archive-chip ${t.type==="deadline"?"deadline":"normal"}">${TYPE_LABEL[t.type]||esc(t.type)}</span>
         <span class="archive-desc">${esc(t.note||"")}</span>
@@ -3424,8 +3901,8 @@ window.archiveExtendTask = function(e,id){
   e.stopPropagation()
   const t = getOrderedTasks().find(x=>x.id===id)
   if(!t) return
-  openPersonalPanel()          // resets the form (also clears any stale extend state)
-  switchPtTab("add")
+  switchView("tasks")          // rebuilds and resets the form, clearing stale extend state
+  mtTab("add")
   extendSource = t
   document.getElementById("pt-name").value    = t.name
   document.getElementById("pt-subject").value = t.subject || ""
@@ -3434,10 +3911,13 @@ window.archiveExtendTask = function(e,id){
   document.getElementById("ptTypeGrid").classList.add("locked")
   document.getElementById("pt-note").value    = t.note || ""
   ;["pt-name","pt-subject","pt-note"].forEach(i=>document.getElementById(i).readOnly = true)
-  document.getElementById("ptMarkerToggleRow").style.display = "none"
   const banner = document.getElementById("ptExtendBanner")
   banner.style.display = "block"
   banner.textContent = `↻ Extending "${t.name}" — pick your new dates below`
+  /* Kind, name, subject and type all come from the task being extended,
+     so the only thing left to ask is the one thing that is actually
+     changing: jump straight to the dates. */
+  mtGoStep("when")
   updatePtPreview()
 }
 
@@ -3445,6 +3925,218 @@ window.archiveExtendTask = function(e,id){
 // through here — otherwise an "estimated" date colours like real homework
 const TYPE_ALIASES = {send_on:"normal",send_before:"deadline",estimated:"prediction"}
 const taskType = t => TYPE_ALIASES[t&&t.type] || (t&&t.type) || "normal"
+
+// ── Side quests ───────────────────────────────────────────────
+// Your own errands, revision and half-projects, as opposed to the main
+// jobs the class actually owes. Only a personal task can be one — shared
+// work is never optional — and a marker is an event rather than work, so
+// it can't be one either. The flag lives on the task doc so it follows
+// the account; whether they are *shown* is a per-device lens (below).
+const isSideQuest = t => !!(t && t._personal && t.sideQuest && taskType(t)!=="marker")
+
+// The one question every render asks: should this task be on screen now?
+const SIDE_QUEST_KEY = "tas_hide_side_quests"
+let sideQuestsHidden = false
+try{ sideQuestsHidden = localStorage.getItem(SIDE_QUEST_KEY)==="1" }catch(e){}
+const isHiddenTask = t => sideQuestsHidden && isSideQuest(t)
+const sideQuestCount = () => personalTasks.filter(isSideQuest).length
+
+/* Hiding is a lens, not a delete: the tasks stay in Firestore, stay in
+   the widget feed and still fire their reminders. It only takes them off
+   the screens you read when you're working out what's left to do. */
+window.toggleSideQuests = function(e){
+  e&&e.stopPropagation()
+  sideQuestsHidden = !sideQuestsHidden
+  try{ localStorage.setItem(SIDE_QUEST_KEY, sideQuestsHidden?"1":"0") }catch(err){}
+  applyFilterUI()
+  renderCurrentView()
+  toast(sideQuestsHidden ? "Side quests hidden — main jobs only" : "Side quests are back")
+}
+
+/* ══ Calendar filters ══════════════════════════════════════════
+   A lens over the timeline and the month grid: which subjects, which
+   kinds of task, and whether finished work is still drawn.
+
+   Deliberately narrower than the side-quest switch it now shares a panel
+   with. That one hides a task everywhere — it is about what you have
+   decided not to think about at all. These are about reading *this*
+   board, so the To Do list, My Tasks and the archive keep showing
+   everything; the panel labels the two scopes so the difference is on
+   screen rather than a surprise.
+
+   An empty `types` means "no filter", not "nothing" — the natural
+   resting state is everything shown. */
+/* The kinds of row you can switch off, in the legend's own colours so a
+   chip and a bar mean the same thing.
+
+   Markers are deliberately not in this list. They aren't rows — they draw
+   as date ticks and vertical lines across every row — so picking "markers
+   only" would leave a board with nothing to draw them against, and
+   picking any task kind would silently take the exam dates away with it.
+   They get their own switch instead, and otherwise stay put as the
+   context they are. */
+const FILTER_TYPES = [
+  { id: "normal",     label: "Send On",     color: "var(--green)" },
+  { id: "deadline",   label: "Send Before", color: "#ef4444" },
+  { id: "prediction", label: "Estimated",   color: "#8b5cf6" }
+]
+
+/* Row order. Due date is the default because a timeline is a picture of
+   what is coming, but the other three each answer a question the date
+   order can't: which subject is this, what have I not started, and where
+   is that task called something I half remember. Each comparator falls
+   back to the due date so the order is total and never jitters between
+   renders. */
+const SORT_OPTIONS = [
+  { id: "due",      label: "Due date",     cmp: (a,b) => 0 },
+  { id: "subject",  label: "Subject",      cmp: (a,b) => (a.subject||"~").localeCompare(b.subject||"~","th") },
+  { id: "progress", label: "Least done",   cmp: (a,b) => donePct(a) - donePct(b) },
+  { id: "name",     label: "Name A–Z",     cmp: (a,b) => (a.name||"").localeCompare(b.name||"","th") }
+]
+// A ticked task counts as finished whatever its progress says, so "least
+// done" puts untouched work at the top and done work at the bottom.
+function donePct(t){
+  if(userDoneCache[t.id]) return 101
+  const p = progressOf(t.id)
+  return p && p.total ? progressPct(p) : 0
+}
+
+const FILTER_KEY = "tas_cal_filters"
+let calFilters = { types: [], hideDone: false, hideMarkers: false, sort: "due" }
+try{
+  const raw = JSON.parse(localStorage.getItem(FILTER_KEY) || "null")
+  if(raw && typeof raw === "object") calFilters = {
+    types:       Array.isArray(raw.types) ? raw.types.filter(t => FILTER_TYPES.some(x => x.id === t)) : [],
+    hideDone:    !!raw.hideDone,
+    hideMarkers: !!raw.hideMarkers,
+    sort:        SORT_OPTIONS.some(o => o.id === raw.sort) ? raw.sort : "due"
+  }
+}catch(e){}
+
+function saveCalFilters(){
+  try{ localStorage.setItem(FILTER_KEY, JSON.stringify(calFilters)) }catch(e){}
+}
+
+// Sorting doesn't take anything away, so it isn't counted here — the chip
+// shows itself, and the badge stays a count of what is being hidden.
+const filtersActive = () =>
+  calFilters.types.length + (calFilters.hideDone ? 1 : 0) + (calFilters.hideMarkers ? 1 : 0)
+
+/* The one question the calendar asks of every task. Markers come through
+   here too — they are a type you can switch off like any other. */
+function passesFilter(t){
+  if(!t) return false
+  // Markers answer to their own switch and nothing else — see FILTER_TYPES
+  if(taskType(t) === "marker") return !calFilters.hideMarkers
+  if(calFilters.types.length && !calFilters.types.includes(taskType(t))) return false
+  if(calFilters.hideDone && userDoneCache[t.id]) return false
+  return true
+}
+
+/* Filter, then order. getOrderedTasks() has already sorted by due date,
+   so "due" is a no-op and every other comparator only has to break ties
+   against a list that is already in date order. */
+function filterTasks(list){
+  const out = filtersActive() ? list.filter(passesFilter) : list
+  const opt = SORT_OPTIONS.find(o => o.id === calFilters.sort)
+  if(!opt || opt.id === "due") return out
+  return [...out].sort((a,b) => opt.cmp(a,b) || (new Date(a.end||a.date) - new Date(b.end||b.date)))
+}
+
+window.setCalSort = function(id){
+  if(!SORT_OPTIONS.some(o => o.id === id)) return
+  calFilters.sort = id
+  saveCalFilters(); applyFilterUI()
+  animateRows = true          // a reorder is worth seeing happen
+  renderCurrentView()
+}
+
+window.toggleFilterType = function(id){
+  if(!id){ calFilters.types = [] }               // the "All" chip
+  else {
+    const i = calFilters.types.indexOf(id)
+    if(i >= 0) calFilters.types.splice(i, 1)
+    else calFilters.types.push(id)
+  }
+  saveCalFilters(); applyFilterUI(); renderCurrentView()
+}
+
+window.toggleFilterDone = function(){
+  calFilters.hideDone = !calFilters.hideDone
+  saveCalFilters(); applyFilterUI(); renderCurrentView()
+}
+
+window.toggleFilterMarkers = function(){
+  calFilters.hideMarkers = !calFilters.hideMarkers
+  saveCalFilters(); applyFilterUI(); renderCurrentView()
+}
+
+window.clearCalFilters = function(){
+  const had = filtersActive() || sideQuestsHidden || calFilters.sort !== "due"
+  calFilters = { types: [], hideDone: false, hideMarkers: false, sort: "due" }
+  saveCalFilters()
+  // The moon is in this panel, so Reset means all of it.
+  if(sideQuestsHidden){
+    sideQuestsHidden = false
+    try{ localStorage.setItem(SIDE_QUEST_KEY, "0") }catch(e){}
+  }
+  animateRows = true
+  applyFilterUI(); renderCurrentView()
+  if(had) toast("Showing everything again")
+}
+
+window.toggleFilterPanel = function(e){
+  e && e.stopPropagation()
+  const open = document.getElementById("filterPanel").classList.contains("open")
+  closeFabs()
+  if(!open){
+    document.getElementById("filterPanel").classList.add("open")
+    document.getElementById("filterToggle").classList.add("open")
+    document.getElementById("filterToggle").setAttribute("aria-expanded", "true")
+  }
+}
+
+/* Repaints the panel and the button. Called after every change and after
+   every task snapshot. */
+function applyFilterUI(){
+  const btn = document.getElementById("filterToggle")
+  if(!btn) return
+  const n = filtersActive() + (sideQuestsHidden ? 1 : 0)
+  btn.classList.toggle("on", n > 0)
+  btn.title = n ? `${n} filter${n===1?"":"s"} on — tap to change` : "Filter & sort"
+  const badge = document.getElementById("filterCount")
+  if(badge){
+    if(n){ badge.textContent = n; badge.style.display = "block" }
+    else badge.style.display = "none"
+  }
+
+  const onCal = currentView === "calendar"
+  document.getElementById("filterCalOnly").style.display = onCal ? "" : "none"
+  document.getElementById("filterCalHint").style.display = onCal ? "none" : "block"
+  // Nothing "above" to qualify once the calendar-only half is gone
+  document.getElementById("filterSqNote").style.display = onCal ? "" : "none"
+
+  // Sort is a pick-one, so the chips read as a segmented control
+  const sortBox = document.getElementById("filterSort")
+  if(sortBox) sortBox.innerHTML = SORT_OPTIONS.map(o =>
+    `<button class="filter-chip${calFilters.sort===o.id?" active":""}"
+      onclick="setCalSort('${o.id}')">${o.label}</button>`).join("")
+
+  const typeBox = document.getElementById("filterTypes")
+  if(typeBox) typeBox.innerHTML =
+    `<button class="filter-chip${calFilters.types.length?"":" active"}" onclick="toggleFilterType('')">All kinds</button>` +
+    FILTER_TYPES.map(t => `<button class="filter-chip${calFilters.types.includes(t.id)?" active":""}"
+      onclick="toggleFilterType('${t.id}')"><span class="filter-swatch" style="background:${t.color}"></span>${t.label}</button>`).join("")
+
+  document.getElementById("filterDoneSwitch")?.classList.toggle("on", calFilters.hideDone)
+  document.getElementById("filterMarkersSwitch")?.classList.toggle("on", calFilters.hideMarkers)
+  document.getElementById("filterSqSwitch")?.classList.toggle("on", sideQuestsHidden)
+  document.getElementById("filterClear").disabled =
+    !(filtersActive() || sideQuestsHidden || calFilters.sort !== "due")
+  // The settings row is the same side-quest switch under a different hat
+  document.getElementById("sqSwitch")?.classList.toggle("on", sideQuestsHidden)
+}
+window.applyFilterUI = applyFilterUI
 
 // ── Subject colours ───────────────────────────────────────────
 // Colouring by urgency makes a busy month one wall of orange, so the default
@@ -3609,7 +4301,9 @@ window.resetSubjectColors=async function(){
   renderCurrentView()
 }
 function closeFabs(){
-  ["legendPanel","legendToggle","rangePanel","rangeToggle"].forEach(id=>document.getElementById(id).classList.remove("open"))
+  ["legendPanel","legendToggle","rangePanel","rangeToggle","filterPanel","filterToggle"]
+    .forEach(id=>document.getElementById(id).classList.remove("open"))
+  document.getElementById("filterToggle")?.setAttribute("aria-expanded","false")
 }
 window.toggleLegend=function(e){
   e&&e.stopPropagation()
@@ -3630,10 +4324,9 @@ window.toggleRange=function(e){
   if(!open){document.getElementById("rangePanel").classList.add("open");document.getElementById("rangeToggle").classList.add("open")}
 }
 document.addEventListener("click",e=>{
-  const lf=document.querySelector(".legend-fab"),rf=document.querySelector(".range-fab")
-  const lo=document.getElementById("legendPanel").classList.contains("open")
-  const ro=document.getElementById("rangePanel").classList.contains("open")
-  if((lo||ro)&&!lf.contains(e.target)&&!rf.contains(e.target)){
+  const fabs=[".legend-fab",".range-fab",".filter-fab"].map(s=>document.querySelector(s))
+  const open=["legendPanel","rangePanel","filterPanel"].some(id=>document.getElementById(id).classList.contains("open"))
+  if(open && !fabs.some(f=>f && f.contains(e.target))){
     closeFabs();document.querySelector(".legend-toggle svg").style.color="var(--pink)"
   }
 })
@@ -3641,8 +4334,10 @@ document.addEventListener("click",e=>{
 function pct(d,start,total){return Math.max(0,Math.min(100,(d-start)/total*100))}
 
 function getOrderedTasks(){
-  // Merge shared + personal, mark personal with _personal flag
-  const all = [...tasks, ...personalTasks]
+  // Merge shared + personal, mark personal with _personal flag.
+  // The one place side quests drop out of the app: the timeline, the month
+  // grid, the archive and the subject palette all come through here.
+  const all = [...tasks, ...personalTasks].filter(t=>!isHiddenTask(t))
   return all.sort((a,b)=>new Date(a.end||a.date)-new Date(b.end||b.date))
 }
 
@@ -3843,12 +4538,19 @@ function renderCalendar(){
     return
   }
 
-  const sorted = getOrderedTasks()
+  const sorted = filterTasks(getOrderedTasks())
   // Row tasks: exclude markers (markers render as vlines/ticks only, not rows)
   const activeTasks  = sorted.filter(t=>t.type!=="marker"&&(daysLeft(parseDate(t.end))>=0||t.type==="prediction"))
 
   if(!activeTasks.length){
-    wrap.innerHTML=`<div class="empty-state"><p>${ico("party","ic-lg")} No active tasks</p><small>All tasks are done or archived!</small></div>`
+    /* An empty board because of a filter is a different thing from an
+       empty board because the work is done, and only one of them has a
+       way out — so say which it is and put the way out on screen. */
+    wrap.innerHTML = filtersActive()
+      ? `<div class="empty-state"><p>${ico("filter","ic-lg")} Nothing matches your filters</p>
+           <small>${filtersActive()} filter${filtersActive()===1?" is":"s are"} on.</small>
+           <button class="empty-clear" onclick="clearCalFilters()">Clear filters</button></div>`
+      : `<div class="empty-state"><p>${ico("party","ic-lg")} No active tasks</p><small>All tasks are done or archived!</small></div>`
     return
   }
 
@@ -3874,7 +4576,9 @@ function renderCalendar(){
   // Includes both shared markers AND personal markers from this user.
   // Overdue markers (date < today) are dropped entirely.
   const markersByDate = {}
-  const allTasks = [...tasks, ...personalTasks]
+  // Reads the two arrays directly rather than through getOrderedTasks, so
+  // it has to answer the same hidden question itself.
+  const allTasks = filterTasks([...tasks, ...personalTasks].filter(t=>!isHiddenTask(t)))
   allTasks.filter(t=>t.type==="marker").forEach(t=>{
     const dateKey = (t.date||t.start||"").slice(0,10)
     if(!dateKey) return
@@ -3991,9 +4695,11 @@ function renderCalendar(){
     if(start<rangeStart) outLeft=`<div class="out-indicator out-left" style="background:${color}" onclick="showDetail(event,'${t.id}')"></div>`
     if(end>rangeEnd)     outRight=`<div class="out-indicator out-right" style="background:${color}" onclick="showDetail(event,'${t.id}')"></div>`
 
+    const sq=isSideQuest(t)
+
     leftHTML+=`<div class="label-row" style="animation-delay:${delay}s" onclick="showDetail(event,'${t.id}')">
       <div style="overflow:hidden;width:100%">
-        <div class="row-name" title="${esc(t.name)}">${esc(t.name)}</div>
+        <div class="row-name" title="${esc(t.name)}">${sq?`<span class="row-sq">${ico("moon")}</span>`:""}${esc(t.name)}</div>
         <div class="row-subject" title="${esc(t.subject)}">${esc(t.subject)}</div>
       </div>
       ${isMod?`<button class="row-del" title="Delete task" onclick="quickDeleteTask(event,'${t.id}')">${ico("trash")}</button>`:""}
@@ -4004,11 +4710,14 @@ function renderCalendar(){
         ${buildGridHTML()}
         <div class="today-vline" style="left:${todayPct}%"></div>
         ${outLeft}
-        <div class="gantt-bar${isOverdue?" overdue-pulse":""}${isDone?" done":""}${isPersonal?" personal":""}"
+        <div class="gantt-bar${isOverdue?" overdue-pulse":""}${isDone?" done":""}${isPersonal?" personal":""}${sq?" sidequest":""}${progressOf(t.id)?" has-pct":""}"
           style="left:${left}%;width:${width}%;background:${color};animation-delay:${delay}s"
           onclick="showDetail(event,'${t.id}')">
-          <span class="gantt-bar-text">${esc(t.name)} · ${shortDate(end)}</span>
-          ${isPersonal?'<span class="personal-badge">'+ico("user")+'</span>':''}
+          <span class="gantt-cap" style="background:${urgencyColor(taskType(t),dl)}"></span>
+          ${barProgressHTML(t.id)}
+          <span class="gantt-bar-text">${sq?ico("moon")+" ":""}${esc(t.name)} · ${shortDate(end)}</span>
+          ${isPersonal&&!sq?'<span class="personal-badge">'+ico("user")+'</span>':''}
+          ${barProgressChip(t.id)}
         </div>
         ${outRight}
       </div>
@@ -4051,7 +4760,56 @@ function renderCalendar(){
 
   const so=document.getElementById("calScrollOuter")
   const hs=document.getElementById("calHeaderScroll")
-  so.addEventListener("scroll",()=>{hs.scrollLeft=so.scrollLeft})
+  so.addEventListener("scroll",()=>{hs.scrollLeft=so.scrollLeft; syncBarChips()})
+  measureBarChips()
+}
+
+/* ══ The progress chip follows the edge ════════════════════════
+   A bar can be far wider than the track you are looking through, so a
+   chip parked at its tail scrolls out of sight and takes the one number
+   you actually wanted with it. Instead it sits at whichever comes first:
+   the bar's own end, or the right edge of the visible track.
+
+   position:sticky can't say that — a child of .gantt-bar sticks to the
+   bar (it has overflow:hidden, so it is the nearest scrollport), not to
+   #calScrollOuter. So the offset is worked out here and applied as a
+   transform, which costs no layout.
+
+   Geometry is measured once per render into `chips`, so the scroll
+   handler only does arithmetic and one style write per chip — no layout
+   reads, which is why it can run on the event itself rather than being
+   deferred to a frame that would leave the chip trailing the finger. */
+let chips = []
+
+function measureBarChips(){
+  chips = []
+  const so = document.getElementById("calScrollOuter")
+  if(!so) return
+  so.querySelectorAll(".gantt-bar > .gantt-pct").forEach(el => {
+    const bar = el.parentElement
+    // offsetParent is .cal-track, which starts at x=0 of .cal-inner, so
+    // these are already in the scroller's own coordinates.
+    chips.push({ el, left: bar.offsetLeft, width: bar.offsetWidth, chipW: el.offsetWidth })
+  })
+  syncBarChips()
+}
+
+const CHIP_PAD = 10   // matches .gantt-pct { right: 10px }
+
+function syncBarChips(){
+  if(!chips.length) return
+  const so = document.getElementById("calScrollOuter")
+  if(!so) return
+  const visibleRight = so.scrollLeft + so.clientWidth
+  for(const c of chips){
+    // Negative once the bar runs past the edge; zero while its end is in view.
+    let dx = Math.min(0, visibleRight - (c.left + c.width))
+    // Never let it cross the bar's own left edge — better to lose the chip
+    // off the side of a short bar than to have it sit outside its bar.
+    const minDx = -Math.max(0, c.width - CHIP_PAD - c.chipW - 4)
+    if(dx < minDx) dx = minDx
+    c.el.style.transform = dx ? `translateX(${Math.round(dx)}px)` : ""
+  }
 }
 
 // ══ GRID MODE ═══════════════════════════════════════════════════
@@ -4065,7 +4823,7 @@ const dayDiff = (a,b) => Math.round((a-b)/DAY_MS)
 // Every task/marker as {task, start, end} — markers are one-day events
 function gridEvents(){
   const out=[]
-  getOrderedTasks().forEach(t=>{
+  filterTasks(getOrderedTasks()).forEach(t=>{
     if(userHiddenCache[t.id]) return   // deleted from this account's archive
     let s,e
     if(taskType(t)==="marker"){
@@ -4133,7 +4891,7 @@ function renderGridCalendar(wrap){
       const color=barColor(t,dl)
       const isOverdue=dl<0&&!isDone&&!isMarker&&type!=="prediction"
       const info=isMarker?(MARKER_INFO[t.markerType]||MARKER_INFO.date):null
-      const prefix=isMarker?ico(info.icon)+" ":(t._personal?ico("user")+" ":"")
+      const prefix=isMarker?ico(info.icon)+" ":isSideQuest(t)?ico("moon")+" ":(t._personal?ico("user")+" ":"")
       // Shared markers open the events card; personal ones only exist for you,
       // so they go to the normal detail popup
       const click=(isMarker&&!t._personal)
@@ -4580,8 +5338,28 @@ document.addEventListener("input", e => {
 
 // Repaint just the places a bar shows, without a full re-render (which would
 // close the popup the user is standing in)
+/* Progress changed for one task — redraw wherever it is currently drawn.
+   The timeline bar and the To Do row both show it now, so nudging a task
+   along in the popup has to reach them or they'd sit there stale behind
+   the sheet. */
 function refreshProgressUI(id){
   if(detailTaskId === id) renderDetailProgress(id)
+  if(currentView === "todo") TodoUI.render()
+  else if(currentView === "tasks") renderPtList()
+  else if(currentView === "calendar" && calMode !== "grid") repaintBarProgress(id)
+}
+
+// Just the one bar: a full renderCalendar() would replay every row's
+// entrance animation for a single ticked-off step.
+function repaintBarProgress(id){
+  const bar = document.querySelector(`.cal-row[data-id="${CSS.escape(id)}"] .gantt-bar`)
+  if(!bar) return
+  bar.querySelectorAll(".gantt-rest,.gantt-div,.gantt-pct").forEach(el => el.remove())
+  bar.insertAdjacentHTML("afterbegin", barProgressHTML(id))
+  bar.insertAdjacentHTML("beforeend", barProgressChip(id))
+  bar.classList.toggle("has-pct", !!progressOf(id))
+  // A chip that has just appeared (or changed width) isn't in `chips` yet.
+  measureBarChips()
 }
 
 let detailTaskId=null, detailTaskIsPersonal=false
@@ -4641,6 +5419,27 @@ window.markDoneFromDetail=async function(){
   renderCurrentView()
 }
 
+/* Flip an existing personal task between a main job and a side quest.
+   The switch is moved first and rolled back if the write fails, so it
+   never claims something it didn't save; the personal-tasks snapshot
+   redraws every view a moment later. */
+window.toggleDetailSideQuest=async function(){
+  if(!currentUser||!detailTaskId||!detailTaskIsPersonal)return
+  const t=personalTasks.find(x=>x.id===detailTaskId)
+  if(!t)return
+  const next=!t.sideQuest
+  const sw=document.getElementById("dp-sq-switch")
+  sw.classList.toggle("on",next)
+  try{
+    await updateDoc(doc(db,"userTasks",currentUser.uid,"tasks",detailTaskId),{sideQuest:next})
+    toast(next?"Marked as a side quest":"Back to a main job")
+  }catch(err){
+    console.warn("Could not change side-quest state:",err)
+    sw.classList.toggle("on",!next)
+    saveFailToast()
+  }
+}
+
 window.showDetail=function(e,id){
   e.stopPropagation()
   const t=tasks.find(x=>x.id===id)||personalTasks.find(x=>x.id===id)
@@ -4674,6 +5473,7 @@ window.showDetail=function(e,id){
     if(t.note){document.getElementById("dp-note").textContent=t.note;ns.style.display="block"}else ns.style.display="none"
 
     document.getElementById("dp-mark-done").style.display="none"
+    document.getElementById("dp-sq-row").style.display="none"   // an event is never a side quest
     renderDetailProgress(id)   // markers get nothing — it hides itself
     const delBtn=document.getElementById("dp-delete-btn")
     delBtn.className="detail-delete-btn"+(isMod?" visible":"")
@@ -4712,6 +5512,11 @@ window.showDetail=function(e,id){
   const isOverdue=dl<0
   const isDone=!!userDoneCache[id]
   renderDetailProgress(id)
+  // Shared work is the class's, so it is always a main job — the row only
+  // appears where it can actually be changed.
+  const sqRow=document.getElementById("dp-sq-row")
+  sqRow.style.display=detailTaskIsPersonal?"flex":"none"
+  document.getElementById("dp-sq-switch").classList.toggle("on",!!t.sideQuest)
   // Show "Mark as done" unless already personally marked done (regardless of overdue)
   document.getElementById("dp-mark-done").style.display=isDone?"none":"block"
   document.getElementById("dp-mark-done").textContent=isOverdue?"Mark as done (overdue)":"Mark as Done"
@@ -4885,8 +5690,8 @@ window.deleteTask=async function(){
 
 // ── Personal Task Panel ───────────────────────────────────────
 let ptMarkerMode = false
+let ptSideQuest = false
 let ptMarkerType = "quiz"
-let ptCurrentTab = "add"
 let ptType = "normal"        // segmented type buttons replaced the <select>
 let ptTypeLocked = false     // extend-from-archive locks the original type
 
@@ -4897,38 +5702,336 @@ window.setPtType = function(t){
   updatePtPreview()
 }
 
-window.openPersonalPanel = function(){
-  setActivePill("tasks")
-  document.getElementById("ptOverlay").classList.add("open")
-  resetPtForm()
+/* ══ MY TASKS — a view, and a form asked one question at a time ══
+   This used to be a bottom sheet holding the whole form at once: a marker
+   switch, six fields, a side-quest toggle and a preview, stacked in a
+   scrolling panel over the calendar. Now it is a view like the archive
+   and the To Do list, and the form is a short series of steps.
+
+   Every step stays in the DOM and is only hidden, which is what lets the
+   field ids stay exactly as they were — savePtTask(), updatePtPreview(),
+   setPtType() and resetPtForm() are unchanged — and means Back can never
+   lose what has already been typed.
+
+   A marker is an event rather than work, so it never sees the "how much
+   work" step; the rail is built from the flow the chosen kind actually
+   has, rather than greying a step out. */
+
+const MT_STEPS = {
+  kind:   { label: "Kind",      icon: "puzzle" },
+  what:   { label: "What",      icon: "pencil" },
+  when:   { label: "When",      icon: "calendar-grid" },
+  work:   { label: "How much",  icon: "chart" },
+  finish: { label: "Finish",    icon: "check-circle" }
+}
+const mtFlow = () => ptMarkerMode
+  ? ["kind", "what", "when", "finish"]
+  : ["kind", "what", "when", "work", "finish"]
+
+let mtStep = 0            // index into mtFlow()
+let mtTabName = "add"
+let mtWork = null         // {mode,total} chosen at the "how much" step, or null
+
+function myTasksHTML(){
+  const d = progressDefaults()
+  return `<div class="mt-page">
+    <div class="mt-head">
+      <div class="mt-head-text">
+        <h2>${ico("mine")} My Tasks</h2>
+        <p>Yours alone — never shared with the class. Markers work here too.</p>
+      </div>
+      <div class="mt-tabs">
+        <button class="mt-tab active" id="mtTabAdd" onclick="mtTab('add')">${ico("plus")} Add</button>
+        <button class="mt-tab" id="mtTabList" onclick="mtTab('list')">${ico("clipboard")} My list
+          <span class="pt-count" id="ptCount" style="display:none"></span></button>
+      </div>
+    </div>
+
+    <section class="mt-pane" id="mtAddPane">
+      <ol class="mt-rail" id="mtRail"></ol>
+      <div class="pt-extend-banner" id="ptExtendBanner"></div>
+
+      <div class="mt-steps">
+        <div class="mt-step" data-step="kind">
+          <h3 class="mt-q">What are you adding?</h3>
+          <div class="mt-kinds">
+            <button class="mt-kind active" id="mtKindTask" onclick="mtSetKind(false)">
+              <span class="mt-kind-ic">${ico("check-square")}</span>
+              <span class="mt-kind-name">Task</span>
+              <span class="mt-kind-sub">Something to do, over a stretch of days</span>
+            </button>
+            <button class="mt-kind" id="mtKindMarker" onclick="mtSetKind(true)">
+              <span class="mt-kind-ic">${ico("pin")}</span>
+              <span class="mt-kind-name">Marker</span>
+              <span class="mt-kind-sub">A quiz, exam or event on one date</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-step" data-step="what">
+          <h3 class="mt-q" data-for="task">What is it?</h3>
+          <h3 class="mt-q" data-for="marker">What's the event?</h3>
+          <div class="mt-only-task">
+            <div class="pt-field"><label>Task name</label>
+              <input type="text" id="pt-name" placeholder="e.g. อ่านหนังสือ Math" /></div>
+            <div class="pt-field"><label>Subject</label>
+              <input type="text" id="pt-subject" placeholder="e.g. คณิตศาสตร์" /></div>
+          </div>
+          <div class="mt-only-marker">
+            <div class="pt-field"><label>Event name</label>
+              <input type="text" id="pt-m-name" placeholder="e.g. สอบ Math midterm" /></div>
+            <div class="pt-field"><label>Subject / Topic</label>
+              <input type="text" id="pt-m-subject" placeholder="e.g. คณิตศาสตร์" /></div>
+            <div class="pt-field"><label>Kind of event</label>
+              <div class="pt-marker-type-grid">
+                <button class="pt-mtype-btn active" data-type="quiz"  onclick="setPtMarkerType('quiz')">${ico("note")} Quiz</button>
+                <button class="pt-mtype-btn" data-type="exam"  onclick="setPtMarkerType('exam')">${ico("clipboard")} Exam</button>
+                <button class="pt-mtype-btn" data-type="event" onclick="setPtMarkerType('event')">${ico("party")} Event</button>
+                <button class="pt-mtype-btn" data-type="date"  onclick="setPtMarkerType('date')">${ico("tack")} Important</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-step" data-step="when">
+          <h3 class="mt-q" data-for="task">When is it due?</h3>
+          <h3 class="mt-q" data-for="marker">When is it?</h3>
+          <div class="mt-only-task">
+            <div class="pt-field"><label>How it's due</label>
+              <div class="pt-type-grid" id="ptTypeGrid">
+                <button type="button" class="pt-type-btn active" data-ptype="normal" onclick="setPtType('normal')">${ico("dot","ic-dot-normal")} Send On</button>
+                <button type="button" class="pt-type-btn" data-ptype="deadline" onclick="setPtType('deadline')">${ico("dot","ic-dot-deadline")} Send Before</button>
+                <button type="button" class="pt-type-btn" data-ptype="prediction" onclick="setPtType('prediction')">${ico("dot","ic-dot-prediction")} Estimated</button>
+              </div>
+            </div>
+            <div class="pt-date-row">
+              <div class="pt-field"><label>Start date</label><input type="date" id="pt-start" /></div>
+              <div class="pt-field"><label>Due date</label><input type="date" id="pt-end" /></div>
+            </div>
+          </div>
+          <div class="mt-only-marker">
+            <div class="pt-field"><label>Date</label><input type="date" id="pt-m-date" /></div>
+          </div>
+        </div>
+
+        <div class="mt-step" data-step="work">
+          <h3 class="mt-q">How much work is it?</h3>
+          <p class="mt-hint">Set it up now and the bar on the timeline fills as you go. You can always change it later by holding the task's checkmark.</p>
+          <div class="mt-work-grid">
+            <button class="mt-work active" data-work="none" onclick="mtSetWork('none')">
+              <span class="mt-kind-ic">${ico("dot")}</span><span class="mt-kind-name">Just done or not</span>
+              <span class="mt-kind-sub">One tick, nothing to track</span></button>
+            <button class="mt-work" data-work="steps" onclick="mtSetWork('steps')">
+              <span class="mt-kind-ic">${ico("puzzle")}</span><span class="mt-kind-name">Parts</span>
+              <span class="mt-kind-sub">Count them off, "3 of 5"</span></button>
+            <button class="mt-work" data-work="percent" onclick="mtSetWork('percent')">
+              <span class="mt-kind-ic">${ico("trend")}</span><span class="mt-kind-name">Percent</span>
+              <span class="mt-kind-sub">Slide it from 0 to 100%</span></button>
+          </div>
+          <div class="mt-work-detail" id="mtWorkDetail" style="display:none">
+            <div class="zone-row" id="mtStepsRow">
+              <label>How many parts?</label>
+              <button class="pg-mini-btn" onclick="mtNudgeWork(-1)" aria-label="Fewer parts">−</button>
+              <span class="pg-mini-val" id="mtWorkTotal">${d.total}</span>
+              <button class="pg-mini-btn" onclick="mtNudgeWork(1)" aria-label="More parts">+</button>
+            </div>
+            <div class="mt-work-preview" id="mtWorkPreview"></div>
+          </div>
+        </div>
+
+        <div class="mt-step" data-step="finish">
+          <h3 class="mt-q">Anything else?</h3>
+          <div class="mt-only-task">
+            <div class="pt-field"><label>Note (optional)</label>
+              <input type="text" id="pt-note" placeholder="Extra info..." /></div>
+            <div class="pt-marker-toggle sq-row" id="ptSideQuestRow" onclick="togglePtSideQuest()">
+              <div>
+                <div class="pt-marker-toggle-title">${ico("moon")} Side quest</div>
+                <div class="pt-marker-toggle-sub">Yours, not the class's — hide it with the moon button when you need to focus</div>
+              </div>
+              <div class="pt-switch" id="ptSideQuestSwitch"></div>
+            </div>
+          </div>
+          <div class="mt-only-marker">
+            <div class="pt-field"><label>Note (optional)</label>
+              <input type="text" id="pt-m-note" placeholder="Extra info..." /></div>
+          </div>
+          <div class="pt-preview-card" id="ptPreview"><span class="ptp-empty">Fill in the fields to see a preview…</span></div>
+        </div>
+      </div>
+
+      <div class="mt-nav">
+        <button class="mt-btn ghost" id="mtBack" onclick="mtGo(-1)">${ico("back")} Back</button>
+        <span class="mt-count" id="mtCount"></span>
+        <button class="mt-btn solid" id="mtNext" onclick="mtGo(1)">Next</button>
+        <button class="mt-btn solid" id="mtSave" onclick="savePtTask()" style="display:none">${ico("save")} Save task</button>
+      </div>
+    </section>
+
+    <section class="mt-pane" id="mtListPane" style="display:none">
+      <div id="ptListContent"></div>
+    </section>
+  </div>`
+}
+
+/* Built once on arrival, then left alone: a snapshot landing mid-form must
+   not wipe what is half typed, so later repaints only touch the list. */
+function renderMyTasks(rebuild){
+  const wrap = document.getElementById("calWrap")
+  if(rebuild || !wrap.querySelector(".mt-page")){
+    wrap.innerHTML = myTasksHTML()
+    wireMyTasks()
+    resetPtForm()
+    mtTab("add")
+  }
   renderPtList()
-  setTimeout(()=>document.addEventListener("keydown",closePtKey),0)
 }
 
-function closePtKey(e){ if(e.key==="Escape") closePtPanel() }
-
-window.closePtPanel = function(e){
-  if(e && e.target!==document.getElementById("ptOverlay")) return
-  animCloseOverlay(document.getElementById("ptOverlay"))
-  setActivePill(currentView)
-  document.removeEventListener("keydown",closePtKey)
+// The live preview and the date-order guard hang off freshly built fields.
+let ptDateSync = () => {}
+function wireMyTasks(){
+  ;["pt-name","pt-subject","pt-start","pt-end","pt-note",
+    "pt-m-name","pt-m-subject","pt-m-date","pt-m-note"].forEach(id => {
+    const el = document.getElementById(id)
+    if(!el) return
+    el.addEventListener("input", () => { updatePtPreview(); mtSyncNav() })
+  })
+  const s = document.getElementById("pt-start"), e = document.getElementById("pt-end")
+  if(s && e){
+    ptDateSync = () => { e.min = s.value || "" }
+    s.addEventListener("change", ptDateSync)
+    s.addEventListener("input", ptDateSync)
+    ptDateSync()
+  }
 }
 
-window.switchPtTab = function(tab){
-  ptCurrentTab=tab
-  document.getElementById("ptTabAdd").classList.toggle("active",tab==="add")
-  document.getElementById("ptTabList").classList.toggle("active",tab==="list")
-  document.getElementById("ptAddPane").style.display  = tab==="add"  ? "flex" : "none"
-  document.getElementById("ptListPane").style.display = tab==="list" ? "flex" : "none"
-  if(tab==="list") renderPtList()
+window.mtTab = function(tab){
+  mtTabName = tab
+  document.getElementById("mtTabAdd").classList.toggle("active", tab === "add")
+  document.getElementById("mtTabList").classList.toggle("active", tab === "list")
+  document.getElementById("mtAddPane").style.display  = tab === "add"  ? "flex" : "none"
+  document.getElementById("mtListPane").style.display = tab === "list" ? "flex" : "none"
+  if(tab === "list") renderPtList()
 }
 
-window.togglePtMarker = function(){
-  ptMarkerMode = !ptMarkerMode
-  document.getElementById("ptMarkerSwitch").classList.toggle("on", ptMarkerMode)
-  document.getElementById("ptMarkerToggleRow").classList.toggle("active", ptMarkerMode)
-  document.getElementById("ptRegularFields").style.display = ptMarkerMode ? "none" : "flex"
-  document.getElementById("ptMarkerFields").style.display  = ptMarkerMode ? "flex" : "none"
+/* ── The steps ──────────────────────────────────────────────── */
+
+window.mtSetKind = function(marker){
+  ptMarkerMode = !!marker
+  document.getElementById("mtKindTask").classList.toggle("active", !marker)
+  document.getElementById("mtKindMarker").classList.toggle("active", marker)
+  // Which variant of each step's fields is live
+  document.querySelectorAll(".mt-only-task").forEach(el => el.style.display = marker ? "none" : "")
+  document.querySelectorAll(".mt-only-marker").forEach(el => el.style.display = marker ? "" : "none")
+  document.querySelectorAll('.mt-q[data-for="task"]').forEach(el => el.style.display = marker ? "none" : "")
+  document.querySelectorAll('.mt-q[data-for="marker"]').forEach(el => el.style.display = marker ? "" : "none")
+  mtRender()
+  updatePtPreview()
+}
+
+window.mtSetWork = function(mode){
+  mtWork = mode === "none" ? null : { mode, total: mode === "percent" ? 100 : progressDefaults().total }
+  document.querySelectorAll(".mt-work").forEach(b => b.classList.toggle("active", b.dataset.work === mode))
+  const box = document.getElementById("mtWorkDetail")
+  box.style.display = mtWork ? "block" : "none"
+  document.getElementById("mtStepsRow").style.display = mode === "steps" ? "flex" : "none"
+  mtDrawWorkPreview()
+}
+
+window.mtNudgeWork = function(delta){
+  if(!mtWork || mtWork.mode !== "steps") return
+  mtWork.total = Math.min(MAX_STEPS, Math.max(2, mtWork.total + delta))
+  document.getElementById("mtWorkTotal").textContent = mtWork.total
+  mtDrawWorkPreview()
+}
+
+function mtDrawWorkPreview(){
+  const el = document.getElementById("mtWorkPreview")
+  if(!el) return
+  el.innerHTML = mtWork
+    ? progressBarHTML({ ...mtWork, value: 0 }, { cls: "big" }) +
+      `<span class="mt-work-read">Nothing done yet · ${esc(progressText({ ...mtWork, value: 0 }))}</span>`
+    : ""
+}
+
+// Move by one step, skipping nothing — mtFlow() already omits what this
+// kind doesn't need.
+window.mtGo = function(dir){
+  const flow = mtFlow()
+  if(dir > 0 && !mtStepOk(flow[mtStep])) return
+  mtStep = Math.max(0, Math.min(flow.length - 1, mtStep + dir))
+  mtRender()
+}
+
+window.mtGoStep = function(name){
+  const i = mtFlow().indexOf(name)
+  if(i >= 0){ mtStep = i; mtRender() }
+}
+
+/* What each step needs before it will let you past. Checked live, so Next
+   simply isn't available rather than failing at the end with an alert. */
+function mtStepOk(step){
+  const v = id => (document.getElementById(id)?.value || "").trim()
+  if(step === "what")
+    return ptMarkerMode ? !!v("pt-m-name") : (!!v("pt-name") && !!v("pt-subject"))
+  if(step === "when"){
+    if(ptMarkerMode) return !!v("pt-m-date")
+    return !!v("pt-start") && !!v("pt-end") && new Date(v("pt-start")) <= new Date(v("pt-end"))
+  }
+  return true
+}
+
+function mtRender(){
+  const flow = mtFlow()
+  if(mtStep > flow.length - 1) mtStep = flow.length - 1
+  const here = flow[mtStep]
+
+  document.querySelectorAll(".mt-step").forEach(el =>
+    el.classList.toggle("active", el.dataset.step === here))
+
+  document.getElementById("mtRail").innerHTML = flow.map((s, i) => {
+    const state = i < mtStep ? " done" : i === mtStep ? " now" : ""
+    return `<li class="mt-rail-step${state}" onclick="mtJump(${i})">
+      <span class="mt-rail-dot">${i < mtStep ? ico("check-circle") : i + 1}</span>
+      <span class="mt-rail-lab">${MT_STEPS[s].label}</span>
+    </li>`
+  }).join("")
+
+  document.getElementById("mtCount").textContent = `Step ${mtStep + 1} of ${flow.length}`
+  document.getElementById("mtBack").style.visibility = mtStep === 0 ? "hidden" : ""
+  const last = mtStep === flow.length - 1
+  document.getElementById("mtNext").style.display = last ? "none" : ""
+  document.getElementById("mtSave").style.display = last ? "" : "none"
+  mtSyncNav()
+  if(last) updatePtPreview()
+  // Typing is the next thing you want to do on a field step.
+  const first = document.querySelector(`.mt-step.active input:not([type="date"])`)
+  if(first && !first.readOnly) setTimeout(() => first.focus(), 0)
+}
+
+// Next greys out live as the current step's fields are filled in.
+function mtSyncNav(){
+  const btn = document.getElementById("mtNext")
+  if(!btn) return
+  btn.disabled = !mtStepOk(mtFlow()[mtStep])
+}
+
+// The rail is also a way back: earlier steps are always reachable, and a
+// later one only if everything before it is satisfied.
+window.mtJump = function(i){
+  const flow = mtFlow()
+  if(i <= mtStep){ mtStep = i; mtRender(); return }
+  for(let k = mtStep; k < i; k++) if(!mtStepOk(flow[k])) return
+  mtStep = i
+  mtRender()
+}
+
+// Kind is step 1 of the wizard now — see mtSetKind.
+
+window.togglePtSideQuest = function(){
+  ptSideQuest = !ptSideQuest
+  document.getElementById("ptSideQuestSwitch").classList.toggle("on", ptSideQuest)
+  document.getElementById("ptSideQuestRow").classList.toggle("active", ptSideQuest)
   updatePtPreview()
 }
 
@@ -4981,16 +6084,13 @@ window.updatePtPreview = function(){
     const dayStr = dl===null?"—":dl===0?"Due today":dl>0?`${dl} day${dl===1?"":"s"} left`:`${Math.abs(dl)}d overdue`
     const dotColor = dl===null ? "#64748b" : urgencyColor(ptType,dl)
     const line2=[subject&&esc(subject),`${ico("calendar-grid")} Due ${thaiDateFull(end)}`,`${ico("timer")} ${dayStr}`,note&&`${ico("tack")} ${esc(note)}`].filter(Boolean).join(" · ")
-    box.innerHTML = card(ico("user")+" Preview — your task",dotColor,name,esc(PT_TYPE_LABELS[ptType]||ptType),line2)
+    const head = ptSideQuest ? ico("moon")+" Preview — your side quest" : ico("user")+" Preview — your task"
+    box.innerHTML = card(head,dotColor,name,esc(PT_TYPE_LABELS[ptType]||ptType),line2)
   }
 }
 
-// Wire up live preview on all inputs
-;["pt-name","pt-subject","pt-start","pt-end","pt-note",
-  "pt-m-name","pt-m-subject","pt-m-date","pt-m-note"].forEach(id=>{
-  const el = document.getElementById(id)
-  if(el) el.addEventListener("input", updatePtPreview)
-})
+// The fields are built with the view now, so the live preview is wired in
+// wireMyTasks() rather than once at load.
 
 let ptSaving=false
 window.savePtTask = async function(){
@@ -5004,7 +6104,8 @@ window.savePtTask = async function(){
       const subject = document.getElementById("pt-m-subject").value.trim()
       const date    = document.getElementById("pt-m-date").value
       const note    = document.getElementById("pt-m-note").value.trim()
-      if(!name||!date){ alert("Please fill in event name and date."); return }
+      // The wizard won't reach Save without these, so this is a backstop.
+      if(!name||!date){ toast("Fill in the event name and date first",{error:true}); return }
       await addDoc(col,{ name, subject, type:"marker", markerType:ptMarkerType, date, start:date, end:date, note, createdAt:Date.now() })
     } else {
       const name    = document.getElementById("pt-name").value.trim()
@@ -5013,9 +6114,16 @@ window.savePtTask = async function(){
       const start   = document.getElementById("pt-start").value
       const end     = document.getElementById("pt-end").value
       const note    = document.getElementById("pt-note").value.trim()
-      if(!name||!subject||!start||!end){ alert("Please fill in name, subject, and dates."); return }
-      if(new Date(start)>new Date(end)){ alert("Start date must be before end date."); return }
-      await addDoc(col,{ name, subject, type, start, end, note, createdAt:Date.now() })
+      if(!name||!subject||!start||!end){ toast("Fill in the name, subject and dates first",{error:true}); return }
+      if(new Date(start)>new Date(end)){ toast("The start date has to come first",{error:true}); return }
+      const ref = await addDoc(col,{ name, subject, type, start, end, note, sideQuest:ptSideQuest, createdAt:Date.now() })
+      /* The shape chosen at the "how much work" step, attached to the task
+         that was just created — so it arrives on the board already knowing
+         how it will be measured, with nothing done yet. */
+      if(mtWork && ref && ref.id){
+        saveProgressDefaults({ mode: mtWork.mode, total: mtWork.mode === "steps" ? mtWork.total : progressDefaults().total })
+        await writeProgress(ref.id, normProgress({ ...mtWork, value: 0 }))
+      }
       // Extended from the archive: remove the original so it doesn't show twice
       if(extendSource){
         if(extendSource._personal) await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",extendSource.id))
@@ -5028,37 +6136,40 @@ window.savePtTask = async function(){
     saveFailToast()   // leave the form filled in so nothing typed is lost
     return
   }finally{ptSaving=false}
+  toast("Saved to My Tasks")
   resetPtForm()
-  switchPtTab("list")
+  mtTab("list")
 }
 
 function resetPtForm(){
+  if(!document.querySelector(".mt-page")) return   // the view isn't built yet
   const today = localToday()
-  ptMarkerMode = false; ptMarkerType = "quiz"
-  // Clear extend-from-archive mode: unlock fields, restore marker toggle
+  ptSideQuest = false; ptMarkerType = "quiz"
+  // Clear extend-from-archive mode: unlock the fields it locked
   extendSource = null
   ;["pt-name","pt-subject","pt-note"].forEach(id=>{ const el=document.getElementById(id); if(el) el.readOnly=false })
   ptTypeLocked=false
   document.getElementById("ptTypeGrid").classList.remove("locked")
-  document.getElementById("ptMarkerToggleRow").style.display=""
   const banner=document.getElementById("ptExtendBanner"); if(banner) banner.style.display="none"
-  document.getElementById("ptMarkerSwitch").classList.remove("on")
-  document.getElementById("ptMarkerToggleRow").classList.remove("active")
-  document.getElementById("ptRegularFields").style.display = "flex"
-  document.getElementById("ptMarkerFields").style.display  = "none"
+  document.getElementById("ptSideQuestSwitch").classList.remove("on")
+  document.getElementById("ptSideQuestRow").classList.remove("active")
   ;["pt-name","pt-subject","pt-note","pt-m-name","pt-m-subject","pt-m-note"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value="" })
   const ps=document.getElementById("pt-start"); if(ps) ps.value=today
   const pe=document.getElementById("pt-end");   if(pe) pe.value=""
   const pm=document.getElementById("pt-m-date"); if(pm) pm.value=today
   document.querySelectorAll(".pt-mtype-btn").forEach(b=>b.classList.toggle("active",b.dataset.type==="quiz"))
   setPtType("normal")
-  syncDateMins()
+  ptDateSync()
+  mtStep = 0
+  mtSetKind(false)     // also renders the rail and the first step
+  mtSetWork("none")
   updatePtPreview()
 }
 
 function updatePtCount(){
-  // Both badges show the "My list" length, so total count keeps them honest
-  const n = personalTasks.length
+  // Both badges count what is still open — the same list the page shows,
+  // so a ticked task leaves the badge as well as the rows.
+  const n = ptOpenTasks().length
   ;["ptCount","ptTopCount"].forEach(id=>{
     const el = document.getElementById(id)
     if(!el) return
@@ -5067,14 +6178,30 @@ function updatePtCount(){
   })
 }
 
+/* Done = gone. A ticked task drops off this list at once — the list is
+   what is left to do, and a finished thing isn't.
+
+   Nothing is destroyed: the document is untouched and the tick is the
+   same userDone flag the rest of the app reads, so the task keeps its
+   row (and its checkbox) on the calendar until its date passes, and
+   lands in the Archive once it's overdue. Either way it can be unticked
+   and come straight back here. */
+const ptOpenTasks = () => personalTasks.filter(t => !userDoneCache[t.id])
+
 function renderPtList(){
   const wrap = document.getElementById("ptListContent")
   if(!wrap) return
-  if(!personalTasks.length){
-    wrap.innerHTML=`<div class="pt-list-empty">No personal tasks yet.<br><span>Add one from the <svg class="ic" aria-hidden="true"><use href="#ic-plus"/></svg> Add tab.</span></div>`
+  const open = ptOpenTasks()
+  if(!open.length){
+    const allDone = personalTasks.length > 0
+    wrap.innerHTML = allDone
+      ? `<div class="pt-list-empty">${ico("party","ic-lg")}<br>Everything's ticked off.<br>
+         <span>Nothing was deleted — a ticked task keeps its row on the calendar until its date passes, so you can untick it there.</span></div>`
+      : `<div class="pt-list-empty">No personal tasks yet.<br><span>Add one from the ${ico("plus")} Add tab.</span></div>`
+    updatePtCount()
     return
   }
-  const sorted=[...personalTasks].sort((a,b)=>new Date(a.end||a.date)-new Date(b.end||b.date))
+  const sorted=[...open].sort((a,b)=>new Date(a.end||a.date)-new Date(b.end||b.date))
   wrap.innerHTML = sorted.map(t=>{
     const isMarker = t.type==="marker"
     const dateVal  = isMarker ? t.date : t.end
@@ -5087,11 +6214,23 @@ function renderPtList(){
     const typeTag  = isMarker
       ? `${ico("pin")} ${(MARKER_INFO[t.markerType]||MARKER_INFO.date).label}`
       : TYPE_LABEL[t.type]||t.type
-    return `<div class="pt-list-card">
+    const sq = isSideQuest(t)
+    /* Markers aren't work, so they get no tick. Everything else carries
+       the timeline's own check control — same markup, same cr-<id> — so
+       ticking here, on the timeline and in To Do are one action, and the
+       page's delegated hold-to-set-progress gesture works on these rows
+       without any wiring of its own. */
+    return `<div class="pt-list-card${sq?" sidequest":""}" onclick="ptRowOpen(event,'${t.id}')">
       <span class="pt-list-strip" style="background:${color}"></span>
+      ${isMarker ? "" : `<div class="check-row pt-check" id="cr-${t.id}" title="Hold to set up progress">
+        <input type="checkbox" title="Mark as done — hold to set up progress"
+          onchange="toggleDone('${t.id}',this.checked,this)" />
+        <div class="hold-ring"></div>
+        <div class="check-spin"></div>
+      </div>`}
       <div class="pt-list-info">
-        <div class="pt-list-name">${esc(t.name)}</div>
-        <div class="pt-list-sub">${t.subject?esc(t.subject)+" · ":""}${typeTag}</div>
+        <div class="pt-list-name">${sq?`<span class="row-sq">${ico("moon")}</span>`:""}${esc(t.name)}</div>
+        <div class="pt-list-sub">${sq?"Side quest · ":""}${t.subject?esc(t.subject)+" · ":""}${typeTag}</div>
         ${prog?`<div class="pt-list-prog">${progressBarHTML(prog,{color})}<span class="prog-read">${progressText(prog)}</span></div>`:""}
       </div>
       <div class="pt-list-right">
@@ -5102,6 +6241,13 @@ function renderPtList(){
     </div>`
   }).join("")
   updatePtCount()
+}
+
+// Tapping the row opens the same sheet the timeline bar opens; its own
+// controls keep their meaning.
+window.ptRowOpen = function(e, id){
+  if(e.target.closest("button, input, .check-row, .prog-bar")) return
+  showDetail(e, id)
 }
 
 window.deletePtTask = async function(e,id){
@@ -5127,7 +6273,11 @@ document.getElementById("progressModal").addEventListener("click",function(e){if
 let resizeTimer=null
 window.addEventListener("resize",()=>{
   clearTimeout(resizeTimer)
-  resizeTimer=setTimeout(()=>{if(currentView==="calendar")renderCalendar()},150)
+  // A resize changes how much track is visible, so the chips have to be
+  // re-measured even when the rows themselves are untouched.
+  resizeTimer=setTimeout(()=>{
+    if(currentView==="calendar"){ renderCalendar(); measureBarChips() }
+  },150)
 })
 
 // ── Escape closes whatever is open (marker modal & My Tasks handle their own) ──
@@ -5141,7 +6291,8 @@ document.addEventListener("keydown",e=>{
   if(open("taskModal"))   return closeModal()
   if(open("settingsOverlay")) return closeSettings()
   if(open("tourOverlay"))     return closeTour()
-  if(open("legendPanel")||open("rangePanel")) closeFabs()
+  if(open("userDropdown")||open("brandDropdown")) return closeMenus()
+  if(open("legendPanel")||open("rangePanel")||open("filterPanel")) closeFabs()
 })
 
 // ── End date can never sit before the start date ──────────────
@@ -5155,7 +6306,7 @@ function bindDateMin(startId,endId){
 }
 function syncDateMins(){dateMinSyncs.forEach(f=>f())}
 bindDateMin("t-start","t-end")
-bindDateMin("pt-start","pt-end")
+// pt-start/pt-end are built with the My Tasks view — see wireMyTasks.
 </script>
 </body>
 </html>

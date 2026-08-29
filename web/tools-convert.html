@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    // Force external browser if opened in LINE
+    (function() {
+      if (/Line\//i.test(navigator.userAgent || '')) {
+        const url = location.href;
+        if (!url.includes('openExternalBrowser=1')) {
+          location.replace(url + (url.includes('?') ? '&' : '?') + 'openExternalBrowser=1');
+        }
+      }
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Converter — TAS Tools</title>
+  <link rel="icon" type="image/x-icon" href="TASLogo.png">
+  <meta name="theme-color" content="#0b1c3d">
+  <link rel="apple-touch-icon" href="TASLogo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    try{document.documentElement.dataset.theme=localStorage.getItem("tas_theme")||"dark"}
+    catch(e){document.documentElement.dataset.theme="dark"}
+  </script>
+  <link rel="stylesheet" href="tools-shell.css">
+  <style>
+    /* ── The drop / pick zone ──
+       A label wrapping a hidden file input, so a tap anywhere on it opens
+       the picker — the only way in on a phone. Drag-and-drop is layered on
+       top for desktop and never the sole route. */
+    .drop{
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+      padding:2.1rem 1.2rem;border-radius:16px;cursor:pointer;text-align:center;
+      border:2px dashed var(--field-brd);background:var(--field-bg);
+      transition:border-color 0.16s,background 0.16s,transform 0.12s;
+    }
+    .drop:hover,.drop.over{border-color:var(--pink);background:var(--accent-soft)}
+    .drop:active{transform:scale(0.995)}
+    .drop input{display:none}
+    .drop-ic{color:var(--pink)}
+    .drop-t{font-size:16px;font-weight:500;color:var(--text)}
+    .drop-s{font-size:13px;font-weight:300;color:var(--muted);line-height:1.55}
+
+    /* ── Settings ── */
+    .set-row{display:flex;align-items:center;gap:12px}
+    .set-row .fl{margin-bottom:0;flex:1}
+    /* input[type=number] in the shell is width:100%; match its specificity
+       so the number sits beside its note instead of pushing it off. */
+    input.num{width:104px;flex-shrink:0}
+    .rng{
+      -webkit-appearance:none;appearance:none;width:100%;height:12px;border-radius:99px;
+      outline:none;cursor:pointer;margin:4px 0 0;
+      background:linear-gradient(to right,var(--pink) var(--fill,80%),var(--field-brd) var(--fill,80%));
+    }
+    .rng::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:24px;height:24px;
+      border-radius:50%;background:var(--accent-grad);border:2px solid var(--card);
+      box-shadow:0 3px 10px -2px var(--accent-shadow);cursor:pointer}
+    .rng::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--pink);
+      border:2px solid var(--card);cursor:pointer}
+    .rng:disabled{opacity:0.4;cursor:not-allowed}
+    .q-val{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:var(--muted);min-width:42px;text-align:right}
+    .set-note{font-size:12.5px;font-weight:300;color:var(--label);line-height:1.5;margin-top:7px}
+
+    /* ── The list ── */
+    .files{display:flex;flex-direction:column;gap:9px}
+    .frow{
+      display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:13px;
+      background:var(--field-bg);border:1px solid var(--glass-brd);
+      animation:fadeInUp 0.3s ease both;
+    }
+    .fthumb{
+      width:46px;height:46px;border-radius:10px;flex-shrink:0;object-fit:cover;
+      background:rgba(0,0,0,0.2);display:block;
+    }
+    .fthumb.bad{display:grid;place-items:center;color:#e0a92a}
+    html[data-theme="light"] .fthumb.bad{color:#9a6a10}
+    .finfo{flex:1;min-width:0}
+    .fname{font-size:14.5px;font-weight:500;color:var(--text);
+      display:flex;align-items:center;gap:6px;min-width:0}
+    /* The row is a flex container so the PDF tag can sit beside the name;
+       text-overflow only works on the text's own box, so it gets one. */
+    .fname-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+    .ftag{
+      font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;
+      padding:1px 6px;border-radius:20px;flex-shrink:0;
+      background:var(--accent-soft);color:var(--accent-soft-text);border:1px solid var(--accent-brd);
+    }
+    .fmeta{font-size:12.5px;font-weight:300;color:var(--muted);margin-top:2px;
+      display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .fsave{font-weight:600;color:var(--green-text)}
+    /* The shell has green and red tokens but no amber, and "can't read
+       this" is advice rather than a failure — so it gets its own, dark
+       enough on white to stay readable. */
+    .fwarn{color:#e0a92a}
+    html[data-theme="light"] .fwarn{color:#9a6a10}
+    .fbusy{color:var(--label)}
+    .facts{display:flex;gap:5px;flex-shrink:0}
+    .fmove{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+    .icon-btn{
+      width:38px;height:38px;border-radius:11px;flex-shrink:0;
+      display:grid;place-items:center;cursor:pointer;
+      border:1px solid var(--glass-brd);background:rgba(255,255,255,0.07);color:var(--muted);
+      transition:background 0.15s,color 0.15s,transform 0.12s;
+    }
+    .icon-btn:hover{background:var(--accent-soft);color:var(--pink)}
+    .icon-btn:active{transform:scale(0.92)}
+    .icon-btn:disabled{opacity:0.35;cursor:not-allowed;transform:none}
+    .icon-btn.danger:hover{background:var(--red-light);color:var(--red-text)}
+    /* Order matters when these become PDF pages, so each row can move */
+    .icon-btn.tiny{width:24px;height:17px;border-radius:6px;font-size:10px;line-height:1}
+
+    /* Totals line above the buttons */
+    .totals{
+      display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
+      padding:11px 13px;border-radius:12px;margin-top:14px;
+      background:var(--accent-soft);border:1px solid var(--accent-brd);
+      font-size:14px;color:var(--text);
+    }
+    .totals b{font-weight:600}
+    .totals .big{font-size:17px;font-weight:700;color:var(--pink)}
+
+    .empty{
+      text-align:center;padding:2rem 1rem;color:var(--label);
+      font-size:14px;font-weight:300;line-height:1.7;
+    }
+
+    @media(max-width:560px){
+      /* One column, and every control a full-width tap target */
+      .set-row{flex-wrap:wrap;gap:8px}
+      input.num{width:100%}
+      .drop{padding:1.7rem 1rem}
+      .btn-row .btn{flex:1 1 100%}
+      .frow{gap:10px;padding:10px}
+      .fthumb{width:40px;height:40px}
+    }
+    html[data-theme="light"] .drop{background:#f7faf7;border-color:#dde3dd}
+    html[data-theme="light"] .drop:hover,html[data-theme="light"] .drop.over{background:var(--accent-soft);border-color:var(--pink)}
+    html[data-theme="light"] .frow{background:#f7faf7;border-color:#dde3dd}
+    html[data-theme="light"] .icon-btn{background:#ffffff;border-color:#dde3dd}
+  </style>
+</head>
+<body>
+
+<div id="authGate">
+  <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffc73f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h9l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"/><path d="M13 4v5h5"/></svg>
+  <div class="gate-spin"></div>
+  <div class="gate-msg">Checking sign-in...</div>
+</div>
+
+<div id="appWrap" style="display:none">
+  <div class="page">
+    <a class="back-link" href="tools.html"><span data-ico="back"></span> All tools</a>
+    <div class="page-head">
+      <h2><span data-ico="file" data-size="26"></span> File Converter</h2>
+      <p>Shrink a photo, swap between JPEG, PNG and WebP, turn a stack of photos into one PDF, or pull a PDF apart into a picture per page. Everything happens on your device — no file is uploaded.</p>
+    </div>
+
+    <div class="card">
+      <label class="drop" id="drop">
+        <input type="file" id="picker" accept="image/*,application/pdf,.pdf" multiple>
+        <span class="drop-ic" data-ico="file" data-size="30"></span>
+        <span class="drop-t">Tap to choose files</span>
+        <span class="drop-s">or drag them here · photos and PDFs</span>
+      </label>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Settings</div>
+
+      <div class="field">
+        <label class="fl" for="maxSide">Longest side</label>
+        <div class="set-row">
+          <input type="number" class="num" id="maxSide" min="200" max="6000" step="100" value="1600" inputmode="numeric">
+          <span class="set-note" style="margin:0">px — the other side follows, so nothing is squashed. Something already smaller than this is left at its own size; PDF pages are drawn at this size.</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="fl" for="quality">Quality</label>
+        <div class="set-row">
+          <input type="range" class="rng" id="quality" min="30" max="100" step="5" value="80">
+          <span class="q-val" id="qVal">80%</span>
+        </div>
+        <div class="set-note" id="qNote"></div>
+      </div>
+
+      <div class="field">
+        <label class="fl">Save as</label>
+        <div class="seg-grid" style="--cols:4" id="segFmt">
+          <button class="seg-btn active" data-fmt="same" type="button">Same</button>
+          <button class="seg-btn" data-fmt="image/jpeg" type="button">JPEG</button>
+          <button class="seg-btn" data-fmt="image/png" type="button">PNG</button>
+          <button class="seg-btn" data-fmt="image/webp" type="button">WebP</button>
+        </div>
+        <div class="set-note">A PDF you drop in comes out as one image per page in this format.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Files <span class="hint" id="countHint"></span></div>
+      <div class="files" id="files"></div>
+      <div class="empty" id="empty">Nothing yet — choose a photo or a PDF above.</div>
+      <div id="summary"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* ─────────────────────────────────────────────────────────────
+   File Converter — resize, re-encode and convert between the
+   formats a phone actually produces, entirely in the browser.
+   There is no upload path on purpose: the QR tool set the
+   precedent that a Tools page which can work offline should.
+
+   Everything funnels through one pipeline: get pixels onto a
+   canvas, then encode. A photo gets its pixels by being decoded;
+   a PDF page gets them by being rendered. After that they are the
+   same kind of thing, which is what lets a PDF you dropped in be
+   re-saved as JPEGs, and a pile of photos be stapled into a PDF.
+
+   The two PDF libraries are fetched only when a PDF is actually
+   involved, so the common case — shrinking a photo — stays a page
+   with no dependencies at all.
+   ───────────────────────────────────────────────────────────── */
+import { initShell, icon, paintIcons, toast, download, esc } from "./tools-shell.js"
+
+await initShell({ title:"Convert", active:"convert" })
+
+const $ = id => document.getElementById(id)
+
+/* WebP encoding is nearly universal now but not quite; a button that
+   silently produced a PNG would be worse than one that isn't there. */
+const CAN_WEBP = (() => {
+  try { return document.createElement("canvas").toDataURL("image/webp").startsWith("data:image/webp") }
+  catch(e){ return false }
+})()
+
+const EXT = { "image/jpeg":"jpg", "image/png":"png", "image/webp":"webp" }
+const LABEL = { "image/jpeg":"JPEG", "image/png":"PNG", "image/webp":"WebP" }
+const MAX_PDF_PAGES = 50      // a phone will not thank you for 300 canvases
+
+let items = []      // see makeItem below
+let seq = 0
+let settings = { maxSide: 1600, quality: 0.8, fmt: "same" }
+
+/* ── Lazily fetched, and only when a PDF is in play ───────────
+   Both come from esm.sh, the same CDN the QR and card tools already
+   use. Failure here is reported plainly rather than swallowed: the
+   rest of the page genuinely works offline, so "you need the network
+   for this bit" is worth saying out loud. */
+let _pdfLib = null, _pdfjs = null
+
+async function pdfLib(){
+  if(!_pdfLib) _pdfLib = await import("https://esm.sh/pdf-lib@1.17.1")
+  return _pdfLib
+}
+async function pdfjs(){
+  if(!_pdfjs){
+    _pdfjs = await import("https://esm.sh/pdfjs-dist@4.7.76/build/pdf.min.mjs")
+    _pdfjs.GlobalWorkerOptions.workerSrc = "https://esm.sh/pdfjs-dist@4.7.76/build/pdf.worker.min.mjs"
+  }
+  return _pdfjs
+}
+
+/* ── Helpers ─────────────────────────────────────────────── */
+
+function fmtSize(n){
+  if(n < 1024) return n + " B"
+  if(n < 1024*1024) return (n/1024).toFixed(n/1024 < 10 ? 1 : 0) + " KB"
+  return (n/1024/1024).toFixed(2) + " MB"
+}
+
+// Which type this item should come out as
+function targetType(it){
+  if(settings.fmt !== "same") return settings.fmt
+  if(it.pdf) return "image/jpeg"                       // a page has no format of its own
+  return EXT[it.file.type] ? it.file.type : "image/jpeg"
+}
+
+const isLossy = t => t === "image/jpeg" || t === "image/webp"
+
+function outName(name, type){
+  const base = name.replace(/\.[^.]+$/, "") || "file"
+  return `${base}.${EXT[type] || "jpg"}`
+}
+
+/* Decode to something drawable. createImageBitmap is the fast path and
+   the only one that will apply the EXIF rotation a phone camera writes,
+   so a portrait photo doesn't come back on its side. Older Safari
+   ignores the option and some browsers reject it outright, hence the
+   <img> fallback — which applies orientation on its own these days. */
+async function decode(file){
+  if(window.createImageBitmap){
+    try { return await createImageBitmap(file, { imageOrientation: "from-image" }) }
+    catch(e){ /* unsupported option, or a format this engine can't read */ }
+    try { return await createImageBitmap(file) }
+    catch(e){ /* fall through to the <img> path */ }
+  }
+  return await new Promise((res, rej) => {
+    const url = URL.createObjectURL(file)
+    const im = new Image()
+    im.onload  = () => { URL.revokeObjectURL(url); res(im) }
+    im.onerror = () => { URL.revokeObjectURL(url); rej(new Error("decode failed")) }
+    im.src = url
+  })
+}
+
+const canvasToBlob = (c, type, q) =>
+  new Promise(res => c.toBlob(res, type, isLossy(type) ? q : undefined))
+
+/* ── The pipeline ────────────────────────────────────────────
+   Both sources end up here: a canvas at the target size, which then
+   gets encoded once. */
+
+async function canvasForImage(it, type){
+  const src = await decode(it.file)
+  const sw = src.width, sh = src.height
+  // Never enlarge: a small photo stays its own size rather than being
+  // blown up to the cap and losing sharpness for a bigger file.
+  const scale = Math.min(1, settings.maxSide / Math.max(sw, sh))
+  const w = Math.max(1, Math.round(sw * scale))
+  const h = Math.max(1, Math.round(sh * scale))
+  const c = document.createElement("canvas")
+  c.width = w; c.height = h
+  const ctx = c.getContext("2d")
+  ctx.imageSmoothingQuality = "high"
+  // JPEG has no alpha: without this a transparent PNG comes out black.
+  if(type === "image/jpeg"){ ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h) }
+  ctx.drawImage(src, 0, 0, w, h)
+  if(src.close) src.close()   // free the bitmap — a batch of 12MP photos adds up
+  return c
+}
+
+/* A PDF page is rendered straight at the size we want rather than
+   rendered big and shrunk — it is vector data, so asking for the final
+   scale gives a sharper page for less memory. */
+async function canvasForPdfPage(it, type){
+  const base = it.pdf.page.getViewport({ scale: 1 })
+  const scale = Math.min(6, settings.maxSide / Math.max(base.width, base.height))
+  const vp = it.pdf.page.getViewport({ scale })
+  const c = document.createElement("canvas")
+  c.width = Math.max(1, Math.ceil(vp.width))
+  c.height = Math.max(1, Math.ceil(vp.height))
+  const ctx = c.getContext("2d")
+  // PDF pages are transparent where nothing is drawn; paper is white.
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, c.width, c.height)
+  await it.pdf.page.render({ canvasContext: ctx, viewport: vp }).promise
+  return c
+}
+
+async function process(it){
+  it.state = "working"
+  it.note = ""
+  drawRows()
+
+  const type = targetType(it)
+  let c
+  try {
+    c = it.pdf ? await canvasForPdfPage(it, type) : await canvasForImage(it, type)
+  } catch(e){
+    it.state = "error"
+    it.note = it.pdf
+      ? "This page wouldn't render"
+      : "Can't read this type — HEIC and RAW photos need converting first"
+    drawRows(); return
+  }
+
+  const w = c.width, h = c.height
+  let blob = await canvasToBlob(c, type, settings.quality)
+  c.width = c.height = 0        // let the backing store go on phones
+
+  if(!blob){
+    it.state = "error"; it.note = "This browser couldn't write that format"
+    drawRows(); return
+  }
+
+  /* Re-encoding can easily make a file *larger* — a photo already saved
+     at low quality, or anything going to PNG. Handing back something
+     bigger would be the opposite of the point, so keep the original
+     bytes and say so. Only where there is an original to keep, and only
+     when the type is unchanged; otherwise the conversion would be a lie. */
+  if(!it.pdf && blob.size >= it.file.size && type === it.file.type){
+    it.blob = it.file
+    it.outType = it.file.type
+    it.outSize = it.file.size
+    it.state = "same"
+    it.note = "Already as small as it's going to get"
+  } else {
+    it.blob = blob
+    it.outType = type
+    it.outSize = blob.size
+    it.state = "done"
+    it.note = ""
+  }
+  it.w = w; it.h = h
+  // A page has no thumbnail until it has been rendered once
+  if(it.pdf){
+    if(it.thumb) URL.revokeObjectURL(it.thumb)
+    it.thumb = URL.createObjectURL(it.blob)
+  }
+  drawRows()
+}
+
+// Settings changed — everything has to go through again.
+let runToken = 0
+async function processAll(){
+  const mine = ++runToken
+  for(const it of items){
+    if(mine !== runToken) return        // a newer run started; abandon this one
+    await process(it)
+  }
+}
+
+/* ── Adding files ────────────────────────────────────────── */
+
+const isPdf = f => f.type === "application/pdf" || /\.pdf$/i.test(f.name || "")
+
+function pushImage(file){
+  const it = { id: ++seq, file, pdf: null, name: file.name || "photo", inSize: file.size,
+               state:"queued", blob:null, outType:null, outSize:0, w:0, h:0, note:"",
+               thumb: URL.createObjectURL(file) }
+  items.push(it)
+  return it
+}
+
+/* A PDF becomes one row per page. That is the whole "PDF → images"
+   feature, and it also means the pages can be re-encoded, reordered and
+   stapled back into a new PDF like any other row. */
+async function expandPdf(file){
+  let lib
+  try { lib = await pdfjs() }
+  catch(e){
+    toast("Couldn't load the PDF reader — check your connection", { error:true })
+    return
+  }
+  let doc
+  try {
+    doc = await lib.getDocument({ data: await file.arrayBuffer() }).promise
+  } catch(e){
+    toast(`Couldn't open ${file.name} — it may be password-protected`, { error:true })
+    return
+  }
+  const base = (file.name || "document").replace(/\.[^.]+$/, "")
+  const n = Math.min(doc.numPages, MAX_PDF_PAGES)
+  for(let i = 1; i <= n; i++){
+    const page = await doc.getPage(i)
+    items.push({ id: ++seq, file: null, pdf: { doc, page, n: i, of: doc.numPages },
+                 name: `${base}-p${i}`, inSize: 0,
+                 state:"queued", blob:null, outType:null, outSize:0, w:0, h:0, note:"", thumb:null })
+  }
+  if(doc.numPages > n)
+    toast(`${file.name} has ${doc.numPages} pages — took the first ${n}`)
+  drawRows()
+}
+
+async function addFiles(list){
+  const incoming = [...list].filter(f => f && (
+    f.type.startsWith("image/") || isPdf(f) || /\.(hei[cf]|avif|tiff?)$/i.test(f.name)))
+  if(!incoming.length){ toast("Those aren't photos or PDFs", { error:true }); return }
+
+  for(const file of incoming){
+    if(isPdf(file)) await expandPdf(file)
+    else pushImage(file)
+  }
+  drawRows()
+  return processAll()      // returned so callers can wait for the batch
+}
+
+function removeItem(id){
+  const i = items.findIndex(x => x.id === id)
+  if(i < 0) return
+  if(items[i].thumb) URL.revokeObjectURL(items[i].thumb)
+  items.splice(i, 1)
+  drawRows()
+}
+
+// Order is the page order once these become a PDF, so it has to be movable.
+function moveItem(id, dir){
+  const i = items.findIndex(x => x.id === id)
+  const j = i + dir
+  if(i < 0 || j < 0 || j >= items.length) return
+  ;[items[i], items[j]] = [items[j], items[i]]
+  drawRows()
+}
+
+/* ── Saving ──────────────────────────────────────────────── */
+
+function saveOne(id){
+  const it = items.find(x => x.id === id)
+  if(!it || !it.blob) return
+  download(it.blob, outName(it.name, it.outType))
+}
+
+/* Browsers throttle programmatic downloads, and iOS Safari simply
+   refuses everything after the first — so these go out one at a time
+   with a gap, and the phone gets offered Share instead, which is how
+   you actually get a file into Photos or LINE from there. */
+async function saveAll(){
+  const ready = items.filter(it => it.blob)
+  if(!ready.length) return
+  for(const it of ready){
+    download(it.blob, outName(it.name, it.outType))
+    await new Promise(r => setTimeout(r, 350))
+  }
+  toast(`Saved ${ready.length} file${ready.length===1?"":"s"}`)
+}
+
+/* pdf-lib embeds JPEG and PNG and nothing else, so a WebP row has to be
+   re-encoded on the way in. Decode-and-redraw rather than reaching back
+   to the original: what the list shows is what should end up in the PDF. */
+async function asEmbeddable(blob, type){
+  if(type === "image/jpeg" || type === "image/png") return { blob, type }
+  const src = await decode(blob)
+  const c = document.createElement("canvas")
+  c.width = src.width; c.height = src.height
+  const ctx = c.getContext("2d")
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, c.width, c.height)
+  ctx.drawImage(src, 0, 0)
+  if(src.close) src.close()
+  const out = await canvasToBlob(c, "image/jpeg", settings.quality)
+  c.width = c.height = 0
+  return { blob: out, type: "image/jpeg" }
+}
+
+async function combinePdf(){
+  const ready = items.filter(it => it.blob)
+  if(!ready.length) return
+  const btn = $("makePdf")
+  if(btn){ btn.disabled = true; btn.textContent = "Building…" }
+  try {
+    const { PDFDocument } = await pdfLib()
+    const doc = await PDFDocument.create()
+    for(const it of ready){
+      const { blob, type } = await asEmbeddable(it.blob, it.outType)
+      const bytes = await blob.arrayBuffer()
+      const img = type === "image/png" ? await doc.embedPng(bytes) : await doc.embedJpg(bytes)
+      // One page per picture, the page exactly the size of the picture —
+      // no letterboxing, no guessing at A4.
+      const page = doc.addPage([img.width, img.height])
+      page.drawImage(img, { x:0, y:0, width:img.width, height:img.height })
+    }
+    const out = await doc.save()
+    const base = (ready[0].name || "pages").replace(/-p\d+$/, "")
+    download(new Blob([out], { type:"application/pdf" }), `${base}.pdf`)
+    toast(`Made a PDF of ${ready.length} page${ready.length===1?"":"s"}`)
+  } catch(e){
+    console.warn("PDF build failed:", e)
+    toast("Couldn't build the PDF — check your connection and try again", { error:true })
+  } finally {
+    if(btn){ btn.disabled = false; drawSummary() }
+  }
+}
+
+const shareFiles = () => items.filter(it => it.blob)
+  .map(it => new File([it.blob], outName(it.name, it.outType), { type: it.outType }))
+
+function canShare(){
+  const f = shareFiles()
+  return f.length > 0 && navigator.canShare && navigator.canShare({ files: f })
+}
+
+async function shareAll(){
+  const files = shareFiles()
+  try { await navigator.share({ files }) }
+  catch(e){ if(e && e.name !== "AbortError") toast("Couldn't share those", { error:true }) }
+}
+
+/* ── Rendering ───────────────────────────────────────────── */
+
+function rowHTML(it, i){
+  const thumb = it.state === "error" || !it.thumb
+    ? `<span class="fthumb bad">${icon(it.pdf ? "file" : "image", 20)}</span>`
+    : `<img class="fthumb" src="${it.thumb}" alt="">`
+
+  let meta
+  if(it.state === "working" || it.state === "queued")
+    meta = `<span class="fbusy">Working…</span>`
+  else if(it.state === "error")
+    meta = `<span class="fwarn">${esc(it.note)}</span>`
+  else if(it.pdf)
+    // A page has no "before" size, so there is nothing to compare it to
+    meta = `page ${it.pdf.n} of ${it.pdf.of} · <b>${fmtSize(it.outSize)}</b> · ${LABEL[it.outType]} · ${it.w}×${it.h}`
+  else if(it.state === "same")
+    meta = `${fmtSize(it.inSize)} · <span class="fwarn">${esc(it.note)}</span>`
+  else {
+    const cut = Math.max(0, Math.round((1 - it.outSize / it.inSize) * 100))
+    const conv = it.outType !== it.file.type ? ` · ${LABEL[it.outType]}` : ""
+    meta = `${fmtSize(it.inSize)} → <b>${fmtSize(it.outSize)}</b>` +
+           (cut > 0 ? ` <span class="fsave">−${cut}%</span>` : "") +
+           `${conv} · ${it.w}×${it.h}`
+  }
+
+  const many = items.length > 1
+  return `<div class="frow">
+    ${thumb}
+    <div class="finfo">
+      <div class="fname">${it.pdf ? `<span class="ftag">PDF</span>` : ""}<span class="fname-t">${esc(it.name)}</span></div>
+      <div class="fmeta">${meta}</div>
+    </div>
+    ${many ? `<div class="fmove">
+      <button class="icon-btn tiny" data-up="${it.id}" title="Move up" ${i === 0 ? "disabled" : ""}>▲</button>
+      <button class="icon-btn tiny" data-down="${it.id}" title="Move down" ${i === items.length-1 ? "disabled" : ""}>▼</button>
+    </div>` : ""}
+    <div class="facts">
+      <button class="icon-btn" data-save="${it.id}" title="Save this one"
+        ${it.blob ? "" : "disabled"}>${icon("download", 16)}</button>
+      <button class="icon-btn danger" data-del="${it.id}" title="Remove">${icon("trash", 16)}</button>
+    </div>
+  </div>`
+}
+
+function drawRows(){
+  $("files").innerHTML = items.map(rowHTML).join("")
+  $("empty").style.display = items.length ? "none" : ""
+  $("countHint").textContent = items.length ? `${items.length} file${items.length===1?"":"s"}` : ""
+
+  $("files").querySelectorAll("[data-save]").forEach(b =>
+    b.onclick = () => saveOne(Number(b.dataset.save)))
+  $("files").querySelectorAll("[data-del]").forEach(b =>
+    b.onclick = () => removeItem(Number(b.dataset.del)))
+  $("files").querySelectorAll("[data-up]").forEach(b =>
+    b.onclick = () => moveItem(Number(b.dataset.up), -1))
+  $("files").querySelectorAll("[data-down]").forEach(b =>
+    b.onclick = () => moveItem(Number(b.dataset.down), 1))
+
+  drawSummary()
+}
+
+function drawSummary(){
+  const box = $("summary")
+  const ready = items.filter(it => it.blob)
+  if(!ready.length){ box.innerHTML = ""; return }
+
+  // Only the rows that had an original are worth totalling — a PDF page
+  // has nothing to be smaller than.
+  const shrunk = ready.filter(it => !it.pdf)
+  const before = shrunk.reduce((n, it) => n + it.inSize, 0)
+  const after  = shrunk.reduce((n, it) => n + it.outSize, 0)
+  const cut    = before ? Math.max(0, Math.round((1 - after / before) * 100)) : 0
+  const total  = ready.reduce((n, it) => n + it.outSize, 0)
+
+  box.innerHTML = `<div class="totals">
+      ${shrunk.length
+        ? `<span>${shrunk.length} file${shrunk.length===1?"":"s"}:</span>
+           <b>${fmtSize(before)}</b> <span>→</span> <span class="big">${fmtSize(after)}</span>
+           ${cut > 0 ? `<span class="fsave">saving ${cut}%</span>` : ""}`
+        : `<span>${ready.length} page${ready.length===1?"":"s"}:</span> <span class="big">${fmtSize(total)}</span>`}
+    </div>
+    <div class="btn-row">
+      <button class="btn primary" id="saveAll">${icon("download")} Save all (${ready.length})</button>
+      <button class="btn ghost" id="makePdf">${icon("file")} Combine into PDF</button>
+      ${canShare() ? `<button class="btn ghost" id="shareAll">${icon("share")} Share</button>` : ""}
+      <button class="btn ghost" id="clearAll">${icon("trash")} Clear</button>
+    </div>`
+
+  $("saveAll").onclick = saveAll
+  $("makePdf").onclick = combinePdf
+  $("clearAll").onclick = () => {
+    items.forEach(it => it.thumb && URL.revokeObjectURL(it.thumb))
+    items = []
+    drawRows()
+  }
+  const sh = $("shareAll")
+  if(sh) sh.onclick = shareAll
+}
+
+/* ── Settings wiring ─────────────────────────────────────── */
+
+function syncQualityUI(){
+  const png = settings.fmt === "image/png"
+  const q = $("quality")
+  q.disabled = png
+  q.style.setProperty("--fill", ((settings.quality * 100 - 30) / 70 * 100) + "%")
+  $("qVal").textContent = Math.round(settings.quality * 100) + "%"
+  // A dead slider with no explanation reads as a bug
+  $("qNote").textContent = png
+    ? "PNG is lossless, so quality doesn't apply — it's the file type to pick when you need a crisp screenshot or transparency."
+    : "Lower means smaller. 80% is usually indistinguishable from the original on a photo."
+}
+
+$("picker").addEventListener("change", e => {
+  addFiles(e.target.files)
+  e.target.value = ""      // so picking the same file twice still fires
+})
+
+const drop = $("drop")
+;["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.add("over")
+}))
+;["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.remove("over")
+}))
+drop.addEventListener("drop", e => {
+  if(e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files)
+})
+
+$("maxSide").addEventListener("change", e => {
+  const v = Math.round(Number(e.target.value) || 1600)
+  settings.maxSide = Math.min(6000, Math.max(200, v))
+  e.target.value = settings.maxSide
+  processAll()
+})
+
+$("quality").addEventListener("input", e => {
+  settings.quality = Number(e.target.value) / 100
+  syncQualityUI()
+})
+// Re-encoding on every drag of the slider would be wasteful; wait for the release
+$("quality").addEventListener("change", () => processAll())
+
+$("segFmt").querySelectorAll(".seg-btn").forEach(b => {
+  if(b.dataset.fmt === "image/webp" && !CAN_WEBP){
+    b.disabled = true
+    b.title = "This browser can't write WebP"
+    b.style.opacity = 0.4
+    return
+  }
+  b.onclick = () => {
+    settings.fmt = b.dataset.fmt
+    $("segFmt").querySelectorAll(".seg-btn").forEach(x => x.classList.toggle("active", x === b))
+    syncQualityUI()
+    processAll()
+  }
+})
+
+paintIcons()
+syncQualityUI()
+drawRows()
+
+/* Handles for the harness to drive. `processAll` is exposed so a test can
+   await the batch rather than poll for it — polling raced the decode. */
+window.__conv = { addFiles, processAll, combinePdf, moveItem,
+                  get items(){ return items }, get settings(){ return settings } }
+</script>
+</body>
+</html>

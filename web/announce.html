@@ -1030,6 +1030,7 @@ function initApp() {
               <div class="field"><label>Start date</label>
                 <input type="date" value="${esc(subj.taskStart)}" class="cal-start" data-si="${si}" data-sj="${sj}" />
               </div>
+              
               <div class="field"><label>End / Due date</label>
                 <input type="date" value="${esc(subj.taskEnd)}" class="cal-end" data-si="${si}" data-sj="${sj}" />
               </div>
@@ -1302,8 +1303,8 @@ function initApp() {
       const blob = await toBlob(node, {
         pixelRatio: 3,
         backgroundColor: null,
-        // No cacheBust — see tools-card.html; it only forces the logo to
-        // be re-fetched on every render.
+        // No cacheBust — it only forces the logo to be re-fetched on
+        // every render, for nothing.
         ...(fontEmbedCSS ? { fontEmbedCSS } : { skipFonts: true }),
       })
       if (!blob) throw new Error("empty blob")

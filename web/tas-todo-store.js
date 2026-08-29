@@ -9,10 +9,10 @@
    always read whole, and reordering touches every row's `order`.
    A subcollection would turn one drag into N writes.
 
-   The write timing is the reason the four mutators exist rather
+   The write timing is the reason the three mutators exist rather
    than a bare saveTodo — add/remove are single deliberate acts and
-   go out immediately, while reorder and deck moves fire on every
-   drop and are coalesced into one write ~500ms after the last one.
+   go out immediately, while reorder fires on every drop and is
+   coalesced into one write ~500ms after the last one.
    ───────────────────────────────────────────────────────────── */
 
 import { doc, getDoc, setDoc }
@@ -63,8 +63,8 @@ export async function saveTodo(uid, items) {
 }
 
 /* ── Debounced writes ────────────────────────────────────────
-   One timer for the whole module: a drag that reorders and then lands in
-   the deck is two calls, and only the final list needs to be written. */
+   One timer for the whole module: a flurry of drops is a flurry of calls,
+   and only the final list needs to be written. */
 let timer = null
 let pending = null
 
@@ -99,12 +99,11 @@ export async function flushTodo() {
 
 export const hasPendingSave = () => pending !== null
 
-/* ── The four mutators ───────────────────────────────────────
+/* ── The three mutators ──────────────────────────────────────
    Each takes the already-computed next list (the array maths lives in
    tas-todo-state.js) and differs only in when it writes. */
 
 export const addItem    = (uid, items) => { dropPending(); return saveTodo(uid, items) }
 export const removeItem = (uid, items) => { dropPending(); return saveTodo(uid, items) }
 
-export function reorder(uid, items, onResult)    { queueSave(uid, items, onResult) }
-export function toggleDeck(uid, items, onResult) { queueSave(uid, items, onResult) }
+export function reorder(uid, items, onResult) { queueSave(uid, items, onResult) }

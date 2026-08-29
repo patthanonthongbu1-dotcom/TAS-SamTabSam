@@ -8,24 +8,22 @@
    This module never reads Firestore directly and never does the
    list arithmetic itself: tas-todo-state.js works out what the
    next list should be, tas-todo-store.js persists it. What lives
-   here is the DOM, the HTML5 drag-and-drop wiring, and the
-   optimistic-update/rollback dance around the store.
+   here is the DOM, the pointer-driven drag-and-drop wiring, and
+   the optimistic-update/rollback dance around the store.
 
    The task lists are not fetched here either — the calendar
    already holds live `tasks` and `personalTasks` from its two
    onSnapshot listeners, and hands them over through getTasks() /
    getPersonal() so there is exactly one subscription per list.
+
+   A row is a *view* of a task, not a copy: the tick, the progress
+   bar and the detail popup are the calendar's own, borrowed
+   through `helpers`, so a task can never look one way here and
+   another way on the timeline.
    ───────────────────────────────────────────────────────────── */
 
 import * as S from "./tas-todo-state.js"
 import * as Store from "./tas-todo-store.js"
-
-/* Custom drag types rather than text/plain: dragover can inspect
-   `types` but not `getData`, so the drop zones need to tell a task drag
-   from a list-item drag before the drop lands. Both are lowercase —
-   Firefox lowercases custom types and would otherwise miss the match. */
-const T_TASK = "application/x-tas-task"
-const T_ITEM = "application/x-tas-item"
 
 let uid = null
 let mount = null
@@ -39,13 +37,12 @@ let loaded = false         // false until the first successful read
 let loadFailed = false
 let poolQuery = ""
 let openNotes = new Set()  // item ids whose notes box is expanded
-let dragging = null        // { kind:"task"|"item", id, source }
 let onChange = () => {}    // lets the page keep its nav-pill count in step
 
 /* Entrance animations play when you arrive at the view and never again.
    Every drop, keystroke and snapshot rebuilds the markup, so without this
-   the three columns replay their fade-in on every single interaction —
-   the same re-render blink the calendar avoids with its `no-anim` class. */
+   the columns replay their fade-in on every single interaction — the same
+   re-render blink the calendar avoids with its `no-anim` class. */
 let animateView = true
 export function markViewEntered() { animateView = true }
 
@@ -84,7 +81,6 @@ export async function loadTodoOnce() {
 
 // How many items are on the list — drives the nav pill's count badge.
 export const todoCount = () => items.length
-export const deckCount = () => S.deckItems(items).length
 
 /* ── Persisting ──────────────────────────────────────────────
    Every mutation is applied locally and drawn immediately; the write
@@ -112,9 +108,9 @@ async function commitNow(write, next, failMsg) {
   return ok
 }
 
-/* Reorders, deck moves and note edits arrive in bursts, so these go
-   through the store's ~500ms debounce and only report back on the write
-   that actually goes out. */
+/* Reorders and note edits arrive in bursts, so these go through the
+   store's ~500ms debounce and only report back on the write that
+   actually goes out. */
 function commitDebounced(write, next, failMsg) {
   items = next
   paint()
@@ -126,7 +122,9 @@ function commitDebounced(write, next, failMsg) {
 
 /* ── The task pool ───────────────────────────────────────────
    Everything still worth doing, minus what is already on the list.
-   Markers are places in time rather than work, so they never appear. */
+   Markers are places in time rather than work, so they never appear, and
+   a hidden side quest is out of sight here exactly as it is everywhere
+   else — the point of the toggle is that nothing reminds you of it. */
 function poolTasks() {
   const already = S.refIds(items)
   const q = poolQuery.trim().toLowerCase()
@@ -135,6 +133,7 @@ function poolTasks() {
     .filter(t => {
       if (!t || !t.id || already.has(t.id)) return false
       if (H.taskType(t) === "marker") return false
+      if (H.isHidden(t)) return false
       const due = t.end || t.date
       if (!due) return false
       if (H.isDone(t.id)) return false
@@ -148,8 +147,8 @@ function poolTasks() {
 
 /* ── Rendering ───────────────────────────────────────────────
    Shared bits first. `dueMeta` is the one place a due date turns into a
-   colour and a phrase, so pool cards, list rows and deck cards can never
-   disagree about how urgent something is. */
+   colour and a phrase, so pool cards and list rows can never disagree
+   about how urgent something is. */
 function dueMeta(type, dueStr) {
   if (!dueStr) return { color: "#64748b", date: "", phrase: "No date" }
   const d = H.parseDate(dueStr)
@@ -161,14 +160,17 @@ function dueMeta(type, dueStr) {
   }
 }
 
+// The moon a side quest wears everywhere else on the page.
+const sqMark = t => H.isSideQuest(t) ? `<span class="todo-sq" title="Side quest">${H.ico("moon")}</span>` : ""
+
 function poolCardHTML(t) {
   const type = H.taskType(t)
   const m = dueMeta(type, t.end || t.date)
-  return `<div class="todo-pool-card" draggable="true" data-task="${H.esc(t.id)}"
+  return `<div class="todo-pool-card" data-task="${H.esc(t.id)}" data-ref="${H.esc(t.id)}"
                data-source="${t._personal ? "personal" : "shared"}">
     <span class="todo-dot" style="background:${m.color}"></span>
     <div class="todo-pool-info">
-      <div class="todo-pool-name">${H.esc(t.name || "Untitled")}</div>
+      <div class="todo-pool-name">${sqMark(t)}${H.esc(t.name || "Untitled")}</div>
       <div class="todo-pool-sub">${t.subject ? H.esc(t.subject) + " · " : ""}${H.esc(H.TYPE_LABEL[type] || type)}</div>
     </div>
     <div class="todo-pool-right">
@@ -179,29 +181,40 @@ function poolCardHTML(t) {
   </div>`
 }
 
-/* One row renderer for both lanes — a deck card is the same item with a
-   different frame, so they cannot drift apart visually. */
-function itemHTML(r, lane) {
+/* One row per item. A row backed by a real task carries the calendar's
+   own check control — the same `.check-row` / `cr-<id>` markup the
+   timeline draws — so the tick, the saving spinner and the hold-to-set-
+   progress gesture all work here through the page's existing document
+   handlers, with nothing to keep in step. */
+function itemHTML(r) {
   const m = r.orphan || !r.end ? null : dueMeta(r.type, r.end)
   const color = r.orphan ? "#64748b" : r.source === "note" ? "#8b5cf6" : (m ? m.color : "#64748b")
   const notesOpen = openNotes.has(r.id)
+  const isTask = !r.orphan && r.source !== "note"
+  const done = isTask && H.isDone(r.ref)
+  const prog = isTask ? H.progressOf(r.ref) : null
   const sub = r.orphan
     ? "This task was deleted"
     : r.source === "note"
       ? "Note"
       : (r.subject ? H.esc(r.subject) + " · " : "") + H.esc(H.TYPE_LABEL[r.type] || r.type)
 
-  const moveBtn = lane === "deck"
-    ? `<button class="todo-act" title="Back to the list" data-undeck="${H.esc(r.id)}">${H.ico("back")}</button>`
-    : `<button class="todo-act" title="Send to the Focus Deck" data-deck="${H.esc(r.id)}">${H.ico("flame")}</button>`
-
-  return `<div class="todo-item${r.orphan ? " orphan" : ""}${notesOpen ? " notes-open" : ""}"
-               draggable="true" data-item="${H.esc(r.id)}">
+  return `<div class="todo-item${r.orphan ? " orphan" : ""}${notesOpen ? " notes-open" : ""}${done ? " done" : ""}"
+               data-item="${H.esc(r.id)}"${isTask ? ` data-ref="${H.esc(r.ref)}"` : ""}>
     <span class="todo-grip" aria-hidden="true">${H.ico("grip")}</span>
-    <span class="todo-dot" style="background:${color}"></span>
+    ${isTask
+      ? `<div class="check-row todo-check" id="cr-${H.esc(r.ref)}" title="Hold to set up progress">
+           <input type="checkbox" title="Mark as done — hold to set up progress" ${done ? "checked" : ""}
+             onchange="toggleDone('${H.esc(r.ref)}',this.checked,this)" />
+           <div class="hold-ring"></div>
+           <div class="check-spin"></div>
+         </div>`
+      : `<span class="todo-dot" style="background:${color}"></span>`}
     <div class="todo-item-info">
-      <div class="todo-item-name">${H.esc(r.title)}</div>
+      <div class="todo-item-name">${sqMark(r.task)}${H.esc(r.title)}</div>
       <div class="todo-item-sub">${sub}</div>
+      ${prog ? `<div class="todo-item-prog">${H.progressBarHTML(prog, { color })}
+                  <span class="todo-item-progread">${H.esc(H.progressText(prog))}</span></div>` : ""}
     </div>
     ${m ? `<div class="todo-item-right">
       <div class="todo-item-due" style="color:${m.color}">${H.esc(m.date)}</div>
@@ -209,7 +222,6 @@ function itemHTML(r, lane) {
     </div>` : ""}
     <div class="todo-item-acts">
       <button class="todo-act${r.notes ? " has-notes" : ""}" title="Notes" data-notes="${H.esc(r.id)}">${H.ico("note")}</button>
-      ${moveBtn}
       <button class="todo-act danger" title="Remove" data-del="${H.esc(r.id)}">${H.ico("trash")}</button>
     </div>
     ${notesOpen ? `<textarea class="todo-notes" data-notesfor="${H.esc(r.id)}" rows="3"
@@ -219,27 +231,21 @@ function itemHTML(r, lane) {
 
 function viewHTML() {
   const index = S.buildTaskIndex(getTasks(), getPersonal())
-  const resolved = S.resolveItems(items, index)
-  const listRows = resolved.filter(r => !r.deck)
-  const deckRows = resolved.filter(r => r.deck)
+  // A hidden side quest drops out of the list as well as the pool — the
+  // whole point of the toggle is that nothing on screen mentions it.
+  const rows = S.resolveItems(items, index).filter(r => !H.isHidden(r.task))
   const pool = poolTasks()
 
   const poolBody = pool.length
     ? pool.map(poolCardHTML).join("")
     : `<div class="todo-empty small">${poolQuery ? "Nothing matches that." : "Nothing left to add — everything's already on your list."}</div>`
 
-  const listBody = listRows.length
-    ? listRows.map(r => itemHTML(r, "list")).join("")
+  const listBody = rows.length
+    ? rows.map(itemHTML).join("")
+    // No "from the left": below two columns the pool sits underneath.
     : `<div class="todo-empty" data-dropmsg="1">
          <span class="big">${H.ico("check-square")}</span>
-         Drag a task over from the left<br><span>or use the + on any card</span>
-       </div>`
-
-  const deckBody = deckRows.length
-    ? deckRows.map(r => itemHTML(r, "deck")).join("")
-    : `<div class="todo-empty" data-dropmsg="1">
-         <span class="big">${H.ico("flame")}</span>
-         What are you working on <em>now</em>?<br><span>Drag up to ${S.DECK_LIMIT} items here</span>
+         Nothing on the list yet<br><span>Drag a task over, or use the + on any card</span>
        </div>`
 
   // Consumed here rather than in render(), so the loading and error states
@@ -255,26 +261,19 @@ function viewHTML() {
       </div>
       <input class="todo-search" id="todoSearch" type="search" placeholder="Search tasks…"
              value="${H.esc(poolQuery)}" autocomplete="off" />
-      <div class="todo-scroll" id="todoPool">${poolBody}</div>
+      <div class="todo-scroll todo-drop" data-lane="pool" id="todoPool">${poolBody}</div>
+      <p class="todo-foot">Drag one over, or drop one back here to take it off the list.</p>
     </aside>
 
     <section class="todo-col todo-list-col" id="todoList">
       <div class="todo-head">
         <h2>${H.ico("check-square")} To Do</h2>
-        <span class="todo-count">${listRows.length}</span>
+        <span class="todo-count">${rows.length}</span>
         <button class="todo-addnote" id="todoAddNote">${H.ico("plus")} Note</button>
       </div>
       <div class="todo-scroll todo-drop" data-lane="list">${listBody}</div>
+      <p class="todo-foot">Tap a row to open it — the tick and the progress are the timeline's own.</p>
     </section>
-
-    <aside class="todo-col todo-deck-col" id="todoDeck">
-      <div class="todo-head">
-        <h2>${H.ico("flame")} Focus Deck</h2>
-        <span class="todo-count${deckRows.length >= S.DECK_LIMIT ? " full" : ""}">${deckRows.length}/${S.DECK_LIMIT}</span>
-      </div>
-      <div class="todo-scroll todo-drop" data-lane="deck">${deckBody}</div>
-      <p class="todo-deck-foot">Only what you're doing right now.</p>
-    </aside>
   </div>`
 }
 
@@ -292,6 +291,9 @@ export function render() {
       <span class="big">${H.ico("check-square")}</span>Loading your list…</div></div>`
     return
   }
+  // A re-render mid-drag would tear the row out from under the finger.
+  if (drag && drag.active) { pendingRender = true; return }
+
   // Keep focus and caret through a re-render: typing in the search box or a
   // notes field triggers renders, and a naive innerHTML swap would eject the
   // cursor on every keystroke.
@@ -327,10 +329,6 @@ function wire() {
     b.onclick = e => { e.stopPropagation(); addTaskToList(b.dataset.add) })
   mount.querySelectorAll("[data-del]").forEach(b =>
     b.onclick = e => { e.stopPropagation(); onRemove(b.dataset.del) })
-  mount.querySelectorAll("[data-deck]").forEach(b =>
-    b.onclick = e => { e.stopPropagation(); onSetDeck(b.dataset.deck, true) })
-  mount.querySelectorAll("[data-undeck]").forEach(b =>
-    b.onclick = e => { e.stopPropagation(); onSetDeck(b.dataset.undeck, false) })
   mount.querySelectorAll("[data-notes]").forEach(b =>
     b.onclick = e => { e.stopPropagation(); toggleNotes(b.dataset.notes) })
 
@@ -340,101 +338,244 @@ function wire() {
     // rather than on every keystroke.
     ta.onblur = () => saveNotes(ta.dataset.notesfor)
     ta.onkeydown = e => { if (e.key === "Escape") ta.blur() }
-    // A drag started inside the textarea would tear the row out mid-sentence.
-    ta.ondragstart = e => e.preventDefault()
   })
 
-  wireDrag()
+  wireCards()
+}
+
+/* Both card kinds behave the same way: a press that moves is a drag, a
+   press that doesn't is a tap that opens the task. */
+function wireCards() {
+  mount.querySelectorAll(".todo-pool-card, .todo-item").forEach(card => {
+    card.addEventListener("pointerdown", onCardPointerDown)
+    card.addEventListener("click", onCardClick)
+  })
+}
+
+/* A tap anywhere on a row that isn't one of its own controls opens the
+   calendar's detail popup — the same sheet the timeline bar opens, for
+   the same task. Notes have no task behind them, so they open their own
+   notes field instead. */
+function onCardClick(e) {
+  if (justDragged()) { e.preventDefault(); e.stopPropagation(); return }
+  if (e.target.closest("button, input, textarea, label, .check-row, .prog-bar")) return
+  const card = e.currentTarget
+  const ref = card.dataset.ref
+  if (ref) { H.showDetail(e, ref); return }
+  const id = card.dataset.item
+  if (id) toggleNotes(id)   // an orphan or a note — its text is all there is
 }
 
 /* ── Drag and drop ───────────────────────────────────────────
-   Native HTML5 DnD, no library. Pointer devices only — every drag has a
-   button beside it that does the same job, which is what keeps the view
-   usable on phones, where dragstart never fires. */
-function wireDrag() {
-  mount.querySelectorAll(".todo-pool-card").forEach(card => {
-    card.ondragstart = e => {
-      dragging = { kind: "task", id: card.dataset.task, source: card.dataset.source }
-      e.dataTransfer.setData(T_TASK, card.dataset.task)
-      e.dataTransfer.effectAllowed = "copy"
-      card.classList.add("dragging")
-    }
-    card.ondragend = () => { dragging = null; clearDragChrome() }
-  })
+   Pointer Events rather than HTML5 drag-and-drop: `dragstart` never
+   fires on a touchscreen, so the old wiring left the whole view
+   mouse-only. One code path now covers mouse, pen and finger.
 
-  mount.querySelectorAll(".todo-item").forEach(row => {
-    row.ondragstart = e => {
-      dragging = { kind: "item", id: row.dataset.item }
-      e.dataTransfer.setData(T_ITEM, row.dataset.item)
-      e.dataTransfer.effectAllowed = "move"
-      row.classList.add("dragging")
-    }
-    row.ondragend = () => { dragging = null; clearDragChrome() }
+   The gesture: a press arms a drag, and it starts once the finger has
+   moved past a threshold (or has been held still long enough that it
+   clearly isn't a scroll). Until then the press is still a tap, and the
+   lane still scrolls — which is why the threshold exists at all. */
+const DRAG_SLOP  = 8      // px of movement before a press becomes a drag
+const HOLD_MS    = 220    // …or this long held still, for a deliberate pick-up
+const EDGE_PX    = 44     // auto-scroll band at each end of a lane
+const EDGE_SPEED = 14
 
-    // Reorder marker: which side of this row the drop would land on.
-    row.ondragover = e => {
-      if (!dragging || dragging.kind !== "item" || dragging.id === row.dataset.item) return
-      e.preventDefault()
-      e.stopPropagation()
-      const r = row.getBoundingClientRect()
-      const before = e.clientY < r.top + r.height / 2
-      row.classList.toggle("drop-before", before)
-      row.classList.toggle("drop-after", !before)
-    }
-    row.ondragleave = () => row.classList.remove("drop-before", "drop-after")
+const CLICK_GRACE = 250   // …after which a click is a fresh tap, not the drag's
 
-    row.ondrop = e => {
-      if (!dragging || dragging.kind !== "item") return
-      e.preventDefault()
-      e.stopPropagation()   // the lane's own handler must not also run
-      const r = row.getBoundingClientRect()
-      const before = e.clientY < r.top + r.height / 2
-      const targetLane = row.closest("[data-lane]").dataset.lane
-      onDropOnItem(dragging.id, row.dataset.item, before, targetLane)
-      clearDragChrome()
-    }
-  })
+let drag = null           // { kind, id, ref, source, el, ghost, active, … }
+let pendingRender = false // a render that arrived mid-drag and must wait
+let dropTarget = null     // { lane, row, before } — where a release would land
 
-  mount.querySelectorAll(".todo-drop").forEach(zone => {
-    zone.ondragover = e => {
-      // `types` is the only thing readable during dragover, which is why the
-      // drag kind is encoded in the type rather than the payload.
-      const t = e.dataTransfer.types
-      if (!t.includes(T_TASK) && !t.includes(T_ITEM)) return
-      e.preventDefault()
-      e.dataTransfer.dropEffect = t.includes(T_TASK) ? "copy" : "move"
-      zone.classList.add("drag-over")
+/* Releasing a drag fires a click, which would open the task you just
+   moved. It has to be swallowed — but a plain "swallow the next one" flag
+   never clears when the drop re-renders the list, because the element
+   that would have fired the click is already gone, and it then eats the
+   next genuine tap instead. A timestamp expires on its own. */
+let dragEndedAt = 0
+const justDragged = () => performance.now() - dragEndedAt < CLICK_GRACE
+
+function onCardPointerDown(e) {
+  // Left button / primary contact only, and never from inside a control.
+  if (e.button !== 0 && e.pointerType === "mouse") return
+  if (e.target.closest("button, input, textarea, label, .check-row, .prog-bar")) return
+  const card = e.currentTarget
+  const isPool = card.classList.contains("todo-pool-card")
+
+  drag = {
+    kind: isPool ? "task" : "item",
+    id: isPool ? card.dataset.task : card.dataset.item,
+    ref: card.dataset.ref || null,
+    source: card.dataset.source || null,
+    el: card,
+    pointerId: e.pointerId,
+    startX: e.clientX, startY: e.clientY,
+    offX: 0, offY: 0,
+    ghost: null,
+    active: false,
+    holdTimer: setTimeout(() => { if (drag) beginDrag(e.clientX, e.clientY) }, HOLD_MS)
+  }
+
+  const move = ev => {
+    if (!drag || ev.pointerId !== drag.pointerId) return
+    if (!drag.active) {
+      const far = Math.abs(ev.clientX - drag.startX) > DRAG_SLOP ||
+                  Math.abs(ev.clientY - drag.startY) > DRAG_SLOP
+      if (!far) return
+      beginDrag(drag.startX, drag.startY)
     }
-    zone.ondragleave = e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove("drag-over") }
-    zone.ondrop = e => {
-      e.preventDefault()
-      zone.classList.remove("drag-over")
-      const lane = zone.dataset.lane
-      const taskId = e.dataTransfer.getData(T_TASK)
-      const itemId = e.dataTransfer.getData(T_ITEM)
-      if (taskId) addTaskToList(taskId, lane === "deck")
-      else if (itemId) onDropOnLane(itemId, lane)
-      clearDragChrome()
-    }
-  })
+    ev.preventDefault()
+    moveDrag(ev.clientX, ev.clientY)
+  }
+  const up = ev => {
+    if (!drag || ev.pointerId !== drag.pointerId) return
+    window.removeEventListener("pointermove", move)
+    window.removeEventListener("pointerup", up)
+    window.removeEventListener("pointercancel", cancel)
+    endDrag(true)
+  }
+  const cancel = ev => {
+    if (!drag || ev.pointerId !== drag.pointerId) return
+    window.removeEventListener("pointermove", move)
+    window.removeEventListener("pointerup", up)
+    window.removeEventListener("pointercancel", cancel)
+    endDrag(false)
+  }
+  // On window, not the card: the card is replaced by the next render, and
+  // a listener on a detached node would strand the drag.
+  window.addEventListener("pointermove", move, { passive: false })
+  window.addEventListener("pointerup", up)
+  window.addEventListener("pointercancel", cancel)
 }
 
-function clearDragChrome() {
-  mount.querySelectorAll(".dragging, .drop-before, .drop-after, .drag-over")
-    .forEach(el => el.classList.remove("dragging", "drop-before", "drop-after", "drag-over"))
+/* The ghost is a clone rather than the row itself: the row stays in place
+   (dimmed) so the list doesn't reflow under the finger, and the clone can
+   be dragged outside its scroll container without being clipped. */
+function beginDrag(x, y) {
+  if (!drag || drag.active) return
+  clearTimeout(drag.holdTimer)
+  /* A snapshot landing between the press and the first move rebuilds the
+     list, and the row we were about to pick up is no longer in the page.
+     Cloning it would give a zero-sized ghost at the top-left corner, so
+     drop the gesture instead and let them press again. */
+  if (!drag.el.isConnected) { drag = null; return }
+  drag.active = true
+  document.body.classList.add("todo-dragging")
+
+  const r = drag.el.getBoundingClientRect()
+  drag.offX = x - r.left
+  drag.offY = y - r.top
+
+  const ghost = drag.el.cloneNode(true)
+  ghost.classList.add("todo-ghost")
+  ghost.style.width = r.width + "px"
+  ghost.style.height = r.height + "px"
+  document.body.appendChild(ghost)
+  drag.ghost = ghost
+
+  drag.el.classList.add("dragging")
+  moveDrag(x, y)
+  navigator.vibrate?.(8)
 }
 
-/* ── Actions ─────────────────────────────────────────────── */
+function moveDrag(x, y) {
+  if (!drag || !drag.active) return
+  drag.ghost.style.transform = `translate(${x - drag.offX}px, ${y - drag.offY}px)`
 
-function addTaskToList(taskId, toDeck = false) {
+  // The ghost sits under the pointer, so it has to be invisible to the
+  // hit test or every lookup would just find the ghost.
+  drag.ghost.style.pointerEvents = "none"
+  const under = document.elementFromPoint(x, y)
+  clearDropChrome()
+  dropTarget = null
+  if (!under) return
+
+  const lane = under.closest(".todo-drop")
+  if (!lane) return
+  autoScroll(lane, y)
+
+  // A task from the pool can only be added; it has no place to sit yet.
+  if (drag.kind === "task") {
+    if (lane.dataset.lane !== "list") return
+    lane.classList.add("drag-over")
+    dropTarget = { lane: "list", row: null, before: true }
+    return
+  }
+
+  lane.classList.add("drag-over")
+  const row = under.closest(".todo-item")
+  if (!row || row === drag.el) { dropTarget = { lane: lane.dataset.lane, row: null, before: false }; return }
+  const rr = row.getBoundingClientRect()
+  const before = y < rr.top + rr.height / 2
+  row.classList.toggle("drop-before", before)
+  row.classList.toggle("drop-after", !before)
+  dropTarget = { lane: lane.dataset.lane, row: row.dataset.item, before }
+}
+
+/* Dragging to the bottom of a long list has to be able to reach the rows
+   below the fold, so the lane scrolls itself while the pointer sits in
+   the band at either end. */
+function autoScroll(lane, y) {
+  const r = lane.getBoundingClientRect()
+  if (y < r.top + EDGE_PX) lane.scrollTop -= EDGE_SPEED
+  else if (y > r.bottom - EDGE_PX) lane.scrollTop += EDGE_SPEED
+}
+
+function endDrag(commit) {
+  if (!drag) return
+  clearTimeout(drag.holdTimer)
+  const was = drag
+  const target = dropTarget
+  drag = null
+  dropTarget = null
+
+  if (was.ghost) was.ghost.remove()
+  was.el.classList.remove("dragging")
+  document.body.classList.remove("todo-dragging")
+  clearDropChrome()
+
+  if (!was.active) return           // never moved — it was a tap, let the click through
+  dragEndedAt = performance.now()   // it moved — swallow the click the release fires
+
+  if (commit && target) {
+    if (was.kind === "task" && target.lane === "list") addTaskToList(was.id)
+    else if (was.kind === "item") onItemDropped(was.id, target)
+  }
+  if (pendingRender) { pendingRender = false; render() }
+}
+
+function clearDropChrome() {
+  mount.querySelectorAll(".drop-before, .drop-after, .drag-over")
+    .forEach(el => el.classList.remove("drop-before", "drop-after", "drag-over"))
+}
+
+/* Dropped on the pool, a list row is being taken off the list — the same
+   thing the row's own bin button does, and the obvious meaning of pulling
+   it back where it came from. */
+function onItemDropped(itemId, target) {
+  if (target.lane === "pool") { onRemove(itemId); return }
+  if (!target.row) {
+    // Released over the lane but not over any row — park it at the end.
+    const ordered = S.orderedItems(items)
+    const last = ordered[ordered.length - 1]
+    if (!last || last.id === itemId) return
+    commitDebounced(Store.reorder, S.moveItem(items, itemId, last.id, false),
+      "Couldn't move that — put back")
+    return
+  }
+  if (target.row === itemId) return
+  commitDebounced(Store.reorder, S.moveItem(items, itemId, target.row, target.before),
+    "Couldn't move that — put back")
+}
+
+/* ── Actions ─────────────────────────────────────────── */
+
+function addTaskToList(taskId) {
   if (S.refIds(items).has(taskId)) { H.toast("That's already on your list"); return }
   const personal = getPersonal().some(t => t.id === taskId)
   const task = S.buildTaskIndex(getTasks(), getPersonal()).get(taskId)
   if (!task) { H.toast("That task is no longer there", { error: true }); return }
 
-  if (toDeck && S.deckIsFull(items)) { rejectDeck(); return }
-
-  const item = S.makeItem({ source: personal ? "personal" : "shared", ref: taskId, deck: toDeck })
+  const item = S.makeItem({ source: personal ? "personal" : "shared", ref: taskId })
   commitNow(Store.addItem, S.addItem(items, item), "Couldn't add that — put back")
 }
 
@@ -452,50 +593,6 @@ function onAddNote() {
 function onRemove(id) {
   openNotes.delete(id)
   commitNow(Store.removeItem, S.removeItem(items, id), "Couldn't remove that — put back")
-}
-
-function onSetDeck(id, deck) {
-  const r = S.setDeck(items, id, deck)
-  if (!r.ok) { rejectDeck(r.error); return }
-  commitDebounced(Store.toggleDeck, r.items, "Couldn't move that — put back")
-}
-
-function onDropOnLane(itemId, lane) {
-  const item = items.find(it => it.id === itemId)
-  if (!item) return
-  const wantDeck = lane === "deck"
-  if (item.deck === wantDeck) return          // dropped back where it started
-  onSetDeck(itemId, wantDeck)
-}
-
-/* A drop onto another row means two things at once when the lanes differ:
-   move lane, and take that row's place. Both land in one list so only one
-   write goes out. */
-function onDropOnItem(dragId, targetId, before, targetLane) {
-  const item = items.find(it => it.id === dragId)
-  if (!item) return
-  const wantDeck = targetLane === "deck"
-  let next = items
-
-  if (item.deck !== wantDeck) {
-    const r = S.setDeck(next, dragId, wantDeck)
-    if (!r.ok) { rejectDeck(r.error); return }
-    next = r.items
-  }
-  next = S.moveItem(next, dragId, targetId, before)
-  commitDebounced(Store.reorder, next, "Couldn't move that — put back")
-}
-
-/* The deck refusing a fourth item has to be seen, not just felt — a toast
-   plus a shake on the panel itself, so it reads as "full", not "broken". */
-function rejectDeck(msg) {
-  H.toast(msg || `The Focus Deck holds ${S.DECK_LIMIT} — take something out first.`, { error: true })
-  const panel = document.getElementById("todoDeck")
-  if (!panel) return
-  panel.classList.remove("deck-reject")
-  void panel.offsetWidth          // restart the animation on a repeat drop
-  panel.classList.add("deck-reject")
-  setTimeout(() => panel.classList.remove("deck-reject"), 500)
 }
 
 function toggleNotes(id) {

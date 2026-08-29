@@ -68,3 +68,12 @@ exports.notifyNewTask = onDocumentCreated("tasks/{taskId}", async (event) => {
     admin.firestore().doc("fcmTokens/" + tk).delete()));
   if (dead.length) logger.info(`Pruned ${dead.length} dead tokens`);
 });
+
+/* The daily "due today / tomorrow" reminder used to live here. It moved
+ * to a Netlify scheduled function (web/netlify/functions/reminder.js):
+ * Cloud Functions need the Blaze plan, Netlify scheduled functions come
+ * with the free one, and this project already ships a Netlify function.
+ *
+ * Deliberately not left here as a spare. If it were, a later
+ * `firebase deploy` would quietly stand a second sender up beside the
+ * Netlify one and everyone would get the reminder twice. */

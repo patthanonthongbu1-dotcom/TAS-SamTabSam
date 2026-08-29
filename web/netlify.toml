@@ -17,3 +17,18 @@
   to = "/.netlify/functions/redirect/:splat"
   status = 200
   force = true
+
+# The daily "due today / tomorrow" reminder. It lives here rather than in
+# Cloud Functions because scheduled functions come with the free plan and
+# Firebase's don't — see the header of reminder.js.
+#
+# Every quarter hour, not once a day: everyone picks their own reminder
+# time in Settings, so the function wakes up regularly and sends to
+# whoever's minute has just passed. TICK_MINUTES in reminder.js has to
+# match this interval, or a chosen time falls between two runs and is
+# never reached.
+#
+# Scheduled functions are not reachable over HTTP in production; to try
+# one, use `netlify functions:invoke reminder` locally.
+[functions."reminder"]
+  schedule = "*/15 * * * *"

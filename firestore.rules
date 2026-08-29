@@ -30,6 +30,18 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // ── Daily-reminder preference ─────────────────────────────
+    // Doc id = the owner's uid, holding { on, time, tz, lastSent }.
+    // The calendar writes the first three with merge:true; the
+    // dailyDueReminder Cloud Function reads them and stamps lastSent
+    // through the admin SDK, which bypasses these rules.
+    //
+    // Its own document rather than a field on userDone/{uid}, because
+    // that one is written whole with no merge and would wipe lastSent.
+    match /notifyPrefs/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
     // ── Short links (Tools → Link shortener) ──────────────────
     // Doc id = the short code. Publicly readable because the /r/<code>
     // Netlify Function resolves links for signed-out visitors.

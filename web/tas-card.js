@@ -10,8 +10,9 @@
            { icon, title, note, bullets: [ { text, … } ] } ] } ] }
 
    …and paints the flex-card layout as real DOM, which html-to-image
-   then rasterises. Used by announce.html ("Download card image") and
-   by tools-card.html, so the image is identical from either page.
+   then rasterises. announce.html is the only caller — the card is part
+   of composing an announcement, so it lives with the formatter rather
+   than as a second door in Tools.
    ───────────────────────────────────────────────────────────── */
 
 export const CARD_WIDTH = 360          // CSS px; exported at pixelRatio 3

@@ -5,9 +5,9 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 import {
-  DECK_LIMIT, makeItem, sanitizeItems, toStored, normalizeOrder,
-  listItems, deckItems, deckIsFull, buildTaskIndex, resolveItem, resolveItems,
-  refIds, addItem, removeItem, updateItem, moveItem, setDeck
+  makeItem, sanitizeItems, toStored, normalizeOrder, orderedItems,
+  buildTaskIndex, resolveItem, resolveItems,
+  refIds, addItem, removeItem, updateItem, moveItem
 } from "./tas-todo-state.js"
 
 // Build a list with predictable ids so assertions can name them.
@@ -19,7 +19,6 @@ function list(...specs) {
     text: s.text || "",
     notes: s.notes || "",
     order: s.order === undefined ? i : s.order,
-    deck: !!s.deck,
     createdAt: s.createdAt === undefined ? 1000 + i : s.createdAt
   }))
 }
@@ -48,9 +47,14 @@ test("stored shape carries no task name or due date", () => {
   // ...but none of it may reach Firestore.
   const stored = toStored(items)[0]
   assert.deepEqual(Object.keys(stored).sort(),
-    ["createdAt", "deck", "id", "notes", "order", "ref", "source", "text"])
+    ["createdAt", "id", "notes", "order", "ref", "source", "text"])
   assert.equal("title" in stored, false)
   assert.equal("end" in stored, false)
+})
+
+test("the retired Focus Deck flag never reaches Firestore again", () => {
+  const stored = toStored(sanitizeItems([{ id: "a", ref: "t1", source: "shared", deck: true }]))[0]
+  assert.equal("deck" in stored, false)
 })
 
 test("sanitizeItems drops junk, dedupes ids and repairs order", () => {
@@ -129,58 +133,37 @@ test("refIds reports which tasks are already on the list", () => {
   assert.deepEqual([...refIds(items)].sort(), ["t1", "t2"])
 })
 
-/* ── Lanes and the deck cap ─────────────────────────────────── */
+/* ── Folding away the retired Focus Deck ────────────────────── */
 
-test("lanes split on the deck flag and keep one shared order space", () => {
-  const items = list({ id: "a" }, { id: "b", deck: true }, { id: "c" })
-  assert.deepEqual(ids(listItems(items)), ["a", "c"])
-  assert.deepEqual(ids(deckItems(items)), ["b"])
+const raw = (...specs) => specs.map((s, i) => ({
+  id: s.id, ref: s.ref || "t" + i, source: "shared",
+  order: s.order === undefined ? i : s.order, deck: !!s.deck
+}))
+
+test("what was in the deck is lifted to the top of the one list", () => {
+  const out = sanitizeItems(raw(
+    { id: "a" }, { id: "b", deck: true }, { id: "c" }, { id: "d", deck: true }
+  ))
+  assert.deepEqual(ids(out), ["b", "d", "a", "c"])
+  assert.deepEqual(out.map(i => i.order), [0, 1, 2, 3])
 })
 
-test("the deck accepts exactly DECK_LIMIT and rejects the next", () => {
-  let items = list({ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" })
-  for (const id of ["a", "b", "c"]) {
-    const r = setDeck(items, id, true)
-    assert.equal(r.ok, true)
-    items = r.items
-  }
-  assert.equal(deckIsFull(items), true)
-  assert.equal(deckItems(items).length, DECK_LIMIT)
-
-  const rejected = setDeck(items, "d", true)
-  assert.equal(rejected.ok, false)
-  assert.match(rejected.error, /Focus Deck holds 3/)
-  assert.equal(deckItems(rejected.items).length, DECK_LIMIT, "list unchanged on reject")
-  assert.equal(rejected.items.find(i => i.id === "d").deck, false)
+test("the lift keeps each group in its own stored order", () => {
+  const out = sanitizeItems(raw(
+    { id: "a", order: 3 }, { id: "b", deck: true, order: 2 },
+    { id: "c", order: 1 }, { id: "d", deck: true, order: 0 }
+  ))
+  assert.deepEqual(ids(out), ["d", "b", "c", "a"])
 })
 
-test("taking one out of a full deck makes room again", () => {
-  let items = list({ id: "a", deck: true }, { id: "b", deck: true }, { id: "c", deck: true }, { id: "d" })
-  assert.equal(setDeck(items, "d", true).ok, false)
-  items = setDeck(items, "a", false).items
-  const r = setDeck(items, "d", true)
-  assert.equal(r.ok, true)
-  assert.equal(r.items.find(i => i.id === "d").deck, true)
+test("a list that never had a deck is left in the order it was stored", () => {
+  assert.deepEqual(ids(sanitizeItems(raw({ id: "a" }, { id: "b" }, { id: "c" }))), ["a", "b", "c"])
 })
 
-test("re-decking an item already in the deck is a no-op, not a rejection", () => {
-  const items = list({ id: "a", deck: true }, { id: "b", deck: true }, { id: "c", deck: true })
-  const r = setDeck(items, "a", true)
-  assert.equal(r.ok, true)
-  assert.equal(r.error, null)
-})
-
-test("setDeck on a vanished id reports rather than throws", () => {
-  const r = setDeck(list({ id: "a" }), "ghost", true)
-  assert.equal(r.ok, false)
-  assert.match(r.error, /no longer here/)
-})
-
-test("an item keeps its place in the list after a trip through the deck", () => {
-  let items = list({ id: "a" }, { id: "b" }, { id: "c" })
-  items = setDeck(items, "b", true).items
-  items = setDeck(items, "b", false).items
-  assert.deepEqual(ids(listItems(items)), ["a", "b", "c"])
+test("orderedItems renumbers without dropping anything", () => {
+  const out = orderedItems(list({ id: "a", order: 7 }, { id: "b", order: 2 }))
+  assert.deepEqual(ids(out), ["b", "a"])
+  assert.deepEqual(out.map(i => i.order), [0, 1])
 })
 
 /* ── Reordering ─────────────────────────────────────────────── */

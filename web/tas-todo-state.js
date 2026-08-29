@@ -8,19 +8,19 @@
    list in and hands a new list back, never mutating its input.
 
    The governing rule: a todo item is a *view* over a task, not a
-   copy of one. Nothing here ever reads or stores a task's name or
-   due date — those are resolved fresh against the live task on
-   every render, so renaming or deleting a task in the calendar is
-   reflected in the To Do list without a migration.
+   copy of one. Nothing here ever reads or stores a task's name,
+   due date or done state — those are resolved fresh against the
+   live task on every render, so renaming, ticking or deleting a
+   task in the calendar is reflected in the To Do list without a
+   migration.
    ───────────────────────────────────────────────────────────── */
 
-export const DECK_LIMIT = 3
 export const SOURCES = ["shared", "personal", "note"]
 
 // The only keys that may ever reach Firestore. sanitizeItems() strips
 // everything else, which is what stops a well-meaning future edit from
 // caching `name`/`end` into the todo doc and drifting out of sync.
-const ITEM_KEYS = ["id", "ref", "source", "text", "notes", "order", "deck", "createdAt"]
+const ITEM_KEYS = ["id", "ref", "source", "text", "notes", "order", "createdAt"]
 
 const MAX_TEXT  = 200
 const MAX_NOTES = 2000
@@ -37,10 +37,7 @@ export function newItemId() {
 
 const clampStr = (v, max) => String(v == null ? "" : v).slice(0, max)
 
-/* Order lives in one space shared by both lanes — the deck is a flag,
-   not a second list — so an item keeps its place when it comes back out
-   of the deck. */
-export function makeItem({ ref = null, source, text = "", notes = "", order = 0, deck = false } = {}) {
+export function makeItem({ ref = null, source, text = "", notes = "", order = 0 } = {}) {
   if (!SOURCES.includes(source)) throw new Error("Unknown todo source: " + source)
   return {
     id: newItemId(),
@@ -49,14 +46,24 @@ export function makeItem({ ref = null, source, text = "", notes = "", order = 0,
     text: source === "note" ? clampStr(text, MAX_TEXT) : "",
     notes: clampStr(notes, MAX_NOTES),
     order: Number(order) || 0,
-    deck: !!deck,
     createdAt: Date.now()
   }
 }
 
+// Display order, without renumbering — the shared comparator.
+const sortItems = items =>
+  [...items].sort((a, b) => (a.order - b.order) || (a.createdAt - b.createdAt))
+
 /* Firestore hands back whatever was last written, which after a bad
    deploy or a hand-edit in the console may be anything at all. Treat the
-   stored array as untrusted and drop what can't be repaired. */
+   stored array as untrusted and drop what can't be repaired.
+
+   This is also where the retired Focus Deck is folded away. The deck was
+   a second lane over one shared order space, so plain renumbering would
+   scatter what had been in it through the list. Deck items are lifted to
+   the top instead — they were what you had picked out to work on, so
+   that is where they belong in the one list that is left. The flag is
+   dropped on the next save and never read again. */
 export function sanitizeItems(raw) {
   if (!Array.isArray(raw)) return []
   const seen = new Set()
@@ -78,11 +85,14 @@ export function sanitizeItems(raw) {
       text: source === "note" ? clampStr(r.text, MAX_TEXT) : "",
       notes: clampStr(r.notes, MAX_NOTES),
       order: Number.isFinite(r.order) ? r.order : out.length,
-      deck: !!r.deck,
-      createdAt: Number.isFinite(r.createdAt) ? r.createdAt : 0
+      createdAt: Number.isFinite(r.createdAt) ? r.createdAt : 0,
+      _wasDeck: !!r.deck
     })
   }
-  return normalizeOrder(out)
+  const ordered = sortItems(out)
+  // Stable partition: the old deck keeps its own order, and so does the rest.
+  const lifted = [...ordered.filter(it => it._wasDeck), ...ordered.filter(it => !it._wasDeck)]
+  return lifted.map(({ _wasDeck, ...it }, i) => ({ ...it, order: i }))
 }
 
 // Strip to the storable keys — the last gate before a write.
@@ -97,15 +107,10 @@ export function toStored(items) {
 /* Renumber 0..n-1 in display order. Called after every structural change
    so `order` never drifts into fractions or collides. */
 export function normalizeOrder(items) {
-  return [...items]
-    .sort((a, b) => (a.order - b.order) || (a.createdAt - b.createdAt))
-    .map((it, i) => (it.order === i ? it : { ...it, order: i }))
+  return sortItems(items).map((it, i) => (it.order === i ? it : { ...it, order: i }))
 }
 
 export const orderedItems = items => normalizeOrder(items)
-export const listItems    = items => normalizeOrder(items).filter(it => !it.deck)
-export const deckItems    = items => normalizeOrder(items).filter(it => it.deck)
-export const deckIsFull   = items => items.filter(it => it.deck).length >= DECK_LIMIT
 
 /* ── Resolving refs against the live tasks ──────────────────── */
 
@@ -159,7 +164,7 @@ export function refIds(items) {
 /* ── Mutations — all return a fresh, renumbered list ─────────── */
 
 export function addItem(items, item) {
-  // New arrivals land at the end of the To Do lane.
+  // New arrivals land at the end of the list.
   return normalizeOrder([...items, { ...item, order: items.length }])
 }
 
@@ -177,8 +182,8 @@ export function updateItem(items, id, patch) {
   })
 }
 
-/* Move `dragId` to sit before or after `targetId`. Both lanes share one
-   order space, so this is a single splice on the ordered list. */
+/* Move `dragId` to sit before or after `targetId` — a single splice on
+   the ordered list. */
 export function moveItem(items, dragId, targetId, before = true) {
   if (dragId === targetId) return normalizeOrder(items)
   const ordered = normalizeOrder(items)
@@ -190,25 +195,4 @@ export function moveItem(items, dragId, targetId, before = true) {
   if (to === -1) ordered.push(moved)
   else ordered.splice(before ? to : to + 1, 0, moved)
   return ordered.map((it, i) => (it.order === i ? it : { ...it, order: i }))
-}
-
-/* The deck cap lives here rather than in the UI so the tests cover it.
-   Returns the reason instead of throwing: a rejected drop is a normal
-   thing for someone to do, not an error. */
-export function setDeck(items, id, deck) {
-  const item = items.find(it => it.id === id)
-  if (!item) return { items: normalizeOrder(items), ok: false, error: "That item is no longer here." }
-  if (item.deck === !!deck) return { items: normalizeOrder(items), ok: true, error: null }
-  if (deck && deckIsFull(items)) {
-    return {
-      items: normalizeOrder(items),
-      ok: false,
-      error: "The Focus Deck holds " + DECK_LIMIT + " — take something out first."
-    }
-  }
-  return {
-    items: normalizeOrder(items.map(it => (it.id === id ? { ...it, deck: !!deck } : it))),
-    ok: true,
-    error: null
-  }
 }
