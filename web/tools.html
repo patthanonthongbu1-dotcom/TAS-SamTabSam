@@ -42,6 +42,7 @@
     .tool-card:nth-child(2){animation-delay:0.18s}
     .tool-card:nth-child(3){animation-delay:0.26s}
     .tool-card:nth-child(4){animation-delay:0.34s}
+    .tool-card:nth-child(5){animation-delay:0.42s}
     .tool-card:hover{transform:translateY(-5px);border-color:var(--accent-brd);box-shadow:0 22px 40px -20px rgba(0,0,0,0.75)}
     .tool-card:active{transform:translateY(-1px) scale(0.995)}
     /* Shine sweep, same gesture as the menu pills on index.html */
@@ -66,11 +67,17 @@
     /* Yellow tile needs dark ink to stay legible */
     .tc-convert{background:linear-gradient(180deg,#ffd45c 0%,#e0952a 100%);color:#3a2a05}
     .tc-widget{background:linear-gradient(180deg,#3ec9a7 0%,#0f5a4a 100%)}
+    .tc-inone{background:linear-gradient(180deg,#a78bfa 0%,#432c8f 100%)}
     .tc-title{font-size:20.5px;font-weight:600;letter-spacing:-0.2px}
     .tc-sub{font-size:10.5px;font-weight:600;letter-spacing:0.24em;text-transform:uppercase;color:var(--pink);margin-top:-7px}
     .tc-desc{font-size:14.5px;font-weight:300;color:var(--muted);line-height:1.65}
     .tc-go{margin-top:auto;padding-top:6px;font-size:14px;font-weight:500;color:var(--pink);display:flex;align-items:center;gap:5px;transition:gap 0.18s}
     .tool-card:hover .tc-go{gap:10px}
+    /* An arrow that lifts away rather than slides along: this one is a
+       different site, not another page of ours. */
+    .tool-card.ext:hover .tc-go{gap:5px}
+    .tool-card.ext:hover .tc-go .ico{transform:translate(2px,-2px)}
+    .tc-go .ico{transition:transform 0.18s}
 
     html[data-theme="light"] .tool-card{box-shadow:0 6px 20px -12px rgba(0,0,0,0.22)}
     html[data-theme="light"] .tool-card:hover{box-shadow:0 16px 30px -16px rgba(0,0,0,0.28)}
@@ -90,7 +97,7 @@
     <a class="back-link" href="index.html"><span data-ico="back"></span> Back to menu</a>
     <div class="page-head">
       <h2><span data-ico="tools" data-size="26"></span> Tools</h2>
-      <p>Small utilities for class — make a QR code, shorten a link, convert and shrink files, or put your due tasks on your phone's home screen.</p>
+      <p>Small utilities for class — make a QR code, shorten a link, convert and shrink files, put your due tasks on your phone's home screen, or read up in In One.</p>
     </div>
 
     <div class="tool-grid">
@@ -124,6 +131,17 @@
         <div class="tc-sub">Home screen</div>
         <div class="tc-desc">Puts what you're missing and what's due next on your home screen, so you can check without opening the calendar. Works on iPhone and Android.</div>
         <div class="tc-go">Open <span data-ico="next" data-size="14"></span></div>
+      </a>
+
+      <!-- Not one of ours: In One is a separate site, so this card opens in
+           its own tab and the eyebrow says so rather than claiming Offline. -->
+      <a class="tool-card ext" href="https://in-one-one.vercel.app/"
+         target="_blank" rel="noopener noreferrer">
+        <div class="tc-icon tc-inone" data-ico="book" data-size="25"></div>
+        <div class="tc-title">In One</div>
+        <div class="tc-sub">Another site</div>
+        <div class="tc-desc">A quiet library of summary sheets — history, science, Thai and social studies, plus the PDFs people share before a midterm. Save the ones you want and download them in a batch.</div>
+        <div class="tc-go">Open in a new tab <span data-ico="external" data-size="14"></span></div>
       </a>
     </div>
   </div>

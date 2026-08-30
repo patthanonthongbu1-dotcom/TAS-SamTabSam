@@ -113,6 +113,10 @@ body{
   animation:fadeDrop 0.45s cubic-bezier(0.16,1,0.3,1) 0.14s backwards;
 }
 @keyframes fadeDrop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+/* Leaving the app is worth a hint: the little arrow, and enough space
+   before it that it reads as a mark on the tab rather than a letter. */
+.tool-tab.ext{gap:4px}
+.tool-tab.ext .ico:last-child{opacity:0.6;margin-left:1px}
 .tool-tab{
   border:none;background:transparent;border-radius:8px;padding:6px 12px;
   font-family:'Kanit',sans-serif;font-size:14.5px;font-weight:500;

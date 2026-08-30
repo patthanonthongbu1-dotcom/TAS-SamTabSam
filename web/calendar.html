@@ -810,6 +810,21 @@
     /* Range only applies to timeline mode, so it sits below a divider */
     #rangeSection{border-top:1px solid var(--glass-brd);margin-top:5px;padding-top:2px}
 
+    /* ── Sort ──
+       Sorting was the odd one out inside the filter sheet: it takes nothing
+       away, it re-orders. So it gets a pill of its own alongside the range
+       one — the right of the bar is now "how the board is laid out", and the
+       sheet in the middle is purely "what is on it". Same shape and panel as
+       the range control, because it answers the same kind of question. */
+    .fab-right{display:flex;align-items:flex-end;gap:9px;pointer-events:none}
+    .sort-fab{pointer-events:all;position:relative}
+    .sort-toggle{animation-delay:0.3s}
+    /* Latches like the filter FAB does, so a non-default order is visible
+       from the bar without opening anything */
+    .sort-toggle.on{background:var(--accent-grad);border-color:transparent;color:#fff}
+    .sort-panel{min-width:168px}
+    .sort-lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:104px}
+
     /* MODAL — dark glass */
     .modal-overlay{position:fixed;inset:0;background:rgba(5,10,22,0.62);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem}
     .modal-overlay.open{display:flex;animation:fadeIn 0.2s ease both}
@@ -1137,7 +1152,7 @@
       /* Modals slide up from bottom */
       .modal{border-radius:16px 16px 0 0;max-height:85vh;margin-top:auto}
       .modal-overlay{align-items:flex-end;padding:0}
-      /* Three controls now share the bottom row, so they shrink a little
+      /* Four controls now share the bottom row, so they shrink a little
          to keep the range label from being squeezed off its own button. */
       .fab-container{bottom:1.25rem;left:0.875rem;right:0.875rem}
       .legend-toggle,.filter-toggle{width:42px;height:42px}
@@ -1149,6 +1164,11 @@
       }
       .filter-panel.open{transform:translateY(0)}
       .range-toggle{height:42px;padding:0 14px;font-size:14px}
+      /* Four controls share the row on a phone — the sort pill keeps only
+         its icon, and the chevron says it still opens something. */
+      .sort-lab{display:none}
+      .sort-toggle{padding:0 12px;gap:5px}
+      .fab-right{gap:7px}
 
       /* The sheet behaviour itself lives in the base rules now and is shared
          with desktop; a phone only needs it to go full-bleed. */
@@ -1715,6 +1735,8 @@
     html[data-theme="light"] .legend-panel,html[data-theme="light"] .range-panel{border-color:#dde3dd;box-shadow:0 8px 28px rgba(0,0,0,0.12)}
     html[data-theme="light"] .range-toggle{color:var(--pink)}
     html[data-theme="light"] .range-toggle.open{color:#ffffff}
+    /* Latched sort wears the accent fill, so its label has to flip too */
+    html[data-theme="light"] .sort-toggle.on{color:#ffffff}
     html[data-theme="light"] .range-option{color:#3a463a}
     /* Restated at the theme's specificity — the plain rule above would
        otherwise win and leave dark text on the accent fill. */
@@ -2091,6 +2113,9 @@
   <symbol id="ic-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M3.5 5h17l-6.6 7.8v5.4l-3.8 2.3v-7.7z"/>
   </symbol>
+  <symbol id="ic-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 6h13"/><path d="M4 12h9"/><path d="M4 18h5"/><path d="M17.5 10.5v9"/><path d="M14.8 16.8 17.5 19.5 20.2 16.8"/>
+  </symbol>
   <symbol id="ic-puzzle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M10 4.2a1.9 1.9 0 0 1 3.8 0v.9h3a1 1 0 0 1 1 1v3h.9a1.9 1.9 0 0 1 0 3.8h-.9v3a1 1 0 0 1-1 1h-3v-.9a1.9 1.9 0 0 0-3.8 0v.9h-3a1 1 0 0 1-1-1v-3h-.9a1.9 1.9 0 0 1 0-3.8h.9v-3a1 1 0 0 1 1-1h3z"/>
   </symbol>
@@ -2249,17 +2274,14 @@
   <div class="filter-fab">
     <div class="filter-panel" id="filterPanel">
       <div class="filter-head">
-        <span class="range-label-hd">Filter &amp; sort</span>
+        <span class="range-label-hd">Filters</span>
         <button class="filter-clear" id="filterClear" onclick="clearCalFilters()">Reset</button>
         <button class="filter-close" onclick="closeFabs()" aria-label="Close">✕</button>
       </div>
 
-      <!-- Only the calendar has rows to sort and kinds to draw, so these
-           step aside on the other views rather than sitting there inert -->
+      <!-- Only the calendar has kinds to draw, so these step aside on the
+           other views rather than sitting there inert -->
       <div id="filterCalOnly">
-        <span class="filter-scope">Sort rows by</span>
-        <div class="filter-group" id="filterSort"></div>
-
         <span class="filter-scope">Show on this calendar</span>
         <div class="filter-group" id="filterTypes"></div>
         <button class="filter-switch-row" onclick="toggleFilterDone()">
@@ -2271,7 +2293,7 @@
           <span class="pt-switch" id="filterMarkersSwitch"></span>
         </button>
       </div>
-      <p class="filter-note" id="filterCalHint" style="display:none">Sorting and the kind filters belong to the calendar — open it to use them.</p>
+      <p class="filter-note" id="filterCalHint" style="display:none">The kind filters belong to the calendar — open it to use them.</p>
 
       <span class="filter-scope">Everywhere</span>
       <button class="filter-switch-row" onclick="toggleSideQuests(event)">
@@ -2286,23 +2308,37 @@
       <span class="filter-count" id="filterCount" style="display:none"></span>
     </button>
   </div>
-  <div class="range-fab">
-    <div class="range-panel" id="rangePanel">
-      <span class="range-label-hd">View mode</span>
-      <button class="range-option mode-option active" id="mo-timeline" onclick="setCalMode('timeline')"><svg class="ic" aria-hidden="true"><use href="#ic-chart"/></svg> Timeline</button>
-      <button class="range-option mode-option" id="mo-grid" onclick="setCalMode('grid')"><svg class="ic" aria-hidden="true"><use href="#ic-calendar-grid"/></svg> Month grid</button>
-      <div id="rangeSection">
-        <span class="range-label-hd" style="margin-top:4px">View range</span>
-        <button class="range-option" id="ro-week" onclick="setRange('week')">Week <svg class="ic" aria-hidden="true"><use href="#ic-infinity"/></svg></button>
-        <button class="range-option" id="ro-2weeks" onclick="setRange('2weeks')">2 Weeks</button>
-        <button class="range-option active" id="ro-month" onclick="setRange('month')">Month</button>
-        <button class="range-option" id="ro-semester" onclick="setRange('semester')">Semester</button>
+  <div class="fab-right">
+    <div class="sort-fab">
+      <div class="range-panel sort-panel" id="sortPanel">
+        <span class="range-label-hd">Sort rows by</span>
+        <div id="sortOptions"></div>
       </div>
+      <button class="range-toggle sort-toggle" id="sortToggle" onclick="toggleSort(event)"
+              aria-expanded="false" title="Sort rows">
+        <svg class="ic" aria-hidden="true"><use href="#ic-sort"/></svg>
+        <span class="sort-lab" id="sortLabel">Due date</span>
+        <span class="range-chevron">▲</span>
+      </button>
     </div>
-    <button class="range-toggle" id="rangeToggle" onclick="toggleRange()">
-      <span id="rangeLabel"><svg class="ic" aria-hidden="true"><use href="#ic-calendar-grid"/></svg> Month</span>
-      <span class="range-chevron">▲</span>
-    </button>
+    <div class="range-fab">
+      <div class="range-panel" id="rangePanel">
+        <span class="range-label-hd">View mode</span>
+        <button class="range-option mode-option active" id="mo-timeline" onclick="setCalMode('timeline')"><svg class="ic" aria-hidden="true"><use href="#ic-chart"/></svg> Timeline</button>
+        <button class="range-option mode-option" id="mo-grid" onclick="setCalMode('grid')"><svg class="ic" aria-hidden="true"><use href="#ic-calendar-grid"/></svg> Month grid</button>
+        <div id="rangeSection">
+          <span class="range-label-hd" style="margin-top:4px">View range</span>
+          <button class="range-option" id="ro-week" onclick="setRange('week')">Week <svg class="ic" aria-hidden="true"><use href="#ic-infinity"/></svg></button>
+          <button class="range-option" id="ro-2weeks" onclick="setRange('2weeks')">2 Weeks</button>
+          <button class="range-option active" id="ro-month" onclick="setRange('month')">Month</button>
+          <button class="range-option" id="ro-semester" onclick="setRange('semester')">Semester</button>
+        </div>
+      </div>
+      <button class="range-toggle" id="rangeToggle" onclick="toggleRange()">
+        <span id="rangeLabel"><svg class="ic" aria-hidden="true"><use href="#ic-calendar-grid"/></svg> Month</span>
+        <span class="range-chevron">▲</span>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -3028,6 +3064,7 @@ onAuthStateChanged(auth, async user => {
   syncTopbarH()
   applyStoredRangeToUI()
   applyFilterUI()      // filters are remembered per device, so they are on before the first paint
+  applySortUI()        // …and so is the order the rows come in
   // A device that had reminders on before this existed has no prefs doc yet
   if(notifyPref) publishNotifyPrefs()
   startTasksListener()
@@ -3638,6 +3675,7 @@ window.switchView = function(view) {
   const onCal = view==="calendar"
   document.querySelector(".legend-fab").style.visibility = onCal ? "" : "hidden"
   document.querySelector(".range-fab").style.visibility  = onCal ? "" : "hidden"
+  document.querySelector(".sort-fab").style.visibility   = onCal ? "" : "hidden"
   if(!onCal) closeFabs()
   applyFilterUI()   // the panel shows less away from the calendar
   if (view==="calendar") renderCalendar()
@@ -4017,8 +4055,8 @@ function saveCalFilters(){
   try{ localStorage.setItem(FILTER_KEY, JSON.stringify(calFilters)) }catch(e){}
 }
 
-// Sorting doesn't take anything away, so it isn't counted here — the chip
-// shows itself, and the badge stays a count of what is being hidden.
+// Sorting doesn't take anything away, so it isn't counted here — it has its
+// own pill on the bar, and this badge stays a count of what is being hidden.
 const filtersActive = () =>
   calFilters.types.length + (calFilters.hideDone ? 1 : 0) + (calFilters.hideMarkers ? 1 : 0)
 
@@ -4046,7 +4084,7 @@ function filterTasks(list){
 window.setCalSort = function(id){
   if(!SORT_OPTIONS.some(o => o.id === id)) return
   calFilters.sort = id
-  saveCalFilters(); applyFilterUI()
+  saveCalFilters(); closeFabs(); applySortUI()
   animateRows = true          // a reorder is worth seeing happen
   renderCurrentView()
 }
@@ -4072,8 +4110,10 @@ window.toggleFilterMarkers = function(){
 }
 
 window.clearCalFilters = function(){
-  const had = filtersActive() || sideQuestsHidden || calFilters.sort !== "due"
-  calFilters = { types: [], hideDone: false, hideMarkers: false, sort: "due" }
+  const had = filtersActive() || sideQuestsHidden
+  // Sort has its own control on the bar now, so Reset leaves the order alone
+  // and only puts back what the sheet took away.
+  calFilters = { types: [], hideDone: false, hideMarkers: false, sort: calFilters.sort }
   saveCalFilters()
   // The moon is in this panel, so Reset means all of it.
   if(sideQuestsHidden){
@@ -4103,7 +4143,7 @@ function applyFilterUI(){
   if(!btn) return
   const n = filtersActive() + (sideQuestsHidden ? 1 : 0)
   btn.classList.toggle("on", n > 0)
-  btn.title = n ? `${n} filter${n===1?"":"s"} on — tap to change` : "Filter & sort"
+  btn.title = n ? `${n} filter${n===1?"":"s"} on — tap to change` : "Filters"
   const badge = document.getElementById("filterCount")
   if(badge){
     if(n){ badge.textContent = n; badge.style.display = "block" }
@@ -4116,12 +4156,6 @@ function applyFilterUI(){
   // Nothing "above" to qualify once the calendar-only half is gone
   document.getElementById("filterSqNote").style.display = onCal ? "" : "none"
 
-  // Sort is a pick-one, so the chips read as a segmented control
-  const sortBox = document.getElementById("filterSort")
-  if(sortBox) sortBox.innerHTML = SORT_OPTIONS.map(o =>
-    `<button class="filter-chip${calFilters.sort===o.id?" active":""}"
-      onclick="setCalSort('${o.id}')">${o.label}</button>`).join("")
-
   const typeBox = document.getElementById("filterTypes")
   if(typeBox) typeBox.innerHTML =
     `<button class="filter-chip${calFilters.types.length?"":" active"}" onclick="toggleFilterType('')">All kinds</button>` +
@@ -4132,11 +4166,29 @@ function applyFilterUI(){
   document.getElementById("filterMarkersSwitch")?.classList.toggle("on", calFilters.hideMarkers)
   document.getElementById("filterSqSwitch")?.classList.toggle("on", sideQuestsHidden)
   document.getElementById("filterClear").disabled =
-    !(filtersActive() || sideQuestsHidden || calFilters.sort !== "due")
+    !(filtersActive() || sideQuestsHidden)
   // The settings row is the same side-quest switch under a different hat
   document.getElementById("sqSwitch")?.classList.toggle("on", sideQuestsHidden)
 }
 window.applyFilterUI = applyFilterUI
+
+/* The sort FAB says what the order is without being opened: the pill wears
+   the current option's name, and latches accent once that isn't the due
+   date — the same "something is on" language the filter FAB uses. */
+function applySortUI(){
+  const opt = SORT_OPTIONS.find(o => o.id === calFilters.sort) || SORT_OPTIONS[0]
+  const btn = document.getElementById("sortToggle")
+  if(!btn) return
+  btn.classList.toggle("on", opt.id !== "due")
+  btn.title = opt.id === "due" ? "Sort rows" : `Sorted by ${opt.label.toLowerCase()} — tap to change`
+  const lab = document.getElementById("sortLabel")
+  if(lab) lab.textContent = opt.label
+  const box = document.getElementById("sortOptions")
+  if(box) box.innerHTML = SORT_OPTIONS.map(o =>
+    `<button class="range-option${calFilters.sort===o.id?" active":""}"
+      onclick="setCalSort('${o.id}')">${o.label}</button>`).join("")
+}
+window.applySortUI = applySortUI
 
 // ── Subject colours ───────────────────────────────────────────
 // Colouring by urgency makes a busy month one wall of orange, so the default
@@ -4301,9 +4353,10 @@ window.resetSubjectColors=async function(){
   renderCurrentView()
 }
 function closeFabs(){
-  ["legendPanel","legendToggle","rangePanel","rangeToggle","filterPanel","filterToggle"]
-    .forEach(id=>document.getElementById(id).classList.remove("open"))
+  ["legendPanel","legendToggle","rangePanel","rangeToggle","filterPanel","filterToggle","sortPanel","sortToggle"]
+    .forEach(id=>document.getElementById(id)?.classList.remove("open"))
   document.getElementById("filterToggle")?.setAttribute("aria-expanded","false")
+  document.getElementById("sortToggle")?.setAttribute("aria-expanded","false")
 }
 window.toggleLegend=function(e){
   e&&e.stopPropagation()
@@ -4317,6 +4370,16 @@ window.toggleLegend=function(e){
     document.querySelector(".legend-toggle svg").style.color="var(--pink)"
   }
 }
+window.toggleSort=function(e){
+  e&&e.stopPropagation()
+  const open=document.getElementById("sortPanel").classList.contains("open")
+  closeFabs()
+  if(!open){
+    document.getElementById("sortPanel").classList.add("open")
+    document.getElementById("sortToggle").classList.add("open")
+    document.getElementById("sortToggle").setAttribute("aria-expanded","true")
+  }
+}
 window.toggleRange=function(e){
   e&&e.stopPropagation()
   const open=document.getElementById("rangePanel").classList.contains("open")
@@ -4324,8 +4387,8 @@ window.toggleRange=function(e){
   if(!open){document.getElementById("rangePanel").classList.add("open");document.getElementById("rangeToggle").classList.add("open")}
 }
 document.addEventListener("click",e=>{
-  const fabs=[".legend-fab",".range-fab",".filter-fab"].map(s=>document.querySelector(s))
-  const open=["legendPanel","rangePanel","filterPanel"].some(id=>document.getElementById(id).classList.contains("open"))
+  const fabs=[".legend-fab",".range-fab",".filter-fab",".sort-fab"].map(s=>document.querySelector(s))
+  const open=["legendPanel","rangePanel","filterPanel","sortPanel"].some(id=>document.getElementById(id)?.classList.contains("open"))
   if(open && !fabs.some(f=>f && f.contains(e.target))){
     closeFabs();document.querySelector(".legend-toggle svg").style.color="var(--pink)"
   }

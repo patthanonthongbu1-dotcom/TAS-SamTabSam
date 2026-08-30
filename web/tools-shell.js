@@ -61,6 +61,7 @@ const PATHS = {
   phone:    `<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 5.5h3"/>`,
   check:    `<path d="M4 12.5 9 17.5 20 6.5"/>`,
   clock:    `<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>`,
+  book:     `<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5Z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5A2.5 2.5 0 0 1 4 20.5Z"/><path d="M8 7.5h7"/>`,
 }
 
 /**
@@ -86,13 +87,15 @@ export function paintIcons(root = document){
   })
 }
 
-// The pages of the section, in tab order.
+// The pages of the section, in tab order. `ext` marks a tool that lives
+// outside this app — it opens in its own tab and can never be the active one.
 const TOOL_TABS = [
   { key:"hub",  href:"tools.html",      icon:"tools", label:"Tools"   },
   { key:"qr",   href:"tools-qr.html",   icon:"qr",    label:"QR Code" },
   { key:"link", href:"tools-link.html", icon:"link",  label:"Links"   },
   { key:"convert", href:"tools-convert.html", icon:"file", label:"Convert" },
   { key:"widget", href:"tools-widget.html", icon:"phone", label:"Widget" },
+  { key:"inone", href:"https://in-one-one.vercel.app/", icon:"book", label:"In One", ext:true },
 ]
 
 /* Escape user text before it goes anywhere near innerHTML — same
@@ -156,7 +159,9 @@ function orbsHTML(){
 
 function topbarHTML(title,active){
   const tabs = TOOL_TABS.map(t=>
-    `<a class="tool-tab${t.key===active?" active":""}" href="${t.href}">${icon(t.icon,14)} ${esc(t.label)}</a>`
+    `<a class="tool-tab${t.key===active?" active":""}${t.ext?" ext":""}" href="${t.href}"` +
+    `${t.ext?` target="_blank" rel="noopener noreferrer"`:""}>${icon(t.icon,14)} ${esc(t.label)}` +
+    `${t.ext?icon("external",11):""}</a>`
   ).join("")
   // Same swap the calendar's setTheme() does — the LIGHT file is the logo
   // *for* dark backgrounds, so the light theme needs the other one.
