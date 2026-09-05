@@ -67,3 +67,10 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Firebase service account keys — full admin credentials that bypass
+# firestore.rules. Matched anywhere in the tree, because a key that
+# lands in the wrong folder is otherwise untracked-but-committable.
+serviceAccountKey.json
+*serviceAccount*.json
+*-firebase-adminsdk-*.json
