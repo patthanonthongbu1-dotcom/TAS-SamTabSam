@@ -1,0 +1,4 @@
+# mcp 2.x renamed FastMCP -> MCPServer; the server supports both, but
+# pin the major so an install can't silently change the API underneath.
+mcp>=2,<3
+firebase-admin>=7,<8

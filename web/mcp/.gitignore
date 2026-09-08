@@ -1,0 +1,10 @@
+# A Firebase service account key is a full admin credential for the
+# tas-samtabsam project -- it bypasses firestore.rules entirely.
+# It must never be committed.
+serviceAccountKey.json
+*serviceAccount*.json
+*-firebase-adminsdk-*.json
+
+# Local interpreter for the MCP server
+.venv/
+__pycache__/
