@@ -1,0 +1,174 @@
+/* ─────────────────────────────────────────────────────────────
+   TAS — the page navigator.
+
+   At rest it is a line at the bottom edge, centred, the way iOS
+   draws its home indicator: something you can grab, not a button
+   demanding attention. Tap it and the same line stretches into a
+   glass pill of pages — icon over label — then shrinks back. Which
+   of the two it is persists across pages, so it reads as one bar
+   the app carries rather than a control each page puts up.
+
+   The morph is one shape. The capsule is an SVG <rect> that fills
+   the surface, so growing the surface grows the rect, and its
+   corner radius comes from --tasnav-r, a registered property that
+   both the rect's rx and the surface's own clip animate from. One
+   number, one transition, nothing to drift out of step.
+
+   Everything is written against the tokens each page already
+   declares in its :root, with a dark-pink fallback in every var()
+   because announce.html carries only a short token set and no
+   light theme. That is what lets the Tools pages — which redefine
+   the same names to yellow in tools-shell.css — get a yellow
+   navigator for free.
+
+   Placement is tunable per page through --tasnav-bottom, because
+   calendar.html already owns its bottom edge with a row of FABs.
+   ───────────────────────────────────────────────────────────── */
+
+/* Registering it is what makes the radius animatable — an
+   unregistered custom property jumps from one value to the other,
+   and the line would pop into a pill instead of rounding into one. */
+@property --tasnav-r{
+  syntax:"<length>";
+  inherits:true;
+  initial-value:3px;
+}
+
+/* A bar restored from the last page must already be open when this one
+   paints — otherwise every navigation replays the stretch and the thing
+   blinks its way across the app. Dropped after the first frame. */
+.tasnav.no-anim,
+.tasnav.no-anim *{transition:none!important}
+
+.tasnav{
+  position:fixed;
+  bottom:calc(var(--tasnav-bottom, 1.25rem) + env(safe-area-inset-bottom, 0px));
+  left:50%;transform:translateX(-50%);
+  z-index:550;                 /* over the calendar FABs (500), under every overlay */
+  font-family:'Kanit',sans-serif;
+  --tasnav-r:3px;
+}
+
+/* ── The shape ──
+   Rest is a bare line: 118×6. Open is a pill as wide as its
+   contents, which the script measures once and writes into
+   --tasnav-w. Width, height and radius share one curve, so the
+   thing reads as a single object stretching. */
+.tasnav-surface{
+  position:relative;display:block;margin:0 auto;overflow:hidden;
+  width:118px;height:6px;
+  border-radius:var(--tasnav-r);
+  transition:width 0.42s cubic-bezier(0.16,1,0.3,1),
+             height 0.42s cubic-bezier(0.16,1,0.3,1),
+             --tasnav-r 0.42s cubic-bezier(0.16,1,0.3,1),
+             box-shadow 0.3s ease;
+}
+.tasnav[data-open="true"] .tasnav-surface{
+  width:var(--tasnav-w, 280px);height:74px;
+  --tasnav-r:26px;
+  backdrop-filter:blur(20px) saturate(1.4);
+  -webkit-backdrop-filter:blur(20px) saturate(1.4);
+  box-shadow:0 18px 44px -14px rgba(0,0,0,0.65);
+}
+
+/* The skin: one rect filling the surface, so the surface's own
+   transition is the only thing driving the geometry. */
+.tasnav-skin{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}
+.tasnav-cap{
+  fill:var(--tasnav-line, rgba(255,255,255,0.5));
+  stroke:var(--glass-brd, rgba(255,255,255,0.16));
+  stroke-width:1;stroke-opacity:0;
+  rx:var(--tasnav-r);
+  transition:fill 0.3s ease, stroke-opacity 0.3s ease;
+}
+.tasnav[data-open="true"] .tasnav-cap{
+  fill:var(--col, rgba(255,255,255,0.09));
+  stroke-opacity:1;
+}
+
+/* ── The handle ──
+   One button toggles both ways, because the bar stays how you leave
+   it: nothing else may close it, or a stray tap on a task would
+   collapse the bar for good and the next page would open collapsed.
+
+   Closed, it is a 40px band over the 6px line — a thumb cannot find
+   6px. Open, it shrinks to a lane along the pill's bottom edge and
+   grows a grip, the way a sheet says "pull me down". */
+.tasnav-hit{
+  position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
+  width:152px;height:40px;padding:0;border:0;background:transparent;
+  cursor:pointer;border-radius:20px;color:var(--text, #fff);
+  transition:width 0.3s ease, height 0.3s ease, bottom 0.3s ease;
+}
+.tasnav-hit::after{
+  content:"";position:absolute;left:50%;top:50%;
+  transform:translate(-50%,-50%);
+  width:34px;height:4px;border-radius:2px;background:currentColor;
+  opacity:0;transition:opacity 0.2s ease 0.1s;
+}
+.tasnav-hit:focus-visible{outline:2px solid var(--pink, #ff4fa3);outline-offset:2px}
+.tasnav[data-open="true"] .tasnav-hit{bottom:0;width:104px;height:18px;border-radius:9px}
+.tasnav[data-open="true"] .tasnav-hit::after{opacity:0.3}
+.tasnav[data-open="true"] .tasnav-hit:hover::after{opacity:0.6}
+.tasnav-surface:hover{--tasnav-r:3.5px}
+.tasnav[data-open="false"] .tasnav-surface:hover .tasnav-cap{fill:var(--tasnav-line-hover, rgba(255,255,255,0.78))}
+
+/* ── The pages ──
+   Absolutely positioned and sized to their own content, so the
+   surface can be 6px tall without squashing them, and so the
+   script can measure the width the open pill needs. */
+.tasnav-body{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:max-content;
+  display:flex;align-items:stretch;gap:2px;padding:0 9px;
+  opacity:0;pointer-events:none;
+  transition:opacity 0.18s ease 0.02s;
+}
+/* Lifted off centre to leave the grip its lane along the bottom. */
+.tasnav[data-open="true"] .tasnav-body{
+  opacity:1;pointer-events:auto;transition-delay:0.12s;
+  top:calc(50% - 8px);
+}
+
+.tasnav-item{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  min-width:74px;padding:8px 10px 7px;border-radius:17px;
+  color:var(--muted, rgba(255,255,255,0.62));text-decoration:none;
+  border:0;background:transparent;cursor:pointer;
+  font-family:inherit;line-height:1;
+  transition:background 0.15s, color 0.15s;
+}
+.tasnav-item svg{width:21px;height:21px;display:block}
+.tasnav-lab{font-size:11.5px;font-weight:500;white-space:nowrap;letter-spacing:0.01em}
+.tasnav-item:hover{background:rgba(255,255,255,0.08);color:var(--text, #fff)}
+.tasnav-item:focus-visible{outline:2px solid var(--pink, #ff4fa3);outline-offset:-2px}
+
+/* The page you are on: lit, and not a link. */
+.tasnav-item.here{
+  background:var(--accent-soft, rgba(255,79,163,0.16));
+  color:var(--accent-soft-text, #ffc2e0);
+  cursor:default;
+}
+
+@media (max-width:420px){
+  .tasnav-surface{width:104px}
+  .tasnav-item{min-width:66px;padding:8px 6px 7px}
+  .tasnav-lab{font-size:11px}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .tasnav-surface,.tasnav-cap,.tasnav-body{transition-duration:0.01ms}
+}
+
+/* ── Light theme ──
+   The tokens flip on their own; what does not is the line, which
+   has to darken to stay visible on a white page. */
+html[data-theme="light"] .tasnav{
+  --tasnav-line:rgba(20,40,15,0.32);
+  --tasnav-line-hover:rgba(20,40,15,0.55);
+}
+html[data-theme="light"] .tasnav[data-open="true"] .tasnav-surface{
+  box-shadow:0 18px 44px -14px rgba(20,40,15,0.28);
+}
+html[data-theme="light"] .tasnav-cap{stroke:#dde3dd}
+html[data-theme="light"] .tasnav-item:hover{background:rgba(0,0,0,0.05);color:#1a1a1a}

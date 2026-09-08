@@ -265,7 +265,10 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:6px}
 .btn-row{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
 
 /* ── Toasts ────────────────────────────────────────────────── */
-#toastWrap{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:12000;pointer-events:none;width:max-content;max-width:min(92vw,440px)}
+/* Clear of the page navigator's resting line, which sits on the bottom
+   edge here — the calendar lifts its own navigator above the FAB row, so
+   only these pages need the offset. */
+#toastWrap{position:fixed;left:50%;bottom:calc(var(--tasnav-bottom, 1.25rem) + 22px);transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:12000;pointer-events:none;width:max-content;max-width:min(92vw,440px)}
 .toast{
   display:flex;align-items:center;gap:12px;
   background:rgba(20,30,54,0.97);backdrop-filter:blur(14px);

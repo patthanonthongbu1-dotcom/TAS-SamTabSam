@@ -15,8 +15,12 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js"
 import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
-import { getFirestore }
+import { getFirestore, doc, getDoc }
   from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
+// The page navigator. It is mounted from here rather than by each page,
+// so the five Tools pages get it the same way they get the topbar: by
+// calling initShell.
+import { mountNav } from "./tas-nav.js"
 
 const firebaseConfig = {
   apiKey:"AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18",
@@ -152,6 +156,26 @@ export function download(dataOrBlob,filename){
   if(typeof dataOrBlob!=="string") setTimeout(()=>URL.revokeObjectURL(url),4000)
 }
 
+/* Is this person on config/modWhitelist? Only the navigator asks, and only
+   to decide whether to signpost the task formatter — announce.html gates
+   itself either way, so a stale answer costs nothing. Cached for the tab so
+   hopping between tool pages does not re-read the doc every time. */
+const WHITELIST_KEY = "tas_wl"
+async function isWhitelisted(user){
+  const email = (user.email || "").toLowerCase()
+  try{
+    const cached = sessionStorage.getItem(WHITELIST_KEY)
+    if(cached !== null) return cached === email
+  }catch(e){}
+  try{
+    const snap = await getDoc(doc(db, "config", "modWhitelist"))
+    const on = snap.exists() && (snap.data().emails || [])
+      .map(e => String(e).toLowerCase()).includes(email)
+    try{ sessionStorage.setItem(WHITELIST_KEY, on ? email : "") }catch(e){}
+    return on
+  }catch(e){ return false }
+}
+
 function orbsHTML(){
   return `<div class="bg-orbs" aria-hidden="true">
     <span class="orb orb-1"></span><span class="orb orb-2"></span><span class="orb orb-3"></span>
@@ -240,6 +264,10 @@ export function initShell({ title="TAS Tools", active="hub" } = {}){
       if(!user){ window.location.href = LOGIN_URL; return }
       document.getElementById("authGate").style.display = "none"
       wrap.style.display = "block"
+      // The tab keys double as the navigator's page keys. Authority goes in
+      // as a promise so the navigator appears with the pages everyone gets
+      // and picks up the third when the whitelist answers.
+      mountNav({ active, admin: isWhitelisted(user) })
       renderUserPill(user)
       resolve(user)
     })

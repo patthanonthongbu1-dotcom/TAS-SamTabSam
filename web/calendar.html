@@ -24,6 +24,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="TAS Calendar">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="tas-nav.css">
   <script>
     // Apply the saved theme before first paint (dark is the default)
     try{document.documentElement.dataset.theme=localStorage.getItem("tas_theme")||"dark"}
@@ -78,6 +79,11 @@
          numbers repeated in six rules. */
       --label-w:215px;--check-w:54px;--row-h:64px;--row-gap:10px;
       --font-row-name:15.5px;--font-row-sub:12.5px;--font-bar:12px;--topbar-h:56px;
+      /* This is the one page whose bottom edge is already taken — the FAB
+         row sits across it, filters dead centre — so the page navigator is
+         lifted clear by one button plus a gap. Every other page uses the
+         default. Toasts keep the bottom 24px here, below all of it. */
+      --tasnav-bottom:calc(1.5rem + 58px);
     }
     /* One seamless backdrop — fixed gradient, dark html fallback for overscroll */
     html{min-height:100%;background:var(--navy-dark)}
@@ -176,15 +182,8 @@
     .topnav-brand:hover{background:var(--glass)}
     .topnav-brand:active{transform:scale(0.98)}
     @keyframes brandIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
-    .brand-chevron{
-      font-size:15px;line-height:1;color:var(--muted);opacity:0.75;flex-shrink:0;
-      align-self:center;transition:transform 0.2s,opacity 0.2s,color 0.2s;
-    }
-    .topnav-brand:hover .brand-chevron{opacity:1;color:var(--pink)}
-    .topnav-brand[aria-expanded="true"] .brand-chevron{transform:rotate(180deg);opacity:1;color:var(--pink)}
-    .topbar.shrunk .brand-chevron{font-size:13px}
-    /* Bigger than a favicon: the mark is the app's identity and, now, the
-       way out of whatever view you are in. */
+    /* Bigger than a favicon: the mark is the app's identity, and the way
+       back out to the menu. */
     .brand-chip{
       width:46px;height:46px;border-radius:14px;flex-shrink:0;
       background:rgba(255,255,255,0.13);border:1px solid var(--glass-brd);
@@ -271,18 +270,6 @@
     }
     @keyframes dropIn{from{opacity:0;transform:translateY(-6px) scale(0.97)}to{opacity:1;transform:none}}
     .user-dropdown.open{display:flex}
-    /* Same menu, hung off the other end of the bar — mirror the inset
-       trick rather than the window's padding, or it drifts off the bar on
-       wide screens exactly as the profile menu used to. */
-    .brand-dropdown{
-      right:auto;left:calc(max(14px, (100% - 1180px) / 2) + 8px);
-      min-width:206px;
-    }
-    .brand-dd-label{
-      font-size:10.5px;font-weight:600;letter-spacing:0.11em;text-transform:uppercase;
-      color:var(--label);padding:7px 10px 4px;
-    }
-    .brand-dd-label:not(:first-child){margin-top:3px;border-top:1px solid var(--divider);padding-top:9px}
     .user-dropdown-info{padding:8px 10px 11px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:3px}
     .user-dropdown-name{font-size:15px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .user-dropdown-email{font-size:12.5px;color:var(--muted);font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
@@ -1096,15 +1083,13 @@
       .topbar{padding:8px 8px 0}
       .topnav{gap:8px;padding:6px 8px 6px 6px;border-radius:17px}
       .topbar.shrunk .topnav{padding:2px 7px 2px 5px;border-radius:14px}
-      /* The mark keeps a little of its new size — it is the quick-nav
-         button now, not decoration — but not so much that it crowds the
-         tabs it has to share the row with. */
+      /* The mark keeps a little of its size — it is the way home, not
+         decoration — but not so much that it crowds the tabs it has to
+         share the row with. */
       .brand-text{display:none}
       .brand-chip{width:40px;height:40px;border-radius:12px}
       .topbar.shrunk .brand-chip{width:32px;height:32px;border-radius:10px}
-      .brand-chevron{font-size:12px}
       .topnav-brand{padding:2px 4px 2px 2px;gap:4px}
-      .brand-dropdown{left:14px;right:14px;min-width:0}
       .latest-pill{display:none!important}
       .topnav-tabs{gap:1px}
       .nav-pill{padding:5px 7px;border-radius:12px}
@@ -1155,6 +1140,9 @@
       /* Four controls now share the bottom row, so they shrink a little
          to keep the range label from being squeezed off its own button. */
       .fab-container{bottom:1.25rem;left:0.875rem;right:0.875rem}
+      /* The row moved down and its buttons shrank, so the navigator
+         above it has to follow. */
+      :root{--tasnav-bottom:calc(1.25rem + 54px)}
       .legend-toggle,.filter-toggle{width:42px;height:42px}
       .filter-toggle .ic{width:19px;height:19px}
       /* Full-bleed on a phone, like the detail sheet */
@@ -1690,7 +1678,6 @@
     html[data-theme="light"] .brand-chip{background:#ffffff;border-color:#dde3dd;box-shadow:0 2px 8px -2px rgba(0,0,0,0.12)}
     html[data-theme="light"] .topnav-brand:hover{background:rgba(0,0,0,0.04)}
     html[data-theme="light"] .topnav-brand:hover .brand-chip{background:#ffffff;border-color:#c8d4c8}
-    html[data-theme="light"] .brand-dropdown{border-color:#dde3dd;box-shadow:0 18px 44px -12px rgba(0,0,0,0.18)}
     html[data-theme="light"] .filter-toggle{box-shadow:0 4px 18px rgba(0,0,0,0.13)}
     html[data-theme="light"] .filter-toggle.on,html[data-theme="light"] .filter-toggle.open{color:#fff}
     html[data-theme="light"] .filter-toggle.on .filter-count{color:#0F6E56}
@@ -2162,17 +2149,16 @@
 
 <div class="topbar">
   <nav class="topnav" id="topnav">
-    <!-- The mark is the quick-nav now: everything the app can show you is
-         one tap from it, including the menu it used to link straight to. -->
-    <button class="topnav-brand" id="brandBtn" onclick="toggleBrandDropdown(event)"
-            aria-haspopup="true" aria-expanded="false" title="Go somewhere">
+    <!-- The mark goes home and does nothing else. Moving between pages is
+         the navigator's job now — see tas-nav.js — and a mark that opens a
+         menu is a mark nobody trusts to be a link. -->
+    <a class="topnav-brand" href="index.html">
       <span class="brand-chip"><img class="brand-mini" src="TASLogoLIGHT.png" alt="3/3 Academic System" /></span>
       <span class="brand-text">
         <span class="brand-title">TAS Calendar</span>
         <span class="brand-sub">Academic System</span>
       </span>
-      <span class="brand-chevron" aria-hidden="true">▾</span>
-    </button>
+    </a>
 
     <span class="latest-pill" id="latestPill" style="display:none"></span>
 
@@ -2208,21 +2194,6 @@
       </button>
     </div>
   </nav>
-
-  <!-- Quick navigation, hung off the mark. Reuses .user-dropdown* so both
-       menus stay one thing to theme and one thing to restyle. -->
-  <div class="user-dropdown brand-dropdown" id="brandDropdown">
-    <div class="brand-dd-label">Views</div>
-    <button class="user-dropdown-btn menu" onclick="goFromBrand('calendar')"><svg class="ic" aria-hidden="true"><use href="#ic-calendar"/></svg> Calendar</button>
-    <button class="user-dropdown-btn menu" onclick="goFromBrand('todo')"><svg class="ic" aria-hidden="true"><use href="#ic-check-square"/></svg> To Do</button>
-    <button class="user-dropdown-btn menu" onclick="goFromBrand('archive')"><svg class="ic" aria-hidden="true"><use href="#ic-archive"/></svg> Archive</button>
-    <button class="user-dropdown-btn menu" onclick="goFromBrand('tasks')"><svg class="ic" aria-hidden="true"><use href="#ic-mine"/></svg> My Tasks</button>
-    <button class="user-dropdown-btn menu" onclick="goFromBrand('settings')"><svg class="ic" aria-hidden="true"><use href="#ic-settings"/></svg> Settings</button>
-    <div class="brand-dd-label">Elsewhere</div>
-    <a class="user-dropdown-btn menu" href="announce.html" style="text-decoration:none;"><svg class="ic" aria-hidden="true"><use href="#ic-note"/></svg> Task formatter</a>
-    <a class="user-dropdown-btn menu" href="tools.html" style="text-decoration:none;"><svg class="ic" aria-hidden="true"><use href="#ic-toolbox"/></svg> Tools</a>
-    <button class="user-dropdown-btn menu" onclick="handleReturnToMenu()"><svg class="ic" aria-hidden="true"><use href="#ic-home"/></svg> Return to menu</button>
-  </div>
 
   <div class="user-dropdown" id="userDropdown">
     <div class="user-dropdown-info">
@@ -2714,6 +2685,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 import { publishWidgetFeed, widgetFeedExists }
   from "./tas-widget-feed.js"
+// The page navigator — the glass dot bottom-right. Shared with announce
+// and the Tools pages, and the only cross-page nav any of them carry.
+import { mountNav } from "./tas-nav.js"
 // The To Do view. Split three ways on purpose: state is pure and tested,
 // the store owns Firestore, and the UI owns the DOM. This page supplies the
 // live task lists it renders against, so nothing is fetched twice.
@@ -3059,6 +3033,7 @@ onAuthStateChanged(auth, async user => {
 
   gate.style.display = "none"
   wrap.style.display  = "block"
+  mountNav({ active:"calendar", admin:isWhitelisted })   // only once we are past the gate
   renderUserPill(user)
   updateRoleUI()
   syncTopbarH()
@@ -3162,13 +3137,10 @@ window.addEventListener("scroll", () => {
 }, { passive: true })
 document.querySelector(".topnav")?.addEventListener("transitionend", syncTopbarH)
 
-/* Two menus hang off the same bar, so opening either has to shut the
-   other — otherwise they overlap the tabs between them. */
+/* Kept as its own function, and on window, because everything that opens
+   an overlay closes the profile menu on the way. */
 function closeMenus(){
   document.getElementById("userDropdown")?.classList.remove("open")
-  const bd = document.getElementById("brandDropdown")
-  if(bd) bd.classList.remove("open")
-  document.getElementById("brandBtn")?.setAttribute("aria-expanded","false")
 }
 window.closeMenus = closeMenus
 
@@ -3177,25 +3149,6 @@ window.toggleUserDropdown = (e) => {
   const open = document.getElementById("userDropdown").classList.contains("open")
   closeMenus()
   if(!open) document.getElementById("userDropdown").classList.add("open")
-}
-
-window.toggleBrandDropdown = (e) => {
-  e.stopPropagation()
-  const dd = document.getElementById("brandDropdown")
-  const open = dd.classList.contains("open")
-  closeMenus()
-  if(!open){
-    dd.classList.add("open")
-    document.getElementById("brandBtn").setAttribute("aria-expanded","true")
-  }
-}
-
-/* The menu's five entries. Four are real views now that My Tasks is one;
-   Settings is still a sheet, which is the one case that goes elsewhere. */
-window.goFromBrand = (where) => {
-  closeMenus()
-  if(where === "settings") openSettings()
-  else switchView(where)
 }
 
 document.addEventListener("click", closeMenus)
@@ -5656,6 +5609,9 @@ window.closePw=function(){
 // Dropdown-only refresh — safe to call before the first calendar render
 function updateRoleUI(){
   const isModerator=isMod||isWhitelisted
+  // The navigator signposts the formatter for moderators, so unlocking
+  // mod mode has to reach it too — mountNav updates in place.
+  mountNav({ active:"calendar", admin:isModerator })
   const role=document.getElementById("dropdownRole")
   if(role) role.textContent=isModerator?"Moderator":"Member"
   const fb=document.getElementById("ddFirebase")
@@ -6354,7 +6310,7 @@ document.addEventListener("keydown",e=>{
   if(open("taskModal"))   return closeModal()
   if(open("settingsOverlay")) return closeSettings()
   if(open("tourOverlay"))     return closeTour()
-  if(open("userDropdown")||open("brandDropdown")) return closeMenus()
+  if(open("userDropdown")) return closeMenus()
   if(open("legendPanel")||open("rangePanel")||open("filterPanel")) closeFabs()
 })
 
