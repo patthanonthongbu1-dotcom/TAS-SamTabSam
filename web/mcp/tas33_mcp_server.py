@@ -24,19 +24,34 @@ A note on the schema, because it is not what you would guess:
       note       str
       markerType str   markers only, e.g. "quiz"
       date       str   markers only, mirrors start/end
+      difficulty int   optional, 1-999 points; see below
       createdAt  int   epoch ms
       updatedAt  int   epoch ms, edits only
 
   Whether a task is *done* is per-user, not a property of the task:
   it lives in `userDone/{uid}` as
 
-      { done: {taskId: true}, archiveHidden: {...},
-        progress: {taskId: {mode: "steps"|"percent", value, total}} }
+      { done:       {taskId: true}, archiveHidden: {...},
+        progress:   {taskId: {mode: "steps"|"percent", value, total}},
+        difficulty: {taskId: points} }
 
   so a task is only "done" relative to somebody. Pass a uid to
   list_tasks/get_task to have that folded in.
+
+  Every task also carries a weight -- more points means harder work.
+  Tools return it as two fields:
+
+      points           int   1-999, or 0 for a marker
+      points_estimated bool  true when nobody set it and this is a guess
+
+  `difficulty` on the task is the author's number; `difficulty` in
+  userDone is the reader's own and wins over it. When neither exists
+  the weight is estimated from the task's type and how many days it
+  runs, and `points_estimated` is true -- report those as rough, not as
+  something anyone decided.
 """
 
+import math
 import os
 from datetime import date, datetime
 
@@ -111,6 +126,91 @@ def task_type(data: dict) -> str:
     return TYPE_ALIASES.get(raw, raw) or "normal"
 
 
+# --- Points: how heavy a task is ---
+
+# A mirror of web/tas-points.js. Kept in step by hand, like task_type()
+# above -- the app is static ES modules with no build step, so there is
+# nothing to share the arithmetic through. If the ladder or the bands
+# change over there, they change here.
+POINT_PRESETS = (10, 25, 50, 100, 200)
+POINT_TYPE_BASE = {
+    "normal": 50, "send_on": 50,
+    "deadline": 50, "send_before": 50,
+    "prediction": 25, "estimated": 25,
+    "marker": 0,
+}
+
+
+def js_round(x: float) -> int:
+    """Math.round(), not Python's round().
+
+    Python rounds halves to even (round(12.5) == 12), JavaScript rounds
+    them up. A weight that came out at exactly .5 would otherwise land on
+    a different rung here than in the app.
+    """
+    return math.floor(x + 0.5)
+
+
+def nearest_preset(points: float) -> int:
+    """The rung of the ladder closest to `points`.
+
+    Rounds first, the way nearestPreset() does by passing through
+    normPoints() -- a tie at 37.5 is a tie at 38 by then, and 50 wins it.
+    """
+    n = js_round(points)
+    return min(POINT_PRESETS, key=lambda p: abs(p - n))
+
+
+def suggest_points(data: dict) -> int:
+    """The estimate a task gets when nobody has weighed it.
+
+    From its due-date kind and how many days it runs -- the same two
+    readings suggestPoints() uses in web/tas-points.js.
+    """
+    base = POINT_TYPE_BASE.get(data.get("type") or "normal", 50)
+    if not base:
+        return 0
+
+    factor = 1.0
+    try:
+        start = datetime.strptime(data["start"], "%Y-%m-%d").date()
+        end = datetime.strptime(data["end"], "%Y-%m-%d").date()
+        days = (end - start).days
+        factor = (0.5 if days <= 1 else 0.75 if days <= 3 else
+                  1.0 if days <= 7 else 1.5 if days <= 14 else 2.0)
+    except (KeyError, TypeError, ValueError):
+        pass
+
+    return nearest_preset(base * factor)
+
+
+def norm_points(v) -> int | None:
+    """A stored weight, or None if it isn't a usable positive number."""
+    try:
+        n = js_round(float(v))
+    except (TypeError, ValueError):
+        return None
+    return min(999, n) if n > 0 else None
+
+
+def points_of(data: dict, points_map=None) -> tuple[int, bool]:
+    """(points, estimated) for a task -- mirrors pointsOf() in the app.
+
+    The user's own weight wins, then whatever the task's author set,
+    then an estimate. `estimated` says nobody has actually chosen this
+    number, so an assistant shouldn't report it as a decision.
+    """
+    if task_type(data) == "marker":
+        return 0, False
+    mine = norm_points((points_map or {}).get(data.get("id")))
+    if mine is not None:
+        return mine, False
+    theirs = norm_points(data.get("difficulty"))
+    if theirs is not None:
+        return theirs, False
+    return suggest_points(data), True
+
+
 def shape_progress(p) -> dict | None:
     """A userDone progress entry as {mode, value, total, percent}."""
     if not isinstance(p, dict) or not p.get("total"):
@@ -138,10 +238,12 @@ def days_left(end: str | None, today: date | None = None) -> int | None:
     return (d - (today or date.today())).days
 
 
-def shape(doc, done_map=None, progress_map=None) -> dict:
+def shape(doc, done_map=None, progress_map=None, points_map=None) -> dict:
     """A task document as the app sees it."""
     data = doc.to_dict() or {}
     data["id"] = doc.id
+    # points_of() reads the stored spelling, so weigh before normalising
+    data["points"], data["points_estimated"] = points_of(data, points_map)
     data["type"] = task_type(data)
     if done_map is not None:
         data["done"] = bool(done_map.get(doc.id))
@@ -151,14 +253,20 @@ def shape(doc, done_map=None, progress_map=None) -> dict:
 
 
 def user_state(uid: str):
-    """(done, progress) maps for a user, or ({}, {}) if they have none."""
+    """(done, progress, difficulty) maps for a user.
+
+    All three live in the one userDone/{uid} document: what they have
+    ticked off, how far through each task they are, and any weight they
+    set for themselves over the top of the task's own.
+    """
     if not uid:
-        return None, None
+        return None, None, None
     snap = db().collection("userDone").document(uid).get()
     if not snap.exists:
-        return {}, {}
+        return {}, {}, {}
     data = snap.to_dict() or {}
-    return data.get("done") or {}, data.get("progress") or {}
+    return (data.get("done") or {}, data.get("progress") or {},
+            data.get("difficulty") or {})
 
 
 def resolve_uid(uid: str | None) -> str | None:
@@ -293,7 +401,7 @@ def list_tasks(
         wanted = None
 
     try:
-        done_map, progress_map = user_state(resolve_uid(uid))
+        done_map, progress_map, points_map = user_state(resolve_uid(uid))
 
         # Filtered in Python rather than with a Firestore where(): a
         # where("type","==","normal") would miss every document still
@@ -301,7 +409,7 @@ def list_tasks(
         # task list, so reading it whole is cheap.
         results = []
         for doc in db().collection("tasks").stream():
-            task = shape(doc, done_map, progress_map)
+            task = shape(doc, done_map, progress_map, points_map)
             if wanted and task["type"] != wanted:
                 continue
             if subject and task.get("subject") != subject:
@@ -334,8 +442,8 @@ def get_task(task_id: str, uid: str | None = None) -> dict:
         doc = db().collection("tasks").document(task_id).get()
         if not doc.exists:
             return {"error": f"No task found with id {task_id}"}
-        done_map, progress_map = user_state(resolve_uid(uid))
-        return shape(doc, done_map, progress_map)
+        done_map, progress_map, points_map = user_state(resolve_uid(uid))
+        return shape(doc, done_map, progress_map, points_map)
     except Exception as e:
         return as_error(e)
 
@@ -372,7 +480,7 @@ def list_todo(uid: str | None = None) -> list[dict]:
             return []
 
         index = task_index(who)
-        done_map, progress_map = user_state(who)
+        done_map, progress_map, points_map = user_state(who)
         today = date.today()
 
         rows = []
@@ -402,6 +510,7 @@ def list_todo(uid: str | None = None) -> list[dict]:
 
             # Markers carry `date` where everything else carries `end`.
             end = task.get("end") or task.get("date")
+            weight = points_of(task, points_map)
             row.update(
                 title=task.get("name") or "Untitled task",
                 subject=task.get("subject") or "",
@@ -413,6 +522,10 @@ def list_todo(uid: str | None = None) -> list[dict]:
                 done=bool(done_map.get(task["id"])),
                 progress=shape_progress(progress_map.get(task["id"])),
                 days_left=days_left(end, today),
+                # This row is hand-picked rather than spread, so a new
+                # field has to be named here or it is silently dropped.
+                points=weight[0],
+                points_estimated=weight[1],
             )
             rows.append(row)
         return rows
@@ -438,7 +551,7 @@ def list_personal_tasks(uid: str | None = None,
         return [{"error": "No uid. Pass uid, or set TAS33_UID in the MCP "
                           "server config so this defaults to you."}]
     try:
-        done_map, progress_map = user_state(who)
+        done_map, progress_map, points_map = user_state(who)
         today = date.today()
         rows = []
         for t in personal_tasks(who):
@@ -446,6 +559,7 @@ def list_personal_tasks(uid: str | None = None,
             if not include_done and t["done"]:
                 continue
             t["progress"] = shape_progress(progress_map.get(t["id"]))
+            t["points"], t["points_estimated"] = points_of(t, points_map)
             t["days_left"] = days_left(t.get("end") or t.get("date"), today)
             rows.append(t)
         rows.sort(key=lambda t: (t.get("end") or "9999-99-99", t.get("name") or ""))

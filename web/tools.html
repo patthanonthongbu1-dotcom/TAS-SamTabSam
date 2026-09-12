@@ -28,6 +28,16 @@
   <link rel="stylesheet" href="tas-nav.css">
   <style>
     .tool-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.1rem}
+    /* The gate's ghost of that same grid — see tools-shell.css for the rest */
+    #authGate .gate-tgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.1rem;margin-top:1.6rem}
+    #authGate .gate-tcard{
+      display:flex;flex-direction:column;gap:11px;padding:1.5rem 1.4rem;border-radius:20px;
+      background:var(--card);border:1px solid var(--glass-brd);
+    }
+    #authGate .gate-tc-icon{width:52px;height:52px;border-radius:15px;flex-shrink:0}
+    #authGate .gate-tc-title{width:70%;height:19px;border-radius:7px}
+    #authGate .gate-tc-sub{width:34%;height:11px}
+    #authGate .gate-tc-go{width:78px;height:12px;margin-top:2px}
     .tool-card{
       position:relative;overflow:hidden;
       display:flex;flex-direction:column;gap:11px;
@@ -87,10 +97,67 @@
 </head>
 <body>
 
-<div id="authGate">
-  <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffc73f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9a1 1 0 0 1 1-1Z"/><path d="M9 9V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v3"/><path d="M3 14h18"/></svg>
-  <div class="gate-spin"></div>
-  <div class="gate-msg">Checking sign-in...</div>
+<!-- Auth gate — a ghost of the page, not a spinner. See tools-shell.css. -->
+<div id="authGate" role="status" aria-label="Checking your sign-in">
+  <div class="gate-top">
+    <div class="skel-bone gate-chip"></div>
+    <div class="skel-bone skel-line" style="width:118px;height:14px"></div>
+    <div class="gate-tabs">
+      <div class="skel-bone gate-tab"></div>
+      <div class="skel-bone gate-tab"></div>
+      <div class="skel-bone gate-tab"></div>
+      <div class="skel-bone gate-tab"></div>
+    </div>
+    <div class="skel-bone gate-pill"></div>
+  </div>
+  <div class="gate-page">
+    <div class="skel-bone gate-back"></div>
+    <div class="skel-bone gate-h2"></div>
+    <div class="skel-bone gate-sub"></div>
+    <div class="gate-tgrid">
+      <div class="gate-tcard">
+        <div class="skel-bone gate-tc-icon"></div>
+        <div class="skel-bone gate-tc-title"></div>
+        <div class="skel-bone gate-tc-sub"></div>
+        <div class="skel-bone skel-line" style="--sk-nw:100%"></div>
+        <div class="skel-bone skel-line" style="--sk-nw:88%"></div>
+        <div class="skel-bone gate-tc-go"></div>
+      </div>
+      <div class="gate-tcard">
+        <div class="skel-bone gate-tc-icon"></div>
+        <div class="skel-bone gate-tc-title"></div>
+        <div class="skel-bone gate-tc-sub"></div>
+        <div class="skel-bone skel-line" style="--sk-nw:100%"></div>
+        <div class="skel-bone skel-line" style="--sk-nw:88%"></div>
+        <div class="skel-bone gate-tc-go"></div>
+      </div>
+      <div class="gate-tcard">
+        <div class="skel-bone gate-tc-icon"></div>
+        <div class="skel-bone gate-tc-title"></div>
+        <div class="skel-bone gate-tc-sub"></div>
+        <div class="skel-bone skel-line" style="--sk-nw:100%"></div>
+        <div class="skel-bone skel-line" style="--sk-nw:88%"></div>
+        <div class="skel-bone gate-tc-go"></div>
+      </div>
+      <div class="gate-tcard">
+        <div class="skel-bone gate-tc-icon"></div>
+        <div class="skel-bone gate-tc-title"></div>
+        <div class="skel-bone gate-tc-sub"></div>
+        <div class="skel-bone skel-line" style="--sk-nw:100%"></div>
+        <div class="skel-bone skel-line" style="--sk-nw:88%"></div>
+        <div class="skel-bone gate-tc-go"></div>
+      </div>
+      <div class="gate-tcard">
+        <div class="skel-bone gate-tc-icon"></div>
+        <div class="skel-bone gate-tc-title"></div>
+        <div class="skel-bone gate-tc-sub"></div>
+        <div class="skel-bone skel-line" style="--sk-nw:100%"></div>
+        <div class="skel-bone skel-line" style="--sk-nw:88%"></div>
+        <div class="skel-bone gate-tc-go"></div>
+      </div>
+    </div>
+  </div>
+  <div class="gate-msg">Checking your sign-in…</div>
 </div>
 
 <div id="appWrap" style="display:none">

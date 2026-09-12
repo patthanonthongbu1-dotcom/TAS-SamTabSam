@@ -40,7 +40,7 @@
        selection on interactive chrome, touch-callout stops the iOS preview,
        and focus rings only show for keyboard users (:focus-visible) */
     button,.label-row,.gantt-bar,.check-row,.date-tick,.nav-pill,
-    .pt-tab,.pt-list-card,.archive-row,.archive-cb,.legend-toggle,.range-toggle,
+    .pt-tab,.pt-list-card,.archive-row,.archive-cb,.cfg-toggle,
     .pt-marker-toggle,.set-row,.theme-opt,.marker-vline,.out-indicator{
       -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
     }
@@ -111,16 +111,52 @@
     /* App content sits above the orbs */
     #appWrap{position:relative;z-index:1}
 
-    /* ── Auth gate ─────────────────────────────────────────────── */
+    /* ── Auth gate ─────────────────────────────────────────────────
+       A ghost of the page rather than a spinner on a black field. A
+       spinner says "wait"; this says "the calendar is coming, and here
+       is the shape it will be" — and because the bones sit where the
+       topbar and the first rows actually land, the page settles into
+       them instead of replacing them.
+
+       It is the same `.skel-bone` vocabulary the in-page loading state
+       uses further down, so the wait for sign-in and the wait for tasks
+       are one continuous thing to look at rather than two. */
     #authGate{
-      position:fixed;inset:0;
+      position:fixed;inset:0;z-index:9999;overflow:hidden;
       background:var(--navy-dark);
-      display:flex;align-items:center;justify-content:center;
-      z-index:9999;flex-direction:column;gap:12px;
       font-family:'Kanit',sans-serif;
+      /* A column, so the caption sits after the ghost rather than floating
+         over it — on a short screen an absolute caption lands on top of a
+         row and reads as a rendering fault, not a status line. */
+      display:flex;flex-direction:column;
     }
-    #authGate .gate-spin{width:28px;height:28px;border:3px solid rgba(255,255,255,0.18);border-top-color:var(--pink);border-radius:50%;animation:spin 0.7s linear infinite}
-    #authGate .gate-msg{font-size:16px;color:var(--muted);font-weight:300}
+    #authGate .gate-top{
+      height:var(--topbar-h);padding:0 1.25rem;display:flex;align-items:center;gap:12px;
+      background:rgba(30,48,84,0.72);border-bottom:1px solid var(--glass-brd);
+    }
+    #authGate .gate-brand{width:34px;height:34px;border-radius:10px;flex-shrink:0}
+    #authGate .gate-tabs{display:flex;gap:7px;margin-left:auto}
+    #authGate .gate-tab{width:84px;height:32px;border-radius:99px}
+    #authGate .gate-body{flex:1;min-height:0;overflow:hidden;padding:1.5rem 1.25rem;display:flex;flex-direction:column;gap:var(--row-gap,10px)}
+    #authGate .gate-dates{display:flex;gap:26px;margin-bottom:6px;padding-left:22px}
+    #authGate .gate-date{width:30px;height:10px}
+    #authGate .gate-row{display:flex;align-items:center;gap:14px;min-height:var(--row-h,44px)}
+    #authGate .gate-row-text{display:flex;flex-direction:column;gap:7px;width:var(--label-w,215px);flex-shrink:0;padding-left:8px}
+    #authGate .gate-row-track{flex:1;display:flex;align-items:center}
+    /* The one line of text. Placed under the bones rather than centred over
+       them, so it reads as a caption on the page being built, not a
+       replacement for it. */
+    #authGate .gate-msg{
+      flex-shrink:0;padding:1.1rem 1rem 2.25rem;text-align:center;
+      font-size:14px;color:var(--label);font-weight:300;letter-spacing:0.02em;
+      display:flex;align-items:center;justify-content:center;gap:7px;
+    }
+    #authGate .gate-msg .ic{width:15px;height:15px}
+    @media(max-width:760px){
+      #authGate .gate-tab{width:40px}
+      #authGate .gate-row-text{padding-left:0}
+      #authGate .gate-dates{gap:16px}
+    }
     @keyframes spin{to{transform:rotate(360deg)}}
 
     /* ══ ICONS ═════════════════════════════════════════════════
@@ -394,6 +430,135 @@
     .prog-bar.big .prog-track{height:14px}
     .prog-read{font-size:12.5px;font-weight:500;color:var(--muted);white-space:nowrap;flex-shrink:0}
 
+    /* ══ POINTS ════════════════════════════════════════════════
+       How heavy a task is. The pill follows the house badge formula —
+       tinted background, tinted border, tinted text — so it sits beside
+       .archive-chip and .type-badge without inventing a fourth look.
+
+       The faint variant is an estimate nobody has confirmed. It has to
+       read as softer than a real value at a glance, or a guess would
+       pass itself off as a decision. */
+    .pts-pill{display:inline-flex;align-items:center;font-size:11px;font-weight:600;border-radius:10px;padding:1px 8px;white-space:nowrap;flex-shrink:0;
+      background:var(--accent-soft);color:var(--accent-soft-text);border:1px solid var(--accent-brd)}
+    .pts-pill.est{background:transparent;color:var(--label);border-color:var(--divider);font-weight:500}
+    .pts-pill.lg{font-size:13px;padding:3px 11px;border-radius:12px}
+    /* On the timeline the row is already dense, so it shrinks out of the
+       way rather than pushing the subject off the end. */
+    .row-subject .pts-pill{font-size:10px;padding:0 6px;margin-left:5px}
+    @media(max-width:640px){.row-subject .pts-pill{display:none}}
+
+    /* The picker sheet */
+    .pts-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+    .pts-opt{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px 8px;border-radius:12px;
+      border:1.5px solid var(--field-brd);background:var(--field-bg);color:var(--text);
+      font-family:'Kanit',sans-serif;font-size:12.5px;font-weight:500;cursor:pointer;
+      transition:border-color 0.15s,background 0.15s,transform 0.12s}
+    .pts-opt:hover{border-color:var(--pink)}
+    .pts-opt:active{transform:scale(0.96)}
+    .pts-opt.active{border-color:var(--pink);background:var(--accent-soft);color:var(--accent-soft-text)}
+    .pts-opt b{font-size:15px;font-weight:600;line-height:1.1}
+    .pts-opt span{font-size:9.5px;color:var(--label);text-align:center;line-height:1.25}
+    .pts-opt.active span{color:var(--accent-soft-text);opacity:0.8}
+    @media(max-width:420px){
+      .pts-grid{grid-template-columns:repeat(3,1fr)}
+      .pts-opt span{display:none}
+    }
+    .pts-custom-row{display:flex;align-items:center;gap:9px}
+    .pts-custom-row label{flex:1;font-size:15px;color:var(--text)}
+    .pts-custom-row input{width:78px;padding:7px 9px;text-align:center;border:1px solid var(--field-brd);border-radius:9px;
+      background:var(--field-bg);color:var(--text);font-family:'Kanit',sans-serif;font-size:15.5px;font-weight:600;outline:none;transition:border-color 0.15s}
+    .pts-custom-row input:focus{border-color:var(--pink)}
+
+    /* ── Showing the working ──
+       The estimate is arithmetic, not an opinion, so it can be checked.
+       Folded away by default: the chips are the fast path, and this is for
+       the moment someone asks "why 50?". */
+    .pts-why{
+      width:100%;margin-top:10px;display:flex;align-items:center;gap:8px;
+      padding:7px 10px;border-radius:9px;border:1px solid transparent;background:transparent;
+      font-family:'Kanit',sans-serif;font-size:12.5px;font-weight:300;color:var(--muted);
+      text-align:left;cursor:pointer;transition:border-color 0.15s,color 0.15s;
+    }
+    .pts-why:hover{border-color:var(--field-brd);color:var(--text)}
+    .pts-why-chev{margin-left:auto;flex-shrink:0;transition:transform 0.2s}
+    .pts-why[aria-expanded="true"] .pts-why-chev{transform:rotate(180deg)}
+    .pts-guide{
+      margin-top:8px;padding:11px 13px;border-radius:11px;
+      background:var(--field-bg);border:1px solid var(--glass-brd);
+      font-size:12.5px;font-weight:300;color:var(--muted);line-height:1.6;
+    }
+    .pts-sum{display:flex;flex-direction:column;gap:7px;margin-bottom:10px}
+    .pts-sum-row{display:flex;align-items:baseline;gap:9px}
+    .pts-sum-row b{flex-shrink:0;width:68px;font-size:11px;font-weight:600;letter-spacing:0.08em;
+      text-transform:uppercase;color:var(--label)}
+    .pts-sum-row span{flex:1;color:var(--text);font-weight:400}
+    .pts-sum-row em{font-style:normal;color:var(--accent-soft-text);font-weight:500}
+    .pts-sum-rule{height:1px;background:var(--glass-brd);margin:2px 0}
+    .pts-guide-note{padding-top:9px;margin-top:9px;border-top:1px solid var(--glass-brd);
+      font-size:11.5px;color:var(--label)}
+
+    /* "Work it out" — the factor panel, folded away until asked for */
+    .pts-fold{width:100%;display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:11px;
+      border:1px dashed var(--field-brd);background:transparent;color:var(--muted);
+      font-family:'Kanit',sans-serif;font-size:13.5px;cursor:pointer;transition:border-color 0.15s,color 0.15s}
+    .pts-fold:hover{border-color:var(--pink);color:var(--text)}
+    .pts-fold .pts-fold-chev{margin-left:auto;transition:transform 0.2s}
+    .pts-fold.open .pts-fold-chev{transform:rotate(180deg)}
+    .pts-factors{margin-top:11px}
+    .pts-factor{margin-bottom:12px}
+    .pts-factor-head{display:flex;align-items:baseline;gap:7px;margin-bottom:6px}
+    .pts-factor-head b{font-size:14px;font-weight:500;color:var(--text)}
+    .pts-factor-head i{font-style:normal;font-size:11.5px;color:var(--label)}
+    .pts-factor-head em{margin-left:auto;font-style:normal;font-size:12px;font-weight:500;color:var(--accent-soft-text)}
+    .pts-rungs{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+    .pts-rung{height:26px;border-radius:8px;border:1px solid var(--field-brd);background:var(--field-bg);
+      color:var(--muted);font-family:'Kanit',sans-serif;font-size:12.5px;cursor:pointer;
+      transition:background 0.15s,border-color 0.15s,color 0.15s}
+    .pts-rung:hover{border-color:var(--pink)}
+    /* Filled up to the chosen rung, not just at it — the row reads as a
+       level rather than five separate choices. */
+    .pts-rung.on{background:var(--accent-soft);border-color:var(--accent-brd);color:var(--accent-soft-text)}
+    .pts-rung.at{background:var(--accent-grad);border-color:transparent;color:#fff;font-weight:600}
+    .pts-total{display:flex;align-items:baseline;justify-content:center;gap:8px;padding:11px;border-radius:12px;
+      background:var(--field-bg);border:1px solid var(--glass-brd)}
+    .pts-total b{font-size:26px;font-weight:600;color:var(--text);line-height:1}
+    .pts-total span{font-size:13px;color:var(--muted)}
+
+    /* ── The scoring guide ──
+       Built from the same tables the scoring itself uses, so it cannot fall
+       out of date with the numbers it is describing. */
+    .score-guide{margin-top:11px;font-size:13px;font-weight:300;color:var(--muted);line-height:1.65}
+    .score-guide h4{
+      font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;
+      color:var(--label);margin:14px 0 7px;
+    }
+    .score-guide h4:first-child{margin-top:0}
+    .score-guide p{margin:0 0 8px}
+    .score-guide b{color:var(--text);font-weight:500}
+    .sg-ladder{display:flex;flex-direction:column;gap:5px;margin:0 0 8px}
+    .sg-rung{display:flex;align-items:center;gap:10px}
+    .sg-rung .pts-pill{min-width:58px;justify-content:center}
+    .sg-rung span{font-size:12.5px}
+    .sg-rung i{font-style:normal;color:var(--label);margin-left:auto;font-size:12px}
+    .sg-table{width:100%;border-collapse:collapse;margin:0 0 8px;font-size:12.5px}
+    .sg-table th{
+      text-align:left;font-weight:600;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;
+      color:var(--label);padding:0 8px 5px 0;
+    }
+    .sg-table td{padding:4px 8px 4px 0;border-top:1px solid var(--divider);color:var(--text);font-weight:300}
+    .sg-table td:last-child{text-align:right;color:var(--accent-soft-text);font-weight:500}
+
+    /* The detail sheet's own row — same anatomy as .dp-sq-row */
+    .dp-pts-row{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
+      padding:11px 13px;margin-bottom:10px;border-radius:12px;border:1px solid var(--glass-brd);
+      background:var(--field-bg);color:var(--text);font-family:'Kanit',sans-serif;font-size:14.5px;cursor:pointer;
+      transition:border-color 0.15s,background 0.15s}
+    .dp-pts-row:hover{border-color:var(--pink)}
+    .dp-pts-label{display:flex;align-items:center;gap:8px;color:var(--muted);text-align:left}
+    .dp-pts-label em{display:block;font-style:normal;font-size:11.5px;color:var(--label);margin-top:1px}
+    .dp-pts-val{display:flex;align-items:center;gap:7px}
+    .dp-pts-val .set-chev{color:var(--label)}
+
     /* Saving spinner */
     .check-spin{width:12px;height:12px;border:2px solid rgba(255,255,255,0.2);border-top-color:var(--pink);border-radius:50%;animation:spin 0.6s linear infinite;display:none;flex-shrink:0}
     .check-row.saving .check-spin{display:block}
@@ -606,7 +771,6 @@
     .empty-state{text-align:center;padding:4rem 2rem;color:var(--muted)}
     .empty-state p{font-size:17.5px;margin-bottom:8px}
     .empty-state small{font-size:15px;font-weight:300}
-    .loading{text-align:center;padding:4rem;color:var(--muted);font-size:16px}
     /* ── Toasts — save errors, undo, small confirmations ── */
     #toastWrap{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:21000;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:max-content;max-width:calc(100vw - 32px)}
     .toast{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:12px;font-size:15px;font-weight:400;color:var(--text);
@@ -650,64 +814,50 @@
     html[data-theme="light"] .skel-bone::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent)}
     @media (prefers-reduced-motion: reduce){.skel-bone::after{animation:none}}
 
-    /* FLOATING CONTROLS — glass FABs */
-    .fab-container{position:fixed;bottom:1.5rem;left:1.5rem;right:1.5rem;display:flex;justify-content:space-between;align-items:flex-end;z-index:500;pointer-events:none}
-    .legend-fab{pointer-events:all;position:relative}
-    .legend-toggle{width:46px;height:46px;border-radius:50%;background:var(--col);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--field-brd);box-shadow:0 4px 18px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:background 0.22s,border-color 0.22s,transform 0.18s;animation:fabIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.25s backwards}
-    .legend-toggle:hover{transform:scale(1.08)}
-    .legend-toggle:active{transform:scale(0.95)}
-    @keyframes fabIn{from{transform:scale(0.4) translateY(16px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
-    .legend-toggle.open{background:var(--accent-grad);border-color:transparent}
-    .legend-toggle svg{transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1)}
-    .legend-toggle.open svg{transform:rotate(180deg)}
-    .legend-panel{position:absolute;bottom:56px;left:0;background:var(--panel);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.16);border-radius:14px;padding:12px 14px;box-shadow:0 8px 28px rgba(0,0,0,0.5);min-width:196px;transform-origin:bottom left;transform:scale(0.88) translateY(8px);opacity:0;pointer-events:none;transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1),opacity 0.18s}
-    .legend-panel.open{transform:scale(1) translateY(0);opacity:1;pointer-events:all}
-    .legend-item{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);padding:4px 0}
-    .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
-    .dot-sendon{background:var(--green)}.dot-deadline{background:#ef4444}.dot-prediction{background:#8b5cf6}.dot-marker{background:var(--marker)}
-    /* A miniature of the real bar — cheaper to read than a sentence */
-    .legend-bar-key{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--label);margin-top:7px}
-    .lbk-bar{position:relative;width:56px;height:13px;border-radius:5px;background:#2563eb;overflow:hidden;flex-shrink:0}
-    .lbk-cap{position:absolute;left:0;top:0;bottom:0;width:3px;background:#f97316}
-    .lbk-rest{position:absolute;left:58%;top:0;bottom:0;right:0;background:var(--bar-scrim);border-left:1.5px solid var(--bar-edge)}
-    .legend-hint{font-size:11.5px;color:var(--label);margin-top:6px;padding-top:6px;border-top:1px solid var(--glass-brd);line-height:1.6}
-    .legend-hint .ic{width:12px;height:12px;vertical-align:-1px;margin-right:2px}
+    /* ── FLOATING CONTROL — one pill, one sheet ────────────────
+       There used to be four FABs strung along this edge: a legend, a
+       filter, a sort and a range. Four round-and-pill shapes at four
+       different sizes, answering four different questions, read as
+       clutter rather than as a set — and none of them said what the
+       board was actually set to without being opened.
 
-    /* ── Filters ──
-       Same 46px round shape as the legend FAB — it belongs to that family
-       of controls — but it both opens a panel and latches, so it carries
-       an accent fill while anything is filtered and a count of how many. */
-    .filter-fab{pointer-events:all;position:relative}
-    .filter-toggle{
-      width:46px;height:46px;border-radius:50%;position:relative;
+       One pill now. It wears the current layout ("Month", "Month grid")
+       so the most-glanced setting is readable without a tap, and carries
+       a count when something is being hidden. Everything else lives in
+       the sheet it opens. */
+    .fab-container{position:fixed;bottom:1.5rem;right:1.5rem;display:flex;justify-content:flex-end;align-items:flex-end;z-index:500;pointer-events:none}
+    .cfg-fab{pointer-events:all;position:relative}
+    .cfg-toggle{
+      height:46px;padding:0 16px 0 14px;border-radius:23px;position:relative;
       background:var(--col);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
       border:1px solid var(--field-brd);box-shadow:0 4px 18px rgba(0,0,0,0.35);
-      display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;
-      color:var(--pink);
+      display:flex;align-items:center;gap:8px;cursor:pointer;
+      font-family:'Kanit',sans-serif;font-size:15px;font-weight:500;color:var(--text);
+      white-space:nowrap;
       transition:background 0.22s,border-color 0.22s,color 0.22s,transform 0.18s;
-      animation:fabIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.3s backwards;
+      animation:fabIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.25s backwards;
     }
-    .filter-toggle .ic{width:21px;height:21px}
-    .filter-toggle:hover{transform:scale(1.08)}
-    .filter-toggle:active{transform:scale(0.95)}
-    .filter-toggle.on,.filter-toggle.open{background:var(--accent-grad);border-color:transparent;color:#fff}
-    /* How many filters are on — otherwise a quiet board looks like a bug */
-    .filter-count{
-      position:absolute;top:-2px;right:-2px;min-width:18px;padding:0 4px;
+    @keyframes fabIn{from{transform:scale(0.4) translateY(16px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+    .cfg-toggle .ic{width:19px;height:19px;color:var(--pink);transition:color 0.22s}
+    .cfg-toggle:hover{transform:translateY(-2px)}
+    .cfg-toggle:active{transform:translateY(0) scale(0.97)}
+    /* Open, or something is hidden — either way the pill is "doing something" */
+    .cfg-toggle.on,.cfg-toggle.open{background:var(--accent-grad);border-color:transparent;color:#fff}
+    .cfg-toggle.on .ic,.cfg-toggle.open .ic{color:#fff}
+    /* How many things are hidden — otherwise a thinned-down board looks like a bug */
+    .cfg-count{
+      position:absolute;top:-3px;right:-3px;min-width:18px;padding:0 4px;
       border-radius:10px;background:var(--pink);color:#fff;
       font-family:'Kanit',sans-serif;font-size:11px;font-weight:600;line-height:18px;
-      box-shadow:0 2px 6px rgba(0,0,0,0.35);
+      text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.35);
     }
-    .filter-toggle.on .filter-count{background:#fff;color:#c02e7e}
+    .cfg-toggle.on .cfg-count{background:#fff;color:#c02e7e}
 
-    /* Centred over its button rather than pinned to an edge, since this
-       FAB sits in the middle of the row. */
-    /* A sheet that slides up from the bottom edge, not a popover pinned to
-       the button — the same shape and easing as the task detail sheet, so
-       the two things that come up from the bottom of the calendar behave
-       alike. position:fixed inside the (untransformed) .fab-container is
-       still relative to the viewport, so it can leave the FAB row behind. */
-    .filter-panel{
+    /* ── The sheet ──
+       Comes up from the bottom edge with the same shape and easing as the
+       task detail sheet, so the two things that rise from the bottom of the
+       calendar behave alike. */
+    .cfg-sheet{
       position:fixed;z-index:610;left:50%;bottom:0;top:auto;
       width:min(460px,100%);max-width:460px;
       max-height:82vh;overflow-y:auto;overscroll-behavior:contain;
@@ -715,20 +865,57 @@
       border:1px solid rgba(255,255,255,0.14);border-bottom:none;
       border-radius:22px 22px 0 0;padding:0 15px 18px;
       box-shadow:0 -12px 44px -8px rgba(0,0,0,0.7);
-      transform:translate(-50%,100%);opacity:1;pointer-events:none;
+      transform:translate(-50%,100%);pointer-events:none;
       transition:transform 0.3s cubic-bezier(0.32,0.72,0,1);
     }
-    .filter-panel.open{transform:translate(-50%,0);pointer-events:all}
+    .cfg-sheet.open{transform:translate(-50%,0);pointer-events:all}
     /* The grab handle is what reads as "sheet" rather than "stray panel" */
-    .filter-panel::before{
+    .cfg-sheet::before{
       content:'';display:block;width:38px;height:4px;flex-shrink:0;
       background:rgba(255,255,255,0.25);border-radius:2px;margin:10px auto 4px;
     }
-    .filter-head{
+    .cfg-head{
       display:flex;align-items:center;justify-content:space-between;gap:10px;
-      position:sticky;top:0;z-index:2;padding:6px 0 8px;
-      background:var(--sheet);
+      position:sticky;top:0;z-index:2;padding:6px 0 8px;background:var(--sheet);
     }
+    .cfg-head .range-label-hd{padding:0}
+
+    /* The key folds away: it is a reference, not a control. */
+    #cfgKeyWrap{margin-top:12px;padding-top:10px;border-top:1px solid var(--glass-brd)}
+    .cfg-fold{
+      width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;
+      border:1px dashed var(--field-brd);background:transparent;color:var(--muted);
+      font-family:'Kanit',sans-serif;font-size:13.5px;cursor:pointer;
+      transition:border-color 0.15s,color 0.15s;
+    }
+    .cfg-fold:hover{border-color:var(--pink);color:var(--text)}
+    .cfg-fold .ic{width:14px;height:14px}
+    .cfg-fold-chev{margin-left:auto;transition:transform 0.2s}
+    .cfg-fold[aria-expanded="true"] .cfg-fold-chev{transform:rotate(180deg)}
+    .cfg-key{padding:10px 2px 0}
+
+    @media(max-width:480px){
+      /* The label is the first thing to go when the thumb needs the room */
+      .cfg-lab{display:none}
+      .cfg-toggle{padding:0 14px}
+    }
+
+    /* ── Pieces the sheet is built from ──────────────────────── */
+
+    /* The key's colour swatches and the miniature of a real bar — cheaper
+       to read than a sentence about what solid and faded mean. */
+    .legend-item{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);padding:4px 0}
+    .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+    .dot-sendon{background:var(--green)}.dot-deadline{background:#ef4444}.dot-prediction{background:#8b5cf6}.dot-marker{background:var(--marker)}
+    .legend-bar-key{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--label);margin-top:7px}
+    .lbk-bar{position:relative;width:56px;height:13px;border-radius:5px;background:#2563eb;overflow:hidden;flex-shrink:0}
+    .lbk-cap{position:absolute;left:0;top:0;bottom:0;width:3px;background:#f97316}
+    .lbk-rest{position:absolute;left:58%;top:0;bottom:0;right:0;background:var(--bar-scrim);border-left:1.5px solid var(--bar-edge)}
+    .legend-hint{font-size:11.5px;color:var(--label);margin-top:6px;padding-top:6px;border-top:1px solid var(--glass-brd);line-height:1.6}
+    .legend-hint .ic{width:12px;height:12px;vertical-align:-1px;margin-right:2px}
+
+    .range-label-hd{display:block;font-size:11.5px;font-weight:500;letter-spacing:.05em;color:var(--label);padding:4px 8px 6px;text-transform:uppercase}
+
     .filter-close{
       width:30px;height:30px;flex-shrink:0;border:none;border-radius:9px;
       background:var(--field-bg);color:var(--muted);font-size:15px;cursor:pointer;
@@ -736,21 +923,26 @@
     }
     .filter-close:hover{background:var(--accent-soft);color:var(--accent-soft-text)}
     .filter-close:active{transform:scale(0.9)}
-    .filter-head .range-label-hd{padding:0}
     .filter-clear{
-      background:none;border:none;padding:2px 4px;cursor:pointer;
+      background:none;border:none;padding:2px 4px;cursor:pointer;margin-left:auto;
       font-family:'Kanit',sans-serif;font-size:12.5px;font-weight:500;color:var(--pink);
       text-decoration:underline;text-underline-offset:2px;transition:opacity 0.15s;
     }
     .filter-clear:disabled{opacity:0.35;cursor:default;text-decoration:none}
-    /* Says which of the two lenses you are looking at — these filters only
-       change this calendar, the side-quest one changes the whole app. */
+
+    /* Section headings inside the sheet. They carry the scope too: these
+       change this calendar, the one below changes the whole app. */
     .filter-scope{
       display:block;font-size:10.5px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;
       color:var(--label);margin:11px 0 6px;padding-top:8px;border-top:1px solid var(--glass-brd);
     }
-    .filter-head + .filter-scope{margin-top:8px;padding-top:0;border-top:none}
+    .cfg-head + .filter-scope,
+    #filterCalOnly > .filter-scope:first-child{margin-top:8px;padding-top:0;border-top:none}
+
+    /* One chip shape for every choice in the sheet — kind, order and
+       layout are all "pick one of these", so they all look like it. */
     .filter-group{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+    .filter-group:last-of-type{margin-bottom:0}
     .filter-chip{
       display:inline-flex;align-items:center;gap:6px;
       background:transparent;border:1px solid var(--glass-brd);color:var(--muted);
@@ -758,10 +950,12 @@
       cursor:pointer;white-space:nowrap;
       transition:background 0.15s,color 0.15s,border-color 0.15s,transform 0.1s;
     }
+    .filter-chip .ic{width:13px;height:13px}
     .filter-chip:hover{background:var(--glass);color:var(--text)}
     .filter-chip:active{transform:scale(0.93)}
     .filter-chip.active{background:var(--accent-soft);color:var(--accent-soft-text);border-color:var(--accent-brd)}
     .filter-swatch{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+
     .filter-switch-row{
       display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
       background:none;border:none;padding:7px 2px;cursor:pointer;
@@ -771,6 +965,7 @@
     .filter-switch-lab{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text)}
     .filter-switch-lab .ic{width:14px;height:14px;color:var(--pink)}
     .filter-note{font-size:11px;font-weight:300;color:var(--label);line-height:1.5;margin:6px 2px 0}
+
     /* The way out of a board you have filtered down to nothing */
     .empty-clear{
       margin-top:14px;padding:9px 18px;border-radius:11px;border:none;
@@ -781,37 +976,6 @@
     .empty-clear:hover{filter:brightness(1.07)}
     .empty-clear:active{transform:scale(0.97)}
 
-    .range-fab{pointer-events:all;position:relative}
-    .range-toggle{height:46px;padding:0 18px;border-radius:23px;background:var(--col);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--field-brd);box-shadow:0 4px 18px rgba(0,0,0,0.35);display:flex;align-items:center;gap:7px;font-family:'Kanit',sans-serif;font-size:15px;font-weight:500;color:#fff;cursor:pointer;white-space:nowrap;transition:background 0.22s,color 0.22s,border-color 0.22s,transform 0.18s;animation:fabIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.35s backwards}
-    .range-toggle:hover{transform:translateY(-2px)}
-    .range-toggle:active{transform:translateY(0) scale(0.97)}
-    .range-toggle.open{background:var(--accent-grad);color:white;border-color:transparent}
-    .range-chevron{font-size:11.5px;opacity:0.65;transition:transform 0.25s}
-    .range-toggle.open .range-chevron{transform:rotate(180deg)}
-    .range-panel{position:absolute;bottom:56px;right:0;background:var(--panel);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.16);border-radius:14px;padding:6px;box-shadow:0 8px 28px rgba(0,0,0,0.5);min-width:156px;transform-origin:bottom right;transform:scale(0.88) translateY(8px);opacity:0;pointer-events:none;transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1),opacity 0.18s}
-    .range-panel.open{transform:scale(1) translateY(0);opacity:1;pointer-events:all}
-    .range-label-hd{display:block;font-size:11.5px;font-weight:500;letter-spacing:.05em;color:var(--label);padding:4px 8px 6px;text-transform:uppercase}
-    .range-option{display:block;width:100%;padding:9px 12px;border:none;background:transparent;font-family:'Kanit',sans-serif;font-size:15px;color:rgba(255,255,255,0.85);cursor:pointer;border-radius:8px;text-align:left;transition:background 0.13s,color 0.13s}
-    .range-option:hover{background:var(--accent-soft);color:var(--accent-soft-text)}
-    .range-option.active{background:var(--accent-grad);color:white;font-weight:500}
-    /* Range only applies to timeline mode, so it sits below a divider */
-    #rangeSection{border-top:1px solid var(--glass-brd);margin-top:5px;padding-top:2px}
-
-    /* ── Sort ──
-       Sorting was the odd one out inside the filter sheet: it takes nothing
-       away, it re-orders. So it gets a pill of its own alongside the range
-       one — the right of the bar is now "how the board is laid out", and the
-       sheet in the middle is purely "what is on it". Same shape and panel as
-       the range control, because it answers the same kind of question. */
-    .fab-right{display:flex;align-items:flex-end;gap:9px;pointer-events:none}
-    .sort-fab{pointer-events:all;position:relative}
-    .sort-toggle{animation-delay:0.3s}
-    /* Latches like the filter FAB does, so a non-default order is visible
-       from the bar without opening anything */
-    .sort-toggle.on{background:var(--accent-grad);border-color:transparent;color:#fff}
-    .sort-panel{min-width:168px}
-    .sort-lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:104px}
-
     /* MODAL — dark glass */
     .modal-overlay{position:fixed;inset:0;background:rgba(5,10,22,0.62);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem}
     .modal-overlay.open{display:flex;animation:fadeIn 0.2s ease both}
@@ -821,6 +985,7 @@
     .modal h2{font-size:19.5px;font-weight:600;margin-bottom:1.25rem;color:var(--text)}
     .modal-field{margin-bottom:1rem}
     .modal-field label{display:block;font-size:14px;font-weight:500;color:var(--muted);margin-bottom:5px}
+    .mod-diff-hint{font-weight:300;font-size:12.5px;color:var(--label)}
     .modal-field input,.modal-field select,.modal-field textarea{width:100%;padding:9px 12px;border:1px solid var(--field-brd);border-radius:10px;font-size:16px;font-family:'Kanit',sans-serif;color:var(--text);background:var(--field-bg);outline:none;transition:border-color 0.15s,box-shadow 0.15s}
     .modal-field input::placeholder,.modal-field textarea::placeholder{color:rgba(255,255,255,0.38)}
     .modal-field input:focus,.modal-field select:focus,.modal-field textarea:focus{border-color:var(--pink);box-shadow:0 0 0 3px var(--accent-ring)}
@@ -1139,24 +1304,18 @@
       .modal-overlay{align-items:flex-end;padding:0}
       /* Four controls now share the bottom row, so they shrink a little
          to keep the range label from being squeezed off its own button. */
-      .fab-container{bottom:1.25rem;left:0.875rem;right:0.875rem}
+      .fab-container{bottom:1.25rem;right:0.875rem}
       /* The row moved down and its buttons shrank, so the navigator
          above it has to follow. */
       :root{--tasnav-bottom:calc(1.25rem + 54px)}
-      .legend-toggle,.filter-toggle{width:42px;height:42px}
-      .filter-toggle .ic{width:19px;height:19px}
+      .cfg-toggle{height:42px;padding:0 13px;font-size:14px}
+      .cfg-toggle .ic{width:18px;height:18px}
       /* Full-bleed on a phone, like the detail sheet */
-      .filter-panel{
+      .cfg-sheet{
         left:0;right:0;width:100%;max-width:100%;
         border-radius:20px 20px 0 0;transform:translateY(100%);
       }
-      .filter-panel.open{transform:translateY(0)}
-      .range-toggle{height:42px;padding:0 14px;font-size:14px}
-      /* Four controls share the row on a phone — the sort pill keeps only
-         its icon, and the chevron says it still opens something. */
-      .sort-lab{display:none}
-      .sort-toggle{padding:0 12px;gap:5px}
-      .fab-right{gap:7px}
+      .cfg-sheet.open{transform:translateY(0)}
 
       /* The sheet behaviour itself lives in the base rules now and is shared
          with desktop; a phone only needs it to go full-bleed. */
@@ -1597,6 +1756,8 @@
     .pg-mini-btn:hover{border-color:var(--pink);background:var(--accent-soft)}
     .pg-mini-btn:active{transform:scale(0.9)}
     .pg-mini-val{min-width:26px;text-align:center;font-size:16px;font-weight:600;color:var(--text)}
+    /* A four-digit target would jiggle the ± buttons on every tap */
+    .pg-mini-val.wide{min-width:62px}
     #pgDefTotalRow.hide{display:none}
     .theme-opt.active{border-color:var(--pink);background:var(--accent-soft)}
     /* Progress inside the detail popup */
@@ -1669,7 +1830,11 @@
     }
     html[data-theme="light"] body{background:#f4f6f4}
     html[data-theme="light"] .bg-orbs{display:none}
-    html[data-theme="light"] #authGate .gate-spin{border-color:#dde3dd;border-top-color:var(--pink)}
+    /* The gate is a ghost of the page, so it follows the page into light */
+    html[data-theme="light"] #authGate{background:#f4f6f4}
+    html[data-theme="light"] #authGate .gate-top{
+      background:rgba(255,255,255,0.86);border-bottom-color:rgba(20,40,15,0.10);
+    }
     /* The floating bar is .topnav now — .topbar is just the transparent slot */
     html[data-theme="light"] .topnav{
       background:rgba(255,255,255,0.86);border-color:rgba(20,40,15,0.10);
@@ -1678,10 +1843,11 @@
     html[data-theme="light"] .brand-chip{background:#ffffff;border-color:#dde3dd;box-shadow:0 2px 8px -2px rgba(0,0,0,0.12)}
     html[data-theme="light"] .topnav-brand:hover{background:rgba(0,0,0,0.04)}
     html[data-theme="light"] .topnav-brand:hover .brand-chip{background:#ffffff;border-color:#c8d4c8}
-    html[data-theme="light"] .filter-toggle{box-shadow:0 4px 18px rgba(0,0,0,0.13)}
-    html[data-theme="light"] .filter-toggle.on,html[data-theme="light"] .filter-toggle.open{color:#fff}
-    html[data-theme="light"] .filter-toggle.on .filter-count{color:#0F6E56}
-    html[data-theme="light"] .filter-panel{border-color:#dde3dd;box-shadow:0 8px 28px rgba(0,0,0,0.12)}
+    html[data-theme="light"] .cfg-toggle{box-shadow:0 4px 18px rgba(0,0,0,0.13);color:var(--text)}
+    html[data-theme="light"] .cfg-toggle.on,html[data-theme="light"] .cfg-toggle.open{color:#fff}
+    html[data-theme="light"] .cfg-toggle.on .cfg-count{color:#0F6E56}
+    html[data-theme="light"] .cfg-sheet{border-color:#dde3dd;box-shadow:0 8px 28px rgba(0,0,0,0.12)}
+    html[data-theme="light"] .cfg-sheet::before{background:rgba(20,40,15,0.2)}
     html[data-theme="light"] .filter-chip:hover{background:rgba(0,0,0,0.05)}
     html[data-theme="light"] .filter-switch-row:hover{background:rgba(0,0,0,0.04)}
     html[data-theme="light"] .dp-sq-row{background:#f7faf7;border-color:#dde3dd}
@@ -1718,12 +1884,8 @@
     html[data-theme="light"] .user-dropdown-btn.signout:hover{background:#fff5f5;color:#e53e3e}
     html[data-theme="light"] .gantt-bar{box-shadow:0 3px 10px -4px rgba(0,0,0,0.25)}
     html[data-theme="light"] .check-spin{border-color:#dde3dd;border-top-color:var(--pink)}
-    html[data-theme="light"] .legend-toggle,html[data-theme="light"] .range-toggle{box-shadow:0 4px 18px rgba(0,0,0,0.13)}
     html[data-theme="light"] .legend-panel,html[data-theme="light"] .range-panel{border-color:#dde3dd;box-shadow:0 8px 28px rgba(0,0,0,0.12)}
-    html[data-theme="light"] .range-toggle{color:var(--pink)}
-    html[data-theme="light"] .range-toggle.open{color:#ffffff}
     /* Latched sort wears the accent fill, so its label has to flip too */
-    html[data-theme="light"] .sort-toggle.on{color:#ffffff}
     html[data-theme="light"] .range-option{color:#3a463a}
     /* Restated at the theme's specificity — the plain rule above would
        otherwise win and leave dark text on the accent fill. */
@@ -1811,6 +1973,54 @@
     }
     .todo-search::placeholder{color:var(--label)}
     .todo-search:focus{border-color:var(--accent-brd)}
+
+    /* ── Waiting for the list ────────────────────────────────
+       Bones in the shape of the two columns. Every measurement here is
+       lifted from the real thing above, so the list lands in the slots
+       its ghost was already holding. */
+    .todo-skel-count{width:22px;height:20px;border-radius:99px;flex-shrink:0}
+    .todo-skel-search{width:100%;height:33px;border-radius:10px;margin-bottom:9px;flex-shrink:0}
+    .todo-skel-meter{margin-bottom:10px;padding:9px 11px 8px;border-radius:11px;
+      background:var(--field-bg);border:1px solid var(--glass-brd);flex-shrink:0}
+    .todo-skel-track{width:100%;height:6px;border-radius:99px;margin-top:9px}
+    .todo-skel-lane{display:flex;flex-direction:column;gap:7px}
+    .todo-skel-card{
+      display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:12px;
+      background:var(--card);border:1px solid var(--border);
+    }
+    .todo-skel-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .todo-skel-info{min-width:0;flex:1;display:flex;flex-direction:column;gap:6px}
+    .todo-skel-due{width:44px;height:11px;flex-shrink:0}
+
+    /* ── The load meter ──────────────────────────────────────
+       Sits in the To Do column's header, between the title and the list,
+       so what the list weighs is read before what is on it. Deliberately
+       quieter than a row: it is a reading, not something to act on. */
+    .todo-meter{
+      flex-shrink:0;margin-bottom:10px;padding:9px 11px 8px;border-radius:11px;
+      background:var(--field-bg);border:1px solid var(--glass-brd);
+    }
+    .todo-meter-top{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+    .todo-meter-read{
+      flex:1;text-align:left;padding:0;border:0;background:transparent;cursor:pointer;
+      font-family:'Kanit',sans-serif;font-size:13px;font-weight:300;color:var(--muted);white-space:nowrap;
+    }
+    .todo-meter-read:disabled{cursor:default}
+    .todo-meter-read:not(:disabled):hover b{color:var(--pink)}
+    .todo-meter-read b{font-size:17px;font-weight:600;color:var(--text);margin-right:1px}
+    .todo-meter-flip{
+      flex-shrink:0;width:26px;height:26px;border-radius:8px;border:1px solid var(--field-brd);
+      background:transparent;color:var(--muted);font-size:14px;line-height:1;cursor:pointer;
+      display:grid;place-items:center;transition:border-color 0.15s,color 0.15s,transform 0.12s;
+    }
+    .todo-meter-flip:hover{border-color:var(--pink);color:var(--text)}
+    .todo-meter-flip:active{transform:rotate(180deg)}
+    .todo-meter-cap{margin-top:6px;font-size:11.5px;font-weight:300;color:var(--label)}
+    .todo-meter.over .todo-meter-read b{color:var(--red-text)}
+    .todo-meter.over .todo-meter-cap{color:var(--red-text)}
+    /* The target hasn't arrived from the account yet — show the number,
+       but don't draw a bar measured against a guess. */
+    .todo-meter.waiting .prog-bar{opacity:0.35}
     .todo-scroll{display:flex;flex-direction:column;gap:7px;overflow-y:auto}
     .todo-scroll{max-height:calc(100vh - var(--topbar-h) - 200px)}
     .todo-foot{
@@ -1973,11 +2183,53 @@
   <span class="orb orb-3"></span>
 </div>
 
-<!-- Auth gate -->
-<div id="authGate">
-  <div style="font-size:39px;line-height:0"><svg class="ic ic-xl" aria-hidden="true"><use href="#ic-calendar-grid"/></svg></div>
-  <div class="gate-spin"></div>
-  <div class="gate-msg">Checking sign-in...</div>
+<!-- Auth gate — a ghost of the calendar, not a spinner. See #authGate. -->
+<div id="authGate" role="status" aria-label="Checking your sign-in">
+  <div class="gate-top">
+    <div class="skel-bone gate-brand"></div>
+    <div class="skel-bone skel-line" style="width:120px;height:13px"></div>
+    <div class="gate-tabs">
+      <div class="skel-bone gate-tab"></div>
+      <div class="skel-bone gate-tab"></div>
+      <div class="skel-bone gate-tab"></div>
+    </div>
+  </div>
+  <div class="gate-body">
+    <div class="gate-dates">
+      <div class="skel-bone gate-date"></div><div class="skel-bone gate-date"></div>
+      <div class="skel-bone gate-date"></div><div class="skel-bone gate-date"></div>
+      <div class="skel-bone gate-date"></div><div class="skel-bone gate-date"></div>
+    </div>
+    <div class="gate-row">
+      <div class="gate-row-text"><div class="skel-bone skel-line" style="--sk-nw:82%"></div><div class="skel-bone skel-line sub"></div></div>
+      <div class="gate-row-track"><div class="skel-bone skel-bar" style="--sk-l:4%;--sk-w:38%"></div></div>
+    </div>
+    <div class="gate-row">
+      <div class="gate-row-text"><div class="skel-bone skel-line" style="--sk-nw:64%"></div><div class="skel-bone skel-line sub" style="--sk-sw:38%"></div></div>
+      <div class="gate-row-track"><div class="skel-bone skel-bar" style="--sk-l:22%;--sk-w:30%"></div></div>
+    </div>
+    <div class="gate-row">
+      <div class="gate-row-text"><div class="skel-bone skel-line" style="--sk-nw:74%"></div><div class="skel-bone skel-line sub" style="--sk-sw:52%"></div></div>
+      <div class="gate-row-track"><div class="skel-bone skel-bar" style="--sk-l:12%;--sk-w:46%"></div></div>
+    </div>
+    <div class="gate-row">
+      <div class="gate-row-text"><div class="skel-bone skel-line" style="--sk-nw:58%"></div><div class="skel-bone skel-line sub" style="--sk-sw:44%"></div></div>
+      <div class="gate-row-track"><div class="skel-bone skel-bar" style="--sk-l:34%;--sk-w:26%"></div></div>
+    </div>
+    <div class="gate-row">
+      <div class="gate-row-text"><div class="skel-bone skel-line" style="--sk-nw:70%"></div><div class="skel-bone skel-line sub" style="--sk-sw:36%"></div></div>
+      <div class="gate-row-track"><div class="skel-bone skel-bar" style="--sk-l:8%;--sk-w:34%"></div></div>
+    </div>
+    <div class="gate-row">
+      <div class="gate-row-text"><div class="skel-bone skel-line" style="--sk-nw:80%"></div><div class="skel-bone skel-line sub" style="--sk-sw:48%"></div></div>
+      <div class="gate-row-track"><div class="skel-bone skel-bar" style="--sk-l:28%;--sk-w:40%"></div></div>
+    </div>
+    <div class="gate-row">
+      <div class="gate-row-text"><div class="skel-bone skel-line" style="--sk-nw:62%"></div><div class="skel-bone skel-line sub" style="--sk-sw:40%"></div></div>
+      <div class="gate-row-track"><div class="skel-bone skel-bar" style="--sk-l:16%;--sk-w:28%"></div></div>
+    </div>
+  </div>
+  <div class="gate-msg"><svg class="ic" aria-hidden="true"><use href="#ic-lock"/></svg> Checking your sign-in…</div>
 </div>
 
 <div id="appWrap" style="display:none">
@@ -2096,6 +2348,10 @@
   </symbol>
   <symbol id="ic-broom" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M19.6 3.8 12.2 11.2"/><path d="M13.6 9.4 6.4 16.6l3.4 3.4 7.2-7.2z"/><path d="M6.4 16.6 3.6 20.4l3.4-.4"/>
+  </symbol>
+  <symbol id="ic-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 7h9M18 7h2M4 17h2M11 17h9"/>
+    <circle cx="15.5" cy="7" r="2.2"/><circle cx="8.5" cy="17" r="2.2"/>
   </symbol>
   <symbol id="ic-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M3.5 5h17l-6.6 7.8v5.4l-3.8 2.3v-7.7z"/>
@@ -2218,9 +2474,71 @@
 </div>
 
 <!-- FLOATING CONTROLS -->
+<!-- One button. There used to be four along this edge — a legend, a filter,
+     a sort and a range — and they read as four unrelated things scattered
+     across the bottom of the screen rather than one set of controls for one
+     board. They are all answers to the same question ("how do I want to look
+     at this?"), so they are one sheet now, and the bar carries a single pill
+     that says what the board is currently set to. -->
 <div class="fab-container">
-  <div class="legend-fab">
-    <div class="legend-panel" id="legendPanel">
+  <div class="cfg-fab">
+    <button class="cfg-toggle" id="cfgToggle" onclick="toggleConfig(event)"
+            aria-expanded="false" aria-controls="configSheet" title="View options">
+      <svg class="ic" aria-hidden="true"><use href="#ic-sliders"/></svg>
+      <span class="cfg-lab" id="cfgLabel">Month</span>
+      <span class="cfg-count" id="cfgCount" style="display:none"></span>
+    </button>
+  </div>
+</div>
+
+<!-- The sheet itself lives outside .fab-container: it is a bottom sheet
+     across the whole viewport, not something anchored to the button. -->
+<div class="cfg-sheet" id="configSheet" role="dialog" aria-label="View options">
+  <div class="cfg-head">
+    <span class="range-label-hd">View options</span>
+    <button class="filter-clear" id="filterClear" onclick="clearCalFilters()">Reset</button>
+    <button class="filter-close" onclick="closeFabs()" aria-label="Close">&#10005;</button>
+  </div>
+
+  <!-- Only the calendar has rows to lay out, order or thin down, so this
+       whole half steps aside on the other views rather than sitting inert -->
+  <div id="filterCalOnly">
+    <span class="filter-scope">Layout</span>
+    <div class="filter-group" id="cfgModes"></div>
+    <div class="filter-group" id="cfgRanges"></div>
+
+    <span class="filter-scope">Order</span>
+    <div class="filter-group" id="sortOptions"></div>
+
+    <span class="filter-scope">Show on this calendar</span>
+    <div class="filter-group" id="filterTypes"></div>
+    <button class="filter-switch-row" onclick="toggleFilterDone()">
+      <span class="filter-switch-lab"><svg class="ic" aria-hidden="true"><use href="#ic-check-circle"/></svg> Hide finished</span>
+      <span class="pt-switch" id="filterDoneSwitch"></span>
+    </button>
+    <button class="filter-switch-row" onclick="toggleFilterMarkers()">
+      <span class="filter-switch-lab"><svg class="ic" aria-hidden="true"><use href="#ic-pin"/></svg> Hide markers</span>
+      <span class="pt-switch" id="filterMarkersSwitch"></span>
+    </button>
+  </div>
+  <p class="filter-note" id="filterCalHint" style="display:none">Layout, order and the kind filters belong to the calendar — open it to use them.</p>
+
+  <span class="filter-scope">Everywhere</span>
+  <button class="filter-switch-row" onclick="toggleSideQuests(event)">
+    <span class="filter-switch-lab"><svg class="ic" aria-hidden="true"><use href="#ic-moon"/></svg> Hide side quests</span>
+    <span class="pt-switch" id="filterSqSwitch"></span>
+  </button>
+  <p class="filter-note" id="filterSqNote">Side quests stay hidden in the To Do list and the archive too — everything above only changes this calendar.</p>
+
+  <!-- The key is a reference, not a control, so it folds away under the
+       things you actually came here to change. -->
+  <div id="cfgKeyWrap">
+    <button class="cfg-fold" id="cfgKeyBtn" onclick="toggleCfgKey()" aria-expanded="false">
+      <svg class="ic" aria-hidden="true"><use href="#ic-help"/></svg>
+      <span>What the colours mean</span>
+      <span class="cfg-fold-chev">&#8964;</span>
+    </button>
+    <div class="cfg-key" id="cfgKey" hidden>
       <div class="legend-item"><div class="legend-dot dot-sendon"></div>Send On</div>
       <div class="legend-item"><div class="legend-dot dot-deadline"></div>Send Before</div>
       <div class="legend-item"><div class="legend-dot dot-prediction"></div>Estimated</div>
@@ -2229,86 +2547,7 @@
         <span class="lbk-bar"><span class="lbk-cap"></span><span class="lbk-rest"></span></span>
         <span>Solid = done, faded = still to do</span>
       </div>
-      <div class="legend-hint"><svg class="ic" aria-hidden="true"><use href="#ic-check-circle"/></svg> Check = personal done mark (synced to your account)<br><svg class="ic" aria-hidden="true"><use href="#ic-chart"/></svg> Bar fill = your progress · left edge = how soon it's due<br><span id="legendColourHint"><svg class="ic" aria-hidden="true"><use href="#ic-palette"/></svg> Colour = subject (tap a swatch under the grid to change it)</span><br><svg class="ic" aria-hidden="true"><use href="#ic-moon"/></svg> Dashed + moon = a side quest of yours<br><svg class="ic" aria-hidden="true"><use href="#ic-pin"/></svg> Orange line = marked date<br><svg class="ic" aria-hidden="true"><use href="#ic-tack"/></svg> Tap date to highlight</div>
-    </div>
-    <button class="legend-toggle" id="legendToggle" onclick="toggleLegend()" title="Legend">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pink);transition:color 0.22s">
-        <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
-      </svg>
-    </button>
-  </div>
-  <!-- Everything that changes *what is on the board* lives here, in the
-       middle: the legend on the left explains it and the range on the
-       right frames it, but this is the one that takes things away. The
-       side-quest lens moved in here rather than keeping a button of its
-       own — it was always a filter. -->
-  <div class="filter-fab">
-    <div class="filter-panel" id="filterPanel">
-      <div class="filter-head">
-        <span class="range-label-hd">Filters</span>
-        <button class="filter-clear" id="filterClear" onclick="clearCalFilters()">Reset</button>
-        <button class="filter-close" onclick="closeFabs()" aria-label="Close">✕</button>
-      </div>
-
-      <!-- Only the calendar has kinds to draw, so these step aside on the
-           other views rather than sitting there inert -->
-      <div id="filterCalOnly">
-        <span class="filter-scope">Show on this calendar</span>
-        <div class="filter-group" id="filterTypes"></div>
-        <button class="filter-switch-row" onclick="toggleFilterDone()">
-          <span class="filter-switch-lab"><svg class="ic" aria-hidden="true"><use href="#ic-check-circle"/></svg> Hide finished</span>
-          <span class="pt-switch" id="filterDoneSwitch"></span>
-        </button>
-        <button class="filter-switch-row" onclick="toggleFilterMarkers()">
-          <span class="filter-switch-lab"><svg class="ic" aria-hidden="true"><use href="#ic-pin"/></svg> Hide markers</span>
-          <span class="pt-switch" id="filterMarkersSwitch"></span>
-        </button>
-      </div>
-      <p class="filter-note" id="filterCalHint" style="display:none">The kind filters belong to the calendar — open it to use them.</p>
-
-      <span class="filter-scope">Everywhere</span>
-      <button class="filter-switch-row" onclick="toggleSideQuests(event)">
-        <span class="filter-switch-lab"><svg class="ic" aria-hidden="true"><use href="#ic-moon"/></svg> Hide side quests</span>
-        <span class="pt-switch" id="filterSqSwitch"></span>
-      </button>
-      <p class="filter-note" id="filterSqNote">Side quests stay hidden in the To Do list and the archive too — everything above only changes this calendar.</p>
-    </div>
-    <button class="filter-toggle" id="filterToggle" onclick="toggleFilterPanel(event)"
-            aria-expanded="false" title="Filters">
-      <svg class="ic" aria-hidden="true"><use href="#ic-filter"/></svg>
-      <span class="filter-count" id="filterCount" style="display:none"></span>
-    </button>
-  </div>
-  <div class="fab-right">
-    <div class="sort-fab">
-      <div class="range-panel sort-panel" id="sortPanel">
-        <span class="range-label-hd">Sort rows by</span>
-        <div id="sortOptions"></div>
-      </div>
-      <button class="range-toggle sort-toggle" id="sortToggle" onclick="toggleSort(event)"
-              aria-expanded="false" title="Sort rows">
-        <svg class="ic" aria-hidden="true"><use href="#ic-sort"/></svg>
-        <span class="sort-lab" id="sortLabel">Due date</span>
-        <span class="range-chevron">▲</span>
-      </button>
-    </div>
-    <div class="range-fab">
-      <div class="range-panel" id="rangePanel">
-        <span class="range-label-hd">View mode</span>
-        <button class="range-option mode-option active" id="mo-timeline" onclick="setCalMode('timeline')"><svg class="ic" aria-hidden="true"><use href="#ic-chart"/></svg> Timeline</button>
-        <button class="range-option mode-option" id="mo-grid" onclick="setCalMode('grid')"><svg class="ic" aria-hidden="true"><use href="#ic-calendar-grid"/></svg> Month grid</button>
-        <div id="rangeSection">
-          <span class="range-label-hd" style="margin-top:4px">View range</span>
-          <button class="range-option" id="ro-week" onclick="setRange('week')">Week <svg class="ic" aria-hidden="true"><use href="#ic-infinity"/></svg></button>
-          <button class="range-option" id="ro-2weeks" onclick="setRange('2weeks')">2 Weeks</button>
-          <button class="range-option active" id="ro-month" onclick="setRange('month')">Month</button>
-          <button class="range-option" id="ro-semester" onclick="setRange('semester')">Semester</button>
-        </div>
-      </div>
-      <button class="range-toggle" id="rangeToggle" onclick="toggleRange()">
-        <span id="rangeLabel"><svg class="ic" aria-hidden="true"><use href="#ic-calendar-grid"/></svg> Month</span>
-        <span class="range-chevron">▲</span>
-      </button>
+      <div class="legend-hint"><svg class="ic" aria-hidden="true"><use href="#ic-check-circle"/></svg> Check = personal done mark (synced to your account)<br><svg class="ic" aria-hidden="true"><use href="#ic-chart"/></svg> Bar fill = your progress &middot; left edge = how soon it's due<br><span id="legendColourHint"><svg class="ic" aria-hidden="true"><use href="#ic-palette"/></svg> Colour = subject (tap a swatch under the grid to change it)</span><br><svg class="ic" aria-hidden="true"><use href="#ic-moon"/></svg> Dashed + moon = a side quest of yours<br><svg class="ic" aria-hidden="true"><use href="#ic-pin"/></svg> Orange line = marked date<br><svg class="ic" aria-hidden="true"><use href="#ic-tack"/></svg> Tap date to highlight</div>
     </div>
   </div>
 </div>
@@ -2326,6 +2565,15 @@
       <div class="detail-note" id="dp-note"></div>
     </div>
     <div id="dp-progress-section" style="display:none"></div>
+    <!-- How heavy this task is. Hidden for markers, which are dates rather
+         than work. The weight saved here is this reader's own. -->
+    <button class="dp-pts-row" id="dp-pts-row" style="display:none" onclick="openDetailPoints()">
+      <span class="dp-pts-label">
+        <svg class="ic" aria-hidden="true"><use href="#ic-trend"/></svg>
+        <span>Difficulty<em id="dp-pts-sub"></em></span>
+      </span>
+      <span class="dp-pts-val" id="dp-pts-read"></span>
+    </button>
     <!-- Only ever shown for your own tasks — see showDetail -->
     <button class="dp-sq-row" id="dp-sq-row" style="display:none" onclick="toggleDetailSideQuest()">
       <span class="dp-sq-label"><svg class="ic" aria-hidden="true"><use href="#ic-moon"/></svg> Side quest</span>
@@ -2364,6 +2612,11 @@
     <div class="modal-row">
       <div class="modal-field"><label>Start date</label><input type="date" id="t-start" /></div>
       <div class="modal-field"><label>End / Due date</label><input type="date" id="t-end" /></div>
+    </div>
+    <!-- The class's starting point for how heavy this is. Each student can
+         set their own weight over the top from the task's detail sheet. -->
+    <div class="modal-field"><label>Difficulty <span class="mod-diff-hint" id="modDiffHint"></span></label>
+      <div class="pts-grid" id="modDiffGrid"></div>
     </div>
     <div class="modal-field"><label>Note (optional)</label><textarea id="t-note" placeholder="Extra info, link, etc."></textarea></div>
     <div class="modal-actions">
@@ -2597,7 +2850,47 @@
           <span class="set-chev">›</span>
         </a>
       </div>
-      <div class="set-group-note">Everything on this screen is saved on this device, not your account — set it up again on your phone.</div>
+      <div class="set-group-note">Everything above this is saved on this device, not your account — set it up again on your phone.</div>
+
+      <div class="set-group-label">Workload</div>
+      <div class="set-group">
+        <div class="set-row stack">
+          <div class="set-row-main">
+            <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-trend"/></svg></div>
+            <div class="set-row-text">
+              <div class="set-row-title">Point target</div>
+              <div class="set-row-desc">Every task is worth points — the harder it is, the more it carries. Your To Do list measures what it's holding against this number. It's an indicator, not a limit: nothing stops you going over.</div>
+            </div>
+          </div>
+          <div class="zone-row">
+            <label>A comfortable load</label>
+            <button class="pg-mini-btn" onclick="nudgePointTarget(-1)" aria-label="Lower the target">−</button>
+            <span class="pg-mini-val wide" id="ptTargetVal">1,000</span>
+            <button class="pg-mini-btn" onclick="nudgePointTarget(1)" aria-label="Raise the target">+</button>
+          </div>
+          <div class="set-row-desc" id="ptTargetHint" style="margin-top:9px"></div>
+        </div>
+
+        <!-- The rules, in one place. The picker shows the working for one
+             task; this is the whole system, for anyone who wants to know
+             what the numbers on their cards actually mean. -->
+        <div class="set-row stack">
+          <div class="set-row-main">
+            <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-help"/></svg></div>
+            <div class="set-row-text">
+              <div class="set-row-title">How scoring works</div>
+              <div class="set-row-desc">Where each task's points come from, and what the meter is counting.</div>
+            </div>
+          </div>
+          <button class="pts-fold" id="scoreGuideBtn" onclick="toggleScoreGuide()" aria-expanded="false" type="button">
+            <svg class="ic" aria-hidden="true"><use href="#ic-trend"/></svg>
+            <span>Read the guide</span>
+            <span class="pts-fold-chev">&#8964;</span>
+          </button>
+          <div class="score-guide" id="scoreGuide" hidden></div>
+        </div>
+      </div>
+      <div class="set-group-note">This one is saved to your account, so it follows you to your phone.</div>
 
       <div class="set-group-label">About</div>
       <div class="set-group">
@@ -2672,6 +2965,57 @@
   </div>
 </div>
 
+<!-- DIFFICULTY PICKER -->
+<!-- Opened from a task's detail sheet and from the My Tasks wizard. The
+     wizard hands it a draft it keeps itself; the detail sheet writes the
+     answer straight into this user's own weights. -->
+<div class="modal-overlay" id="pointsModal" style="z-index:930">
+  <div class="modal" style="max-width:420px">
+    <h2><svg class="ic" aria-hidden="true"><use href="#ic-trend"/></svg> How hard is it?</h2>
+    <div class="pg-task" id="ptsTaskName"></div>
+
+    <div class="set-section">
+      <div class="set-label">Pick the closest</div>
+      <div class="pts-grid" id="ptsPresets"></div>
+      <!-- The estimate, and the arithmetic behind it. Shown on request
+           rather than always: most of the time you just want to pick a
+           chip, but a number nobody can check is a number nobody trusts. -->
+      <button class="pts-why" id="ptsWhyBtn" type="button" onclick="togglePointsWhy()" aria-expanded="false">
+        <span id="ptsSuggestHint"></span>
+        <span class="pts-why-chev">&#8964;</span>
+      </button>
+      <div class="pts-guide" id="ptsWhy" hidden></div>
+    </div>
+
+    <div class="set-section">
+      <div class="pts-custom-row">
+        <label for="ptsCustom">Or set it exactly</label>
+        <input type="number" id="ptsCustom" min="1" max="999" step="1" inputmode="numeric" />
+        <span class="prog-read">pt</span>
+      </div>
+    </div>
+
+    <div class="set-section">
+      <button class="pts-fold" id="ptsFoldBtn" onclick="togglePointsFactors()" type="button">
+        <svg class="ic" aria-hidden="true"><use href="#ic-puzzle"/></svg>
+        <span>Not sure? Work it out</span>
+        <span class="pts-fold-chev">⌄</span>
+      </button>
+      <div class="pts-factors" id="ptsFactors" style="display:none"></div>
+    </div>
+
+    <div class="set-section">
+      <div class="pts-total"><b id="ptsTotal">50</b><span>points</span></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closePointsSheet()">Cancel</button>
+      <button class="modal-save" onclick="savePointsSheet()">Save</button>
+    </div>
+    <button class="zone-reset" id="ptsReset" onclick="resetPointsSheet()" style="display:none;margin-top:10px">Go back to the estimate</button>
+  </div>
+</div>
+
 </div><!-- #appWrap -->
 
 <script type="module">
@@ -2692,6 +3036,9 @@ import { mountNav } from "./tas-nav.js"
 // the store owns Firestore, and the UI owns the DOM. This page supplies the
 // live task lists it renders against, so nothing is fetched twice.
 import * as TodoUI from "./tas-todo-ui.js"
+// How heavy each task is. Pure arithmetic, tested, and shared with the To Do
+// module so the pills and the meter can never disagree about a weight.
+import * as Points from "./tas-points.js"
 import {
   getMessaging, getToken, deleteToken, isSupported as messagingSupported
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-messaging.js"
@@ -2888,6 +3235,54 @@ async function writeProgress(id, next){
   return ok
 }
 
+/* ── Task points — how heavy a task is ───────────────────────
+   The arithmetic lives in tas-points.js so it can be tested and so the To
+   Do module reads the same numbers. What lives here is where a weight is
+   kept and how it is drawn.
+
+   Two layers. Whoever writes a task can give it a `difficulty`, and each
+   student can set their own weight over the top — kept beside their ticks
+   and progress in userDone/{uid}, for the same reason progress is: a
+   shared class task belongs to its author, and how hard it is going to be
+   for you is nobody else's call. Anything with neither falls back to an
+   estimate from the task's own shape, marked as a guess. */
+const pointsOf = (t) => Points.pointsOf(t, userPointsCache)
+
+function sanitizePointsMap(m){
+  const out = {}
+  if(m && typeof m === "object")
+    for(const [id, v] of Object.entries(m)){ const n = Points.normPoints(v); if(n) out[id] = n }
+  return out
+}
+
+/* The pill every card wears. An estimate is drawn faintly with a ~ in
+   front of it, so a weight nobody has actually chosen never passes itself
+   off as one that has been. */
+function pointsPillHTML(t, {cls = ""} = {}){
+  const { points, estimated } = pointsOf(t)
+  if(!points) return ""
+  const extra = (estimated ? " est" : "") + (cls ? " " + cls : "")
+  const title = estimated ? "Estimated from the dates — tap the task to set it" : "Difficulty"
+  return `<span class="pts-pill${extra}" title="${title}">${estimated ? "~" : ""}${points} pt</span>`
+}
+
+// Optimistic write, same shape as writeProgress: update the cache, persist,
+// and put the old value back if the write fails.
+async function writeUserPoints(id, next){
+  if(!currentUser) return false
+  const prev = userPointsCache[id] === undefined ? null : userPointsCache[id]
+  const n = Points.normPoints(next)
+  if(n) userPointsCache[id] = n
+  else delete userPointsCache[id]
+  const ok = await persistUserPoints(currentUser.uid)
+  if(!ok){
+    if(prev) userPointsCache[id] = prev
+    else delete userPointsCache[id]
+    saveFailToast()
+  }
+  return ok
+}
+
 // ── Quick-takeaway date — "Friday 10th July, 2026" ────────────
 const EN_DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
 const EN_MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"]
@@ -2966,6 +3361,10 @@ let userHiddenCache = {}
 // Lives in the same userDone/{uid} doc as `done`, because progress is a
 // personal thing: nobody can write to a shared task doc but its author.
 let userProgressCache = {}
+// Per-user task weights — { [taskId]: points }. Only the ones this person
+// set themselves; a task they have left alone isn't in here at all, and
+// pointsOf() falls through to the task's own value or an estimate.
+let userPointsCache = {}
 const savingIds = new Set()
 
 let userStateLoaded = false   // true only after the user's real doc was read
@@ -2976,12 +3375,14 @@ async function loadUserDone(uid) {
     userDoneCache   = snap.exists() ? (snap.data().done || {}) : {}
     userHiddenCache = snap.exists() ? (snap.data().archiveHidden || {}) : {}
     userProgressCache = snap.exists() ? sanitizeProgressMap(snap.data().progress) : {}
+    userPointsCache = snap.exists() ? sanitizePointsMap(snap.data().difficulty) : {}
     userStateLoaded = true
   } catch(e) {
     console.warn("Could not load done state:", e)
     userDoneCache = {}
     userHiddenCache = {}
     userProgressCache = {}
+    userPointsCache = {}
   }
 }
 
@@ -2994,7 +3395,7 @@ async function persistUserState(uid) {
   // roll back and show the save-failed toast.
   if (!userStateLoaded) { console.warn("User state never loaded — refusing to overwrite it"); return false }
   try {
-    await setDoc(doc(db, "userDone", uid), { done: userDoneCache, archiveHidden: userHiddenCache, progress: userProgressCache })
+    await setDoc(doc(db, "userDone", uid), { done: userDoneCache, archiveHidden: userHiddenCache, progress: userProgressCache, difficulty: userPointsCache })
     queueWidgetFeed()   // a tick here is a task that should leave the widget
     return true
   } catch(e) {
@@ -3005,6 +3406,7 @@ async function persistUserState(uid) {
 const persistUserDone     = (uid) => persistUserState(uid)
 const persistUserHidden   = (uid) => persistUserState(uid)
 const persistUserProgress = (uid) => persistUserState(uid)
+const persistUserPoints   = (uid) => persistUserState(uid)
 
 // ── Real role check: the moderator whitelist lives in Firestore ──
 // (same config/modWhitelist document the task formatter uses)
@@ -3028,7 +3430,7 @@ onAuthStateChanged(auth, async user => {
   }
 
   currentUser = user
-  const [whitelist] = await Promise.all([fetchWhitelist(), loadUserDone(user.uid)])
+  const [whitelist] = await Promise.all([fetchWhitelist(), loadUserDone(user.uid), loadSettings(user.uid)])
   isWhitelisted = whitelist.includes((user.email || "").toLowerCase())
 
   gate.style.display = "none"
@@ -3218,7 +3620,7 @@ function syncProgDefaultUI(){
 }
 
 window.openSettings=function(){
-  syncZoneInputs();updateNotifyUI();syncOverdueUI();syncProgDefaultUI()
+  syncZoneInputs();updateNotifyUI();syncOverdueUI();syncProgDefaultUI();syncPointTargetUI()
   const wh=document.getElementById("widgetStateHint")
   if(wh) wh.textContent = widgetFeedOn ? "On — tap to get the link or turn it off" : "Works on iPhone and Android"
   setActivePill("settings")
@@ -3522,6 +3924,123 @@ async function publishNotifyPrefs(){
   }catch(e){ console.warn("Could not save the reminder preference:", e) }
 }
 
+/* ── The point target ─────────────────────────────────────────
+   How much work this person reckons is a comfortable amount to be
+   carrying. The To Do meter reads against it — it is an indicator, not
+   a limit, and nothing is ever blocked for going over.
+
+   The one setting on that screen that follows the account rather than
+   the device: a target you worked out on your laptop is the same target
+   on your phone, and localStorage can't do that. Its own doc rather
+   than a corner of userDone/{uid}, which is written whole with no merge.
+
+   Until the read lands, `pointTargetLoaded` stays false and the meter
+   draws itself muted — a bar measured against the wrong target for a
+   second is worse than a bar that admits it doesn't know yet. */
+let pointTarget = Points.TARGET_FALLBACK
+let pointTargetLoaded = false
+
+async function loadSettings(uid){
+  try{
+    const snap = await getDoc(doc(db, "settings", uid))
+    if(snap.exists() && snap.data().pointTarget !== undefined)
+      pointTarget = Points.normTarget(snap.data().pointTarget)
+  }catch(e){ console.warn("Could not load your settings:", e) }
+  // Loaded either way: a doc that isn't there yet means the fallback is
+  // this person's target, which is a real answer.
+  pointTargetLoaded = true
+}
+
+let saveSettingsTimer = null
+async function saveSettings(){
+  if(!currentUser) return
+  try{
+    await setDoc(doc(db, "settings", currentUser.uid),
+      { pointTarget, updatedAt: Date.now() }, { merge: true })
+  }catch(e){
+    console.warn("Could not save your settings:", e)
+    saveFailToast()
+  }
+}
+
+/* The ± buttons are tapped in flurries, so the write waits for the
+   tapping to stop. The number on screen moves at once either way. */
+window.nudgePointTarget = function(delta){
+  // Stepping down reads the band just below the boundary, so − then + always
+  // lands back where it started instead of drifting across a step change.
+  const step = Points.targetStep(delta < 0 ? pointTarget - 1 : pointTarget)
+  pointTarget = Points.normTarget(pointTarget + delta * step)
+  syncPointTargetUI()
+  if(currentView === "todo") TodoUI.render()
+  clearTimeout(saveSettingsTimer)
+  saveSettingsTimer = setTimeout(saveSettings, 600)
+}
+
+/* Written from Points.PRESETS / SPAN_BANDS / TYPE_REASON rather than typed
+   out as prose, so changing the scoring changes the guide with it. */
+let scoreGuideBuilt = false
+window.toggleScoreGuide = function(){
+  const box = document.getElementById("scoreGuide")
+  const btn = document.getElementById("scoreGuideBtn")
+  if(!scoreGuideBuilt){ box.innerHTML = scoreGuideHTML(); scoreGuideBuilt = true }
+  const open = box.hidden
+  box.hidden = !open
+  btn.setAttribute("aria-expanded", open ? "true" : "false")
+}
+
+function scoreGuideHTML(){
+  const ladder = Points.PRESETS.map(p =>
+    `<div class="sg-rung"><span class="pts-pill">${p.points} pt</span>
+       <span>${esc(p.label)}</span><i>${esc(p.desc)}</i></div>`).join("")
+
+  const bases = [["deadline","Send Before"],["normal","Send On"],["prediction","Estimated"]].map(([id,label]) =>
+    `<tr><td>${esc(label)}</td><td>${esc(Points.TYPE_REASON[id] || "")}</td>
+         <td>${Points.pointsOf({id:"_",type:id,start:"2026-01-01",end:"2026-01-06"}).points}</td></tr>`).join("")
+
+  const spans = Points.SPAN_BANDS.map(b =>
+    `<tr><td>${esc(b.label)}</td><td></td><td>&times; ${b.factor}</td></tr>`).join("")
+
+  return `
+    <h4>The ladder</h4>
+    <p>Every task is worth points — the harder it is, the more it carries.</p>
+    <div class="sg-ladder">${ladder}</div>
+
+    <h4>Where the guess comes from</h4>
+    <p>A task nobody has weighed still needs a number, so the app estimates one
+       from what the task already tells it. It starts from the kind of due date…</p>
+    <table class="sg-table"><tr><th>Kind</th><th>Why</th><th>Starts at</th></tr>${bases}</table>
+    <p>…then scales it by how long you have to do it:</p>
+    <table class="sg-table"><tr><th>Span</th><th></th><th>Scale</th></tr>${spans}</table>
+    <p>The result is rounded to the nearest rung of the ladder. A guess is drawn
+       faintly, like <span class="pts-pill est">~50 pt</span>, so you can always tell
+       it apart from a weight someone actually chose — which is drawn solid,
+       like <span class="pts-pill">50 pt</span>.</p>
+
+    <h4>Setting it yourself</h4>
+    <p>Open any task and tap <b>Difficulty</b>. Whatever you pick beats both the
+       guess and whatever the task's author set — a class task is written by
+       someone who can't know how hard it will land for you. Markers score
+       nothing: a date in the calendar isn't work.</p>
+
+    <h4>What the meter counts</h4>
+    <p>Your To Do list adds up what it is holding and measures it against your
+       target above. Work you have started only counts for what is left of it: a
+       50-point task you are three parts of five through carries
+       <b>${Math.round(50 * 0.4)}</b>, not 50, and a ticked one carries nothing.
+       Tap <b>&#8646;</b> on the meter to flip between what is left and what you
+       have cleared — the two always add up to the whole list.</p>
+    <p>The target is an indicator, not a limit. Nothing stops you going over it —
+       the meter just turns red and says by how much.</p>`
+}
+
+function syncPointTargetUI(){
+  const el = document.getElementById("ptTargetVal")
+  if(el) el.textContent = pointTarget.toLocaleString()
+  const hint = document.getElementById("ptTargetHint")
+  if(hint) hint.textContent =
+    `About ${Math.max(1, Math.round(pointTarget / 50))} ordinary evening-sized tasks.`
+}
+
 function sendNotification(title, body, tag){
   if(!notifyReady()) return
   // Android Chrome throws on `new Notification()` — the service worker path
@@ -3598,11 +4117,10 @@ if(notifyTimeInput){
 setInterval(()=>{ if(tasksLoaded) sendDueReminders() },60000)
 updateNotifyUI()
 
-// Sync the range FAB UI (active option + label) to whatever currentRange is —
-// used on initial load so the device's last-chosen range is reflected immediately.
+// Draw the control to match whatever this device last chose — used on first
+// load so the stored mode and range are showing before the first paint.
 function applyStoredRangeToUI(){
-  document.querySelectorAll(".range-option:not(.mode-option)").forEach(b=>b.classList.toggle("active",b.id==="ro-"+currentRange))
-  applyModeToUI()   // sets the FAB label too — it differs per mode
+  applyModeToUI()   // builds both chip rows and sets the pill's label
   applyColourModeToUI()
 }
 
@@ -3621,15 +4139,12 @@ window.switchView = function(view) {
   currentView = view
   animateRows = true
   setActivePill(view)
-  // The legend and the range only mean anything on the calendar, but the
-  // side-quest lens applies to every view, so the bar itself stays put.
-  // visibility, not display: they keep their slots so the moon stays put
-  // in the middle of the bar instead of sliding to the left edge.
+  /* Layout, order and the kind filters only mean anything on the calendar;
+     the side-quest lens applies everywhere. One control covers both, so the
+     pill stays put on every view and the sheet shows the half that applies
+     — see applyFilterUI. */
   const onCal = view==="calendar"
-  document.querySelector(".legend-fab").style.visibility = onCal ? "" : "hidden"
-  document.querySelector(".range-fab").style.visibility  = onCal ? "" : "hidden"
-  document.querySelector(".sort-fab").style.visibility   = onCal ? "" : "hidden"
-  if(!onCal) closeFabs()
+  closeFabs()   // whatever was set for the last view isn't what this one asks
   applyFilterUI()   // the panel shows less away from the calendar
   if (view==="calendar") renderCalendar()
   else if (view==="todo") openTodoView()
@@ -3660,8 +4175,14 @@ function initTodoView(uid){
       // calendar's own — a task cannot read one way here and another way
       // on the timeline, because there is only one of each.
       showDetail: (e, id) => showDetail(e, id),
-      progressOf, progressBarHTML, progressText,
-      isSideQuest, isHidden: isHiddenTask
+      progressOf, progressBarHTML, progressText, progressPct,
+      isSideQuest, isHidden: isHiddenTask,
+      // Points: the resolved weight, the pill, and the target the meter
+      // reads against. The target is a getter — it arrives from Firestore
+      // after this bag is handed over, and a copied number would be stale.
+      pointsOf, pointsPillHTML,
+      pointsTarget: () => ({ target: pointTarget, loaded: pointTargetLoaded }),
+      openSettings: () => openSettings()
     }
   })
 }
@@ -3786,6 +4307,7 @@ function renderArchive() {
         <span class="archive-name${isDone?" done":""}">${isSideQuest(t)?ico("moon")+" ":t._personal?ico("user")+" ":""}${esc(t.name)}</span>
         <span class="archive-subj">${esc(t.subject||"")}</span>
         <span class="archive-chip ${t.type==="deadline"?"deadline":"normal"}">${TYPE_LABEL[t.type]||esc(t.type)}</span>
+        ${pointsPillHTML(t)}
         <span class="archive-desc">${esc(t.note||"")}</span>
       </div>
       <div class="archive-right">
@@ -3982,7 +4504,9 @@ const SORT_OPTIONS = [
   { id: "due",      label: "Due date",     cmp: (a,b) => 0 },
   { id: "subject",  label: "Subject",      cmp: (a,b) => (a.subject||"~").localeCompare(b.subject||"~","th") },
   { id: "progress", label: "Least done",   cmp: (a,b) => donePct(a) - donePct(b) },
-  { id: "name",     label: "Name A–Z",     cmp: (a,b) => (a.name||"").localeCompare(b.name||"","th") }
+  { id: "name",     label: "Name A–Z",     cmp: (a,b) => (a.name||"").localeCompare(b.name||"","th") },
+  // Heaviest first — the question "what should I not leave until Sunday"
+  { id: "points",   label: "Hardest",      cmp: (a,b) => pointsOf(b).points - pointsOf(a).points }
 ]
 // A ticked task counts as finished whatever its progress says, so "least
 // done" puts untouched work at the top and done work at the bottom.
@@ -4078,26 +4602,19 @@ window.clearCalFilters = function(){
   if(had) toast("Showing everything again")
 }
 
-window.toggleFilterPanel = function(e){
-  e && e.stopPropagation()
-  const open = document.getElementById("filterPanel").classList.contains("open")
-  closeFabs()
-  if(!open){
-    document.getElementById("filterPanel").classList.add("open")
-    document.getElementById("filterToggle").classList.add("open")
-    document.getElementById("filterToggle").setAttribute("aria-expanded", "true")
-  }
-}
-
 /* Repaints the panel and the button. Called after every change and after
    every task snapshot. */
 function applyFilterUI(){
-  const btn = document.getElementById("filterToggle")
+  const btn = document.getElementById("cfgToggle")
   if(!btn) return
+  /* The badge counts what is being *hidden*, not every setting. Sorting and
+     the view range take nothing away, so a board that simply isn't in its
+     default order shouldn't wear a number that reads as "something is
+     missing". */
   const n = filtersActive() + (sideQuestsHidden ? 1 : 0)
   btn.classList.toggle("on", n > 0)
-  btn.title = n ? `${n} filter${n===1?"":"s"} on — tap to change` : "Filters"
-  const badge = document.getElementById("filterCount")
+  btn.title = n ? `${n} thing${n===1?"":"s"} hidden — tap for view options` : "View options"
+  const badge = document.getElementById("cfgCount")
   if(badge){
     if(n){ badge.textContent = n; badge.style.display = "block" }
     else badge.style.display = "none"
@@ -4120,26 +4637,21 @@ function applyFilterUI(){
   document.getElementById("filterSqSwitch")?.classList.toggle("on", sideQuestsHidden)
   document.getElementById("filterClear").disabled =
     !(filtersActive() || sideQuestsHidden)
+  applyCfgLabel()
   // The settings row is the same side-quest switch under a different hat
   document.getElementById("sqSwitch")?.classList.toggle("on", sideQuestsHidden)
 }
 window.applyFilterUI = applyFilterUI
 
-/* The sort FAB says what the order is without being opened: the pill wears
-   the current option's name, and latches accent once that isn't the due
-   date — the same "something is on" language the filter FAB uses. */
+/* Order is one row of chips in the sheet now. It used to have a pill of
+   its own on the bar wearing the current option's name — but four labelled
+   controls along one edge was the clutter this replaced, and the order is
+   visible in the board itself the moment you look at it. */
 function applySortUI(){
-  const opt = SORT_OPTIONS.find(o => o.id === calFilters.sort) || SORT_OPTIONS[0]
-  const btn = document.getElementById("sortToggle")
-  if(!btn) return
-  btn.classList.toggle("on", opt.id !== "due")
-  btn.title = opt.id === "due" ? "Sort rows" : `Sorted by ${opt.label.toLowerCase()} — tap to change`
-  const lab = document.getElementById("sortLabel")
-  if(lab) lab.textContent = opt.label
   const box = document.getElementById("sortOptions")
   if(box) box.innerHTML = SORT_OPTIONS.map(o =>
-    `<button class="range-option${calFilters.sort===o.id?" active":""}"
-      onclick="setCalSort('${o.id}')">${o.label}</button>`).join("")
+    `<button class="filter-chip${calFilters.sort===o.id?" active":""}"
+      onclick="setCalSort('${esc(o.id)}')">${esc(o.label)}</button>`).join("")
 }
 window.applySortUI = applySortUI
 
@@ -4236,32 +4748,59 @@ function getRange(key){
 function tickStep(key){return key==="week"?1:key==="2weeks"?2:key==="month"?5:14}
 
 window.setRange=function(key){
+  if(!RANGE_NAMES[key]) return
   currentRange=key;hlPct=null;animateRows=true
   // Remember this device's chosen range for next time
   try{ localStorage.setItem(RANGE_STORAGE_KEY,key) }catch(e){}
-  document.querySelectorAll(".range-option:not(.mode-option)").forEach(b=>b.classList.toggle("active",b.id==="ro-"+key))
-  document.getElementById("rangeLabel").innerHTML=ico("calendar-grid")+" "+RANGE_NAMES[key]
-  closeFabs();renderCalendar()
+  applyModeToUI()
+  // The sheet stays open: range and mode are often changed together, and
+  // shutting it after every tap would make comparing two of them a chore.
+  renderCalendar()
 }
 
 // ── View mode (timeline ⇄ month grid) ─────────────────────────
 // The range picker only means something for the timeline, so it hides in grid
 // mode — the grid always shows exactly one month, walked with ‹ ›.
+/* Layout is two chip rows: which shape the board takes, and — for the
+   timeline only — how much of it you see at once. The grid always shows
+   exactly one month, walked with the arrows, so its range row steps aside
+   rather than sitting there doing nothing. */
+const CAL_MODES = [
+  { id:"timeline", label:"Timeline",   icon:"chart" },
+  { id:"grid",     label:"Month grid", icon:"calendar-grid" }
+]
 function applyModeToUI(){
-  document.querySelectorAll(".mode-option").forEach(b=>b.classList.toggle("active",b.id==="mo-"+calMode))
-  const rs=document.getElementById("rangeSection")
-  if(rs) rs.style.display = calMode==="grid" ? "none" : ""
-  const label=document.getElementById("rangeLabel")
-  if(label) label.innerHTML = ico("calendar-grid")+" "+(calMode==="grid" ? "Month grid" : (RANGE_NAMES[currentRange]||"Month"))
+  const modes=document.getElementById("cfgModes")
+  if(modes) modes.innerHTML = CAL_MODES.map(m =>
+    `<button class="filter-chip${calMode===m.id?" active":""}"
+      onclick="setCalMode('${esc(m.id)}')">${ico(m.icon)}${esc(m.label)}</button>`).join("")
+
+  const ranges=document.getElementById("cfgRanges")
+  if(ranges){
+    ranges.style.display = calMode==="grid" ? "none" : ""
+    ranges.innerHTML = Object.keys(RANGE_NAMES).map(k =>
+      `<button class="filter-chip${currentRange===k?" active":""}"
+        onclick="setRange('${esc(k)}')">${esc(RANGE_NAMES[k])}</button>`).join("")
+  }
+  applyCfgLabel()
+}
+
+/* The one thing the pill says without being opened. The layout is what you
+   glance at most and the only setting you cannot read off the board itself
+   at speed, so it gets the label. */
+function applyCfgLabel(){
+  const lab=document.getElementById("cfgLabel")
+  if(lab) lab.textContent = currentView !== "calendar" ? "View"
+    : calMode==="grid" ? "Month grid" : (RANGE_NAMES[currentRange] || "Month")
 }
 window.setCalMode=function(mode){
-  if(!VALID_MODES.includes(mode)||mode===calMode){ closeFabs(); return }
+  if(!VALID_MODES.includes(mode)||mode===calMode) return
   calMode=mode; hlPct=null; animateRows=true
   try{ localStorage.setItem(CAL_MODE_KEY,mode) }catch(e){}
   // Coming back to the grid always lands on the month you're actually in
   if(mode==="grid") gridMonth=new Date(TODAY.getFullYear(),TODAY.getMonth(),1)
   applyModeToUI()
-  closeFabs();renderCalendar()
+  renderCalendar()   // the sheet stays open — see setRange
 }
 window.gridNav=function(delta){
   gridMonth=new Date(gridMonth.getFullYear(),gridMonth.getMonth()+delta,1)
@@ -4305,46 +4844,45 @@ window.resetSubjectColors=async function(){
   saveSubjectColors()
   renderCurrentView()
 }
-function closeFabs(){
-  ["legendPanel","legendToggle","rangePanel","rangeToggle","filterPanel","filterToggle","sortPanel","sortToggle"]
-    .forEach(id=>document.getElementById(id)?.classList.remove("open"))
-  document.getElementById("filterToggle")?.setAttribute("aria-expanded","false")
-  document.getElementById("sortToggle")?.setAttribute("aria-expanded","false")
+/* On window because the sheet's own close button is an inline onclick —
+   the module scope this file runs in isn't reachable from an HTML attribute,
+   and the old filter panel's ✕ had been quietly dead for exactly that
+   reason. */
+window.closeFabs = function closeFabs(){
+  document.getElementById("configSheet")?.classList.remove("open")
+  const btn = document.getElementById("cfgToggle")
+  if(btn){ btn.classList.remove("open"); btn.setAttribute("aria-expanded","false") }
 }
-window.toggleLegend=function(e){
-  e&&e.stopPropagation()
-  const open=document.getElementById("legendPanel").classList.contains("open")
-  closeFabs()
-  if(!open){
-    document.getElementById("legendPanel").classList.add("open")
-    document.getElementById("legendToggle").classList.add("open")
-    document.querySelector(".legend-toggle svg").style.color="white"
-  } else {
-    document.querySelector(".legend-toggle svg").style.color="var(--pink)"
-  }
+
+window.toggleConfig = function(e){
+  e && e.stopPropagation()
+  const sheet = document.getElementById("configSheet")
+  const btn   = document.getElementById("cfgToggle")
+  if(sheet.classList.contains("open")){ closeFabs(); return }
+  // Repaint before showing: a snapshot may have landed while it was shut.
+  applyFilterUI(); applySortUI(); applyModeToUI()
+  sheet.classList.add("open")
+  btn.classList.add("open")
+  btn.setAttribute("aria-expanded","true")
 }
-window.toggleSort=function(e){
-  e&&e.stopPropagation()
-  const open=document.getElementById("sortPanel").classList.contains("open")
-  closeFabs()
-  if(!open){
-    document.getElementById("sortPanel").classList.add("open")
-    document.getElementById("sortToggle").classList.add("open")
-    document.getElementById("sortToggle").setAttribute("aria-expanded","true")
-  }
+
+/* The key is a reference rather than a control, so it stays folded until
+   asked for — and stays open once it has been, for as long as the sheet is
+   open, because someone reading it is usually checking more than one thing. */
+window.toggleCfgKey = function(){
+  const box = document.getElementById("cfgKey")
+  const btn = document.getElementById("cfgKeyBtn")
+  const open = box.hidden
+  box.hidden = !open
+  btn.setAttribute("aria-expanded", open ? "true" : "false")
 }
-window.toggleRange=function(e){
-  e&&e.stopPropagation()
-  const open=document.getElementById("rangePanel").classList.contains("open")
-  closeFabs()
-  if(!open){document.getElementById("rangePanel").classList.add("open");document.getElementById("rangeToggle").classList.add("open")}
-}
+
 document.addEventListener("click",e=>{
-  const fabs=[".legend-fab",".range-fab",".filter-fab",".sort-fab"].map(s=>document.querySelector(s))
-  const open=["legendPanel","rangePanel","filterPanel","sortPanel"].some(id=>document.getElementById(id)?.classList.contains("open"))
-  if(open && !fabs.some(f=>f && f.contains(e.target))){
-    closeFabs();document.querySelector(".legend-toggle svg").style.color="var(--pink)"
-  }
+  const sheet=document.getElementById("configSheet")
+  if(!sheet || !sheet.classList.contains("open")) return
+  // A tap inside the sheet, or on the button that opened it, is not "outside"
+  if(sheet.contains(e.target) || e.target.closest(".cfg-fab")) return
+  closeFabs()
 })
 
 function pct(d,start,total){return Math.max(0,Math.min(100,(d-start)/total*100))}
@@ -4716,7 +5254,7 @@ function renderCalendar(){
     leftHTML+=`<div class="label-row" style="animation-delay:${delay}s" onclick="showDetail(event,'${t.id}')">
       <div style="overflow:hidden;width:100%">
         <div class="row-name" title="${esc(t.name)}">${sq?`<span class="row-sq">${ico("moon")}</span>`:""}${esc(t.name)}</div>
-        <div class="row-subject" title="${esc(t.subject)}">${esc(t.subject)}</div>
+        <div class="row-subject" title="${esc(t.subject)}">${esc(t.subject)}${pointsPillHTML(t)}</div>
       </div>
       ${isMod?`<button class="row-del" title="Delete task" onclick="quickDeleteTask(event,'${t.id}')">${ico("trash")}</button>`:""}
     </div>`
@@ -5255,6 +5793,216 @@ function rerenderCurrentView(){
   renderPtList()
 }
 
+/* ══ DIFFICULTY: the picker sheet ═══════════════════════════════
+   One sheet, two callers. From a task's detail popup it saves this
+   user's own weight for that task; from the My Tasks wizard it hands
+   the number back to the draft being built, because there is no task
+   to write to yet.
+
+   `ptsOnSave` is what keeps those two apart — the sheet itself never
+   knows which one it is serving. */
+let ptsDraft = null        // the number currently showing
+let ptsSuggested = 0       // what the estimate would be, for the hint and Reset
+let ptsOnSave = null       // (points) => void
+let ptsFactors = null      // {effort,time,weight} once the panel is opened
+
+function ptsRender(){
+  if(ptsDraft === null) return
+
+  document.getElementById("ptsPresets").innerHTML = Points.PRESETS.map(p =>
+    `<button class="pts-opt${p.points === ptsDraft ? " active" : ""}" type="button"
+             onclick="setPointsDraft(${p.points})">
+       <b>${p.points}</b>${esc(p.label)}<span>${esc(p.desc)}</span>
+     </button>`).join("")
+
+  const custom = document.getElementById("ptsCustom")
+  // Don't fight the caret while they are typing in it
+  if(document.activeElement !== custom) custom.value = ptsDraft
+  document.getElementById("ptsTotal").textContent = ptsDraft
+
+  const box = document.getElementById("ptsFactors")
+  if(ptsFactors && box.style.display !== "none"){
+    box.innerHTML = Points.FACTOR_KEYS.map(k => {
+      const f = Points.FACTORS[k], at = ptsFactors[k]
+      const rungs = f.words.map((w, i) =>
+        `<button class="pts-rung${i + 1 < at ? " on" : i + 1 === at ? " at" : ""}" type="button"
+                 title="${esc(w)}" onclick="setPointsFactor('${k}',${i + 1})">${i + 1}</button>`).join("")
+      return `<div class="pts-factor">
+        <div class="pts-factor-head"><b>${esc(f.label)}</b><i>${esc(f.desc)}</i><em>${esc(f.words[at - 1])}</em></div>
+        <div class="pts-rungs">${rungs}</div>
+      </div>`
+    }).join("")
+  }
+}
+
+window.setPointsDraft = function(n){
+  const v = Points.normPoints(n)
+  if(v === null) return
+  ptsDraft = v
+  ptsRender()
+}
+
+window.setPointsFactor = function(key, rung){
+  if(!ptsFactors || !(key in ptsFactors)) return
+  ptsFactors[key] = rung
+  ptsDraft = Points.pointsFromFactors(ptsFactors.effort, ptsFactors.time, ptsFactors.weight)
+  ptsRender()
+}
+
+/* The panel opens on whatever the draft already is, not on 3/3/3 — sliding
+   it open shouldn't quietly throw away the number that was showing. */
+window.togglePointsFactors = function(){
+  const box = document.getElementById("ptsFactors")
+  const btn = document.getElementById("ptsFoldBtn")
+  const open = box.style.display === "none"
+  box.style.display = open ? "" : "none"
+  btn.classList.toggle("open", open)
+  if(open && !ptsFactors) ptsFactors = nearestFactors(ptsDraft)
+  ptsRender()
+}
+
+/* Work backwards from a number to a plausible set of rungs, so the panel
+   opens agreeing with the total instead of contradicting it. Effort is the
+   dimension that moves; the other two sit in the middle, which is the
+   reading "an evening's work that counts normally". */
+function nearestFactors(points){
+  const mid = { ...Points.FACTOR_MID }
+  let best = mid, bestGap = Infinity
+  for(let e = 1; e <= 5; e++){
+    const gap = Math.abs(Points.pointsFromFactors(e, mid.time, mid.weight) - points)
+    if(gap < bestGap){ bestGap = gap; best = { ...mid, effort: e } }
+  }
+  return best
+}
+
+window.openPointsSheet = function({ task, points, suggested, canReset, onSave }){
+  ptsSuggested = Points.normPoints(suggested) || Points.suggestPoints(task) || 50
+  ptsDraft = Points.normPoints(points) || ptsSuggested
+  ptsOnSave = onSave
+  ptsFactors = null
+
+  document.getElementById("ptsTaskName").textContent = (task && task.name) || "This task"
+  document.getElementById("ptsSuggestHint").textContent =
+    `We'd guess ${ptsSuggested} — see how`
+  renderPointsWhy(task)
+  document.getElementById("ptsWhy").hidden = true
+  document.getElementById("ptsWhyBtn").setAttribute("aria-expanded", "false")
+  document.getElementById("ptsReset").style.display = canReset ? "" : "none"
+  const box = document.getElementById("ptsFactors")
+  box.style.display = "none"
+  document.getElementById("ptsFoldBtn").classList.remove("open")
+
+  ptsRender()
+  document.getElementById("pointsModal").classList.add("open")
+}
+
+/* The estimate, spelled out for this particular task. Every number here
+   comes from explainSuggestion(), which is the same arithmetic that
+   produced the answer — a test holds the two together. */
+function renderPointsWhy(task){
+  const box = document.getElementById("ptsWhy")
+  const e = task ? Points.explainSuggestion(task) : null
+  if(!e){
+    box.innerHTML = `<div class="pts-guide-note">This one is weighed by hand — there are no dates to estimate from.</div>`
+    return
+  }
+  const times = e.factor === 1 ? "left as it is" : `&times; ${e.factor}`
+  box.innerHTML = `
+    <div class="pts-sum">
+      <div class="pts-sum-row"><b>Kind</b><span>${esc(e.reason)} &rarr; starts at <em>${e.base}</em></span></div>
+      <div class="pts-sum-row"><b>Span</b><span>${e.days === null ? "no dates yet" :
+          `${e.days} day${e.days === 1 ? "" : "s"} to do it (${esc(e.spanLabel)})`} &rarr; ${times}</span></div>
+      <div class="pts-sum-rule"></div>
+      <div class="pts-sum-row"><b>Comes to</b><span><em>${e.raw}</em>${
+          e.snapped ? `, rounded to the nearest step: <em>${e.points}</em>` : ""}</span></div>
+    </div>
+    <div class="pts-guide-note">Longer jobs and hard deadlines weigh more; work with no fixed
+      deadline weighs less. It is only a starting point — you know how hard this one is
+      going to be, and whatever you pick here wins.</div>`
+}
+
+window.togglePointsWhy = function(){
+  const box = document.getElementById("ptsWhy")
+  const btn = document.getElementById("ptsWhyBtn")
+  const open = box.hidden
+  box.hidden = !open
+  btn.setAttribute("aria-expanded", open ? "true" : "false")
+}
+
+window.closePointsSheet = function(){
+  animCloseOverlay(document.getElementById("pointsModal"))
+  ptsDraft = null; ptsOnSave = null; ptsFactors = null
+}
+
+// Typed straight into the box. Left unclamped while typing so a half-typed
+// "5" on the way to "50" isn't fought; normPoints has the last word on save.
+document.getElementById("ptsCustom").addEventListener("input", e => {
+  const v = Points.normPoints(e.target.value)
+  if(v === null) return
+  ptsDraft = v
+  document.getElementById("ptsTotal").textContent = v
+  document.getElementById("ptsPresets").querySelectorAll(".pts-opt").forEach((b, i) =>
+    b.classList.toggle("active", Points.PRESETS[i].points === v))
+})
+
+window.savePointsSheet = function(){
+  const n = Points.normPoints(ptsDraft)
+  const cb = ptsOnSave
+  closePointsSheet()
+  if(cb && n) cb(n)
+}
+
+// Clearing this user's own weight — the task goes back to whatever its
+// author set, or to the estimate.
+window.resetPointsSheet = function(){
+  const cb = ptsOnSave
+  closePointsSheet()
+  if(cb) cb(null)
+}
+
+document.getElementById("pointsModal").addEventListener("click", function(e){
+  if(e.target === this) closePointsSheet()
+})
+
+/* From a task's detail sheet. The weight is this person's own, kept beside
+   their ticks — a shared class task can't be edited by the people doing it,
+   and how hard it lands is different for each of them anyway. */
+window.openDetailPoints = function(){
+  if(!detailTaskId) return
+  const t = pgTaskById(detailTaskId)
+  if(!t) return
+  const id = detailTaskId
+  const mine = userPointsCache[id]
+  openPointsSheet({
+    task: t,
+    points: pointsOf(t).points,
+    suggested: Points.suggestPoints(t),
+    canReset: mine !== undefined,
+    onSave: async (n) => {
+      const ok = await writeUserPoints(id, n)
+      if(ok){
+        // The popup is still open behind the sheet, so its row has to move too
+        if(detailTaskId === id) syncDetailPoints(t)
+        rerenderCurrentView()   // repaints the To Do meter too, when that's the view
+      }
+    }
+  })
+}
+
+function syncDetailPoints(t){
+  const row = document.getElementById("dp-pts-row")
+  if(!row) return
+  const isMarker = taskType(t) === "marker"
+  row.style.display = isMarker ? "none" : "flex"
+  if(isMarker) return
+  const { points, estimated } = pointsOf(t)
+  const preset = Points.nearestPreset(points)
+  document.getElementById("dp-pts-read").innerHTML =
+    `${pointsPillHTML(t, { cls: "lg" })}<span class="set-chev">›</span>`
+  document.getElementById("dp-pts-sub").textContent =
+    estimated ? "Our guess — tap to set it" : (preset ? preset.label : "Set by you")
+}
+
 // Finishing a task's progress suggests the tick rather than taking it — the
 // checkbox stays the user's decision, and half the time the last part is
 // "hand it in tomorrow".
@@ -5490,6 +6238,7 @@ window.showDetail=function(e,id){
 
     document.getElementById("dp-mark-done").style.display="none"
     document.getElementById("dp-sq-row").style.display="none"   // an event is never a side quest
+    document.getElementById("dp-pts-row").style.display="none"  // …nor work with a weight
     renderDetailProgress(id)   // markers get nothing — it hides itself
     const delBtn=document.getElementById("dp-delete-btn")
     delBtn.className="detail-delete-btn"+(isMod?" visible":"")
@@ -5528,6 +6277,7 @@ window.showDetail=function(e,id){
   const isOverdue=dl<0
   const isDone=!!userDoneCache[id]
   renderDetailProgress(id)
+  syncDetailPoints(t)
   // Shared work is the class's, so it is always a main job — the row only
   // appears where it can actually be changed.
   const sqRow=document.getElementById("dp-sq-row")
@@ -5573,6 +6323,8 @@ function closeDetailOutside(e){
   // Same for the progress sheet, which can be opened from inside the popup —
   // otherwise the popup dies underneath it and reopens to stale content
   if(document.getElementById("progressModal").classList.contains("open"))return
+  // …and the difficulty picker, which opens from the popup the same way
+  if(document.getElementById("pointsModal").classList.contains("open"))return
   if(!document.getElementById("detailPopup").contains(e.target))closeDetail()
 }
 window.closeDetail=function(){
@@ -5647,6 +6399,25 @@ window.quickDeleteTask=async function(e,id){
   }
 }
 
+/* The mod modal's difficulty chips. Null means "not set", which is a real
+   answer: every reader still gets an estimate from the dates. */
+let modDiff=null
+window.setModDiff=function(n){
+  const v=Points.normPoints(n)
+  modDiff = (v!==null && v===modDiff) ? null : v   // tapping the lit chip clears it
+  syncModDiff()
+}
+function syncModDiff(){
+  const grid=document.getElementById("modDiffGrid")
+  if(!grid) return
+  grid.innerHTML=Points.PRESETS.map(p=>
+    `<button type="button" class="pts-opt${p.points===modDiff?" active":""}" onclick="setModDiff(${p.points})">
+       <b>${p.points}</b>${esc(p.label)}<span>${esc(p.desc)}</span>
+     </button>`).join("")
+  const hint=document.getElementById("modDiffHint")
+  if(hint) hint.textContent = modDiff===null ? "— left to the reader's own estimate" : ""
+}
+
 window.openAddModal=function(){
   editingId=null
   document.getElementById("modal-title").textContent="Add task"
@@ -5656,6 +6427,8 @@ window.openAddModal=function(){
   document.getElementById("t-start").value=localToday()
   document.getElementById("t-end").value=""
   document.getElementById("t-note").value=""
+  modDiff=null
+  syncModDiff()
   document.getElementById("modal-delete-btn").style.display="none"
   syncDateMins()
   document.getElementById("taskModal").classList.add("open")
@@ -5669,6 +6442,8 @@ function openEditModal(t){
   document.getElementById("t-start").value=t.start
   document.getElementById("t-end").value=t.end
   document.getElementById("t-note").value=t.note||""
+  modDiff=Points.normPoints(t.difficulty)
+  syncModDiff()
   document.getElementById("modal-delete-btn").style.display="block"
   syncDateMins()
   document.getElementById("taskModal").classList.add("open")
@@ -5686,7 +6461,9 @@ window.saveTask=async function(){
   const note=document.getElementById("t-note").value.trim()
   if(!name||!subject||!start||!end){alert("Please fill in name, subject, and dates.");return}
   if(new Date(start)>new Date(end)){alert("Start date must be before end date.");return}
-  const data={name,subject,type,start,end,note}
+  // Left unset, it stays unset — the reader's own estimate is a better
+  // answer than a number the author never thought about.
+  const data={name,subject,type,start,end,note,difficulty:modDiff||null}
   taskSaving=true
   try{
     // updatedAt keeps the "Latest update" pill honest for edits, not just new tasks
@@ -5741,15 +6518,24 @@ const MT_STEPS = {
   what:   { label: "What",      icon: "pencil" },
   when:   { label: "When",      icon: "calendar-grid" },
   work:   { label: "How much",  icon: "chart" },
+  hard:   { label: "How hard",  icon: "trend" },
   finish: { label: "Finish",    icon: "check-circle" }
 }
+/* Markers skip both "how much" and "how hard" — a date on the calendar is
+   not work, so there is nothing to measure and nothing to weigh. */
 const mtFlow = () => ptMarkerMode
   ? ["kind", "what", "when", "finish"]
-  : ["kind", "what", "when", "work", "finish"]
+  : ["kind", "what", "when", "work", "hard", "finish"]
 
 let mtStep = 0            // index into mtFlow()
 let mtTabName = "add"
 let mtWork = null         // {mode,total} chosen at the "how much" step, or null
+/* The weight chosen at the "how hard" step. Null until the step is reached,
+   at which point it is seeded from the dates — so the suggestion is made
+   once the dates are actually known rather than guessed at from a blank
+   form, and re-seeded whenever they change underneath it. */
+let mtPoints = null
+let mtPointsSeed = 0      // the suggestion mtPoints was last seeded from
 
 function myTasksHTML(){
   const d = progressDefaults()
@@ -5858,6 +6644,22 @@ function myTasksHTML(){
           </div>
         </div>
 
+        <div class="mt-step" data-step="hard">
+          <h3 class="mt-q">How hard is it?</h3>
+          <p class="mt-hint">Harder work carries more points, and your To Do list measures what it's holding against your target. We've guessed from the dates — change it if it's wrong.</p>
+          <div class="pts-grid" id="mtPtsGrid"></div>
+          <div class="pts-custom-row" style="margin-top:13px">
+            <label for="mtPtsCustom">Or set it exactly</label>
+            <input type="number" id="mtPtsCustom" min="1" max="999" step="1" inputmode="numeric" />
+            <span class="prog-read">pt</span>
+          </div>
+          <button class="pts-fold" type="button" style="margin-top:13px" onclick="mtOpenFactors()">
+            <svg class="ic" aria-hidden="true"><use href="#ic-puzzle"/></svg>
+            <span>Not sure? Work it out</span>
+            <span class="pts-fold-chev">›</span>
+          </button>
+        </div>
+
         <div class="mt-step" data-step="finish">
           <h3 class="mt-q">Anything else?</h3>
           <div class="mt-only-task">
@@ -5915,6 +6717,16 @@ function wireMyTasks(){
     if(!el) return
     el.addEventListener("input", () => { updatePtPreview(); mtSyncNav() })
   })
+  const pts = document.getElementById("mtPtsCustom")
+  if(pts) pts.addEventListener("input", () => {
+    const v = Points.normPoints(pts.value)
+    if(v === null) return
+    mtPoints = v
+    // Relight the chips without redrawing the box out from under the caret
+    document.getElementById("mtPtsGrid").querySelectorAll(".pts-opt").forEach((b, i) =>
+      b.classList.toggle("active", Points.PRESETS[i].points === v))
+  })
+
   const s = document.getElementById("pt-start"), e = document.getElementById("pt-end")
   if(s && e){
     ptDateSync = () => { e.min = s.value || "" }
@@ -5973,6 +6785,52 @@ function mtDrawWorkPreview(){
     : ""
 }
 
+/* ── The "how hard" step ──────────────────────────────────────
+   Seeded from the dates the moment the step is reached, and re-seeded if
+   they change — but only while the suggestion is still what is showing.
+   Once someone picks a weight of their own it stays picked, even if they
+   walk back and move the due date. */
+function mtSeedPoints(){
+  const start = document.getElementById("pt-start")?.value
+  const end   = document.getElementById("pt-end")?.value
+  const next  = Points.suggestPoints({ type: ptType, start, end })
+  if(mtPoints === null || mtPoints === mtPointsSeed) mtPoints = next
+  mtPointsSeed = next
+}
+
+window.mtSetPoints = function(n){
+  const v = Points.normPoints(n)
+  if(v === null) return
+  mtPoints = v
+  mtDrawPoints()
+}
+
+function mtDrawPoints(){
+  const grid = document.getElementById("mtPtsGrid")
+  if(!grid) return
+  grid.innerHTML = Points.PRESETS.map(p =>
+    `<button type="button" class="pts-opt${p.points === mtPoints ? " active" : ""}"
+             onclick="mtSetPoints(${p.points})">
+       <b>${p.points}</b>${esc(p.label)}<span>${esc(p.desc)}</span>
+     </button>`).join("")
+  const custom = document.getElementById("mtPtsCustom")
+  if(custom && document.activeElement !== custom) custom.value = mtPoints
+}
+
+// The wizard borrows the same sheet the detail popup uses, and takes the
+// answer back into its own draft instead of writing it anywhere.
+window.mtOpenFactors = function(){
+  openPointsSheet({
+    task: { name: document.getElementById("pt-name")?.value.trim() || "This task" },
+    points: mtPoints,
+    suggested: mtPointsSeed,
+    canReset: false,
+    onSave: n => { mtPoints = n; mtDrawPoints() }
+  })
+  // Open it straight on the factor panel — that is the button they pressed
+  if(document.getElementById("ptsFactors").style.display === "none") togglePointsFactors()
+}
+
 // Move by one step, skipping nothing — mtFlow() already omits what this
 // kind doesn't need.
 window.mtGo = function(dir){
@@ -6022,9 +6880,12 @@ function mtRender(){
   document.getElementById("mtNext").style.display = last ? "none" : ""
   document.getElementById("mtSave").style.display = last ? "" : "none"
   mtSyncNav()
+  if(here === "hard"){ mtSeedPoints(); mtDrawPoints() }
   if(last) updatePtPreview()
-  // Typing is the next thing you want to do on a field step.
-  const first = document.querySelector(`.mt-step.active input:not([type="date"])`)
+  /* Typing is the next thing you want to do on a field step — but not on
+     "how hard", where the chips are the point and the number box is the
+     way out. Pulling a phone keyboard up over them would hide the answer. */
+  const first = document.querySelector(`.mt-step.active input:not([type="date"]):not([type="number"])`)
   if(first && !first.readOnly) setTimeout(() => first.focus(), 0)
 }
 
@@ -6104,7 +6965,9 @@ window.updatePtPreview = function(){
     const dotColor = dl===null ? "#64748b" : urgencyColor(ptType,dl)
     const line2=[subject&&esc(subject),`${ico("calendar-grid")} Due ${thaiDateFull(end)}`,`${ico("timer")} ${dayStr}`,note&&`${ico("tack")} ${esc(note)}`].filter(Boolean).join(" · ")
     const head = ptSideQuest ? ico("moon")+" Preview — your side quest" : ico("user")+" Preview — your task"
-    box.innerHTML = card(head,dotColor,name,esc(PT_TYPE_LABELS[ptType]||ptType),line2)
+    // mtPoints is still null until the "how hard" step has been reached
+    const typeHTML = esc(PT_TYPE_LABELS[ptType]||ptType) + (mtPoints ? ` <span class="pts-pill">${mtPoints} pt</span>` : "")
+    box.innerHTML = card(head,dotColor,name,typeHTML,line2)
   }
 }
 
@@ -6135,7 +6998,8 @@ window.savePtTask = async function(){
       const note    = document.getElementById("pt-note").value.trim()
       if(!name||!subject||!start||!end){ toast("Fill in the name, subject and dates first",{error:true}); return }
       if(new Date(start)>new Date(end)){ toast("The start date has to come first",{error:true}); return }
-      const ref = await addDoc(col,{ name, subject, type, start, end, note, sideQuest:ptSideQuest, createdAt:Date.now() })
+      const ref = await addDoc(col,{ name, subject, type, start, end, note, sideQuest:ptSideQuest,
+                                     difficulty: Points.normPoints(mtPoints), createdAt:Date.now() })
       /* The shape chosen at the "how much work" step, attached to the task
          that was just created — so it arrives on the board already knowing
          how it will be measured, with nothing done yet. */
@@ -6180,6 +7044,7 @@ function resetPtForm(){
   setPtType("normal")
   ptDateSync()
   mtStep = 0
+  mtPoints = null; mtPointsSeed = 0
   mtSetKind(false)     // also renders the rail and the first step
   mtSetWork("none")
   updatePtPreview()
@@ -6249,7 +7114,7 @@ function renderPtList(){
       </div>`}
       <div class="pt-list-info">
         <div class="pt-list-name">${sq?`<span class="row-sq">${ico("moon")}</span>`:""}${esc(t.name)}</div>
-        <div class="pt-list-sub">${sq?"Side quest · ":""}${t.subject?esc(t.subject)+" · ":""}${typeTag}</div>
+        <div class="pt-list-sub">${sq?"Side quest · ":""}${t.subject?esc(t.subject)+" · ":""}${typeTag} ${pointsPillHTML(t)}</div>
         ${prog?`<div class="pt-list-prog">${progressBarHTML(prog,{color})}<span class="prog-read">${progressText(prog)}</span></div>`:""}
       </div>
       <div class="pt-list-right">
@@ -6305,13 +7170,14 @@ document.addEventListener("keydown",e=>{
   const open=id=>document.getElementById(id).classList.contains("open")
   if(open("confirmOverlay")) return resolveConfirm(false)
   if(document.getElementById("pwOverlay").classList.contains("active")) return closePw()
+  if(open("pointsModal"))   return closePointsSheet()
   if(open("progressModal")) return closeProgressSheet()
   if(open("detailPopup")) return closeDetail()
   if(open("taskModal"))   return closeModal()
   if(open("settingsOverlay")) return closeSettings()
   if(open("tourOverlay"))     return closeTour()
   if(open("userDropdown")) return closeMenus()
-  if(open("legendPanel")||open("rangePanel")||open("filterPanel")) closeFabs()
+  if(open("configSheet")) closeFabs()
 })
 
 // ── End date can never sit before the start date ──────────────

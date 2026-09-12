@@ -24,6 +24,7 @@
 
 import * as S from "./tas-todo-state.js"
 import * as Store from "./tas-todo-store.js"
+import * as P from "./tas-points.js"
 
 let uid = null
 let mount = null
@@ -49,6 +50,16 @@ export function markViewEntered() { animateView = true }
 /* Only overdue work from the last month is worth offering; anything older
    belongs in the archive, not on a list of what to do next. */
 const POOL_OVERDUE_DAYS = 30
+
+/* Which way the meter is reading: what is left, or what has been cleared.
+   A per-device view preference like the range and the sort — it says how
+   you want to look at the list, not anything about the list itself. */
+const METER_KEY = "tas_todo_meter_mode"
+let meterMode = "load"
+try {
+  const m = localStorage.getItem(METER_KEY)
+  if (m === "load" || m === "earned") meterMode = m
+} catch (e) {}
 
 export function initTodo(opts) {
   uid = opts.uid
@@ -171,7 +182,7 @@ function poolCardHTML(t) {
     <span class="todo-dot" style="background:${m.color}"></span>
     <div class="todo-pool-info">
       <div class="todo-pool-name">${sqMark(t)}${H.esc(t.name || "Untitled")}</div>
-      <div class="todo-pool-sub">${t.subject ? H.esc(t.subject) + " · " : ""}${H.esc(H.TYPE_LABEL[type] || type)}</div>
+      <div class="todo-pool-sub">${t.subject ? H.esc(t.subject) + " · " : ""}${H.esc(H.TYPE_LABEL[type] || type)} ${H.pointsPillHTML(t)}</div>
     </div>
     <div class="todo-pool-right">
       <div class="todo-pool-due" style="color:${m.color}">${H.esc(m.date)}</div>
@@ -198,6 +209,7 @@ function itemHTML(r) {
     : r.source === "note"
       ? "Note"
       : (r.subject ? H.esc(r.subject) + " · " : "") + H.esc(H.TYPE_LABEL[r.type] || r.type)
+                                                      + " " + H.pointsPillHTML(r.task)
 
   return `<div class="todo-item${r.orphan ? " orphan" : ""}${notesOpen ? " notes-open" : ""}${done ? " done" : ""}"
                data-item="${H.esc(r.id)}"${isTask ? ` data-ref="${H.esc(r.ref)}"` : ""}>
@@ -226,6 +238,98 @@ function itemHTML(r) {
     </div>
     ${notesOpen ? `<textarea class="todo-notes" data-notesfor="${H.esc(r.id)}" rows="3"
       placeholder="Anything worth remembering — page numbers, what's left, who you're working with…">${H.esc(r.notes)}</textarea>` : ""}
+  </div>`
+}
+
+/* ── The meter ───────────────────────────────────────────────
+   What the list weighs, against what this person reckons a comfortable
+   load to be. An indicator, not a limit: going over colours the bar and
+   says so, and changes nothing else.
+
+   Both readings come out of one sum (see listTotals), so flipping
+   between them can never show two numbers that don't agree. */
+function meterHTML(rows) {
+  const { target, loaded } = H.pointsTarget()
+  const totals = P.listTotals(rows, {
+    resolve: H.pointsOf,        // the page's own, with this user's weights folded in
+    isDone: H.isDone,
+    progressOf: H.progressOf,
+    progressPct: H.progressPct
+  })
+  if (!totals.total) return ""  // nothing weighable on the list yet
+
+  const earned = meterMode === "earned"
+  const band = P.loadBand(totals.load, target)
+  const over = !earned && band.id === "over"
+  const value = earned ? totals.earned : totals.load
+  const against = earned ? totals.total : target
+  const pct = Math.min(100, Math.round((against ? value / against : 0) * 100))
+
+  const caption = earned
+    ? (totals.total - totals.earned) + " still to go"
+    : over ? (totals.load - target) + " over your target" : band.label
+
+  /* Until the target has arrived from the account there is no honest bar
+     to draw, so the meter shows the number and holds the track empty
+     rather than measuring against a default this person never chose. */
+  const cls = "todo-meter" + (over ? " over" : "") + (loaded ? "" : " waiting")
+
+  return `<div class="${cls}">
+    <div class="todo-meter-top">
+      <button class="todo-meter-read" id="todoMeterTarget"
+              title="${earned ? "What you've cleared, out of everything on the list" : "Change your target in Settings"}"
+              ${earned ? "disabled" : ""}><b>${value.toLocaleString()}</b> / ${against.toLocaleString()} pts</button>
+      <button class="todo-meter-flip" id="todoMeterFlip"
+              title="${earned ? "Show what's left to do" : "Show what you've cleared"}">⇄</button>
+    </div>
+    <div class="prog-bar" style="--pc:${over ? "var(--red)" : "var(--pink)"}">
+      <div class="prog-track"><div class="prog-fill" style="width:${loaded ? pct : 0}%"></div></div>
+    </div>
+    <div class="todo-meter-cap">${earned ? "Cleared · " : ""}${H.esc(caption)}</div>
+  </div>`
+}
+
+/* ── The waiting state ───────────────────────────────────────
+   The same two columns, drawn as bones. The list is read once per
+   session and the wait is short, so what matters is that nothing moves
+   when it lands: the headers, the search box, the meter and the rows
+   are all already in their final places, and the data just fills them.
+
+   Uses the calendar's own `.skel-bone` — the timeline and the archive
+   wait the same way, so moving between views mid-load looks like one
+   page loading rather than three different ones. */
+function skeletonHTML() {
+  const card = w =>
+    `<div class="todo-skel-card">
+       <span class="skel-bone todo-skel-dot"></span>
+       <div class="todo-skel-info">
+         <div class="skel-bone skel-line" style="--sk-nw:${w}%"></div>
+         <div class="skel-bone skel-line sub"></div>
+       </div>
+       <div class="skel-bone todo-skel-due"></div>
+     </div>`
+
+  return `<div class="todo-view no-anim" role="status" aria-label="Loading your To Do list">
+    <aside class="todo-col todo-pool-col">
+      <div class="todo-head">
+        <h2>${H.ico("inbox")} Tasks</h2>
+        <span class="skel-bone todo-skel-count"></span>
+      </div>
+      <div class="skel-bone todo-skel-search"></div>
+      <div class="todo-skel-lane">${[74, 58, 66, 48, 70].map(card).join("")}</div>
+    </aside>
+
+    <section class="todo-col todo-list-col">
+      <div class="todo-head">
+        <h2>${H.ico("check-square")} To Do</h2>
+        <span class="skel-bone todo-skel-count"></span>
+      </div>
+      <div class="todo-skel-meter">
+        <div class="skel-bone skel-line" style="--sk-nw:120px;height:15px"></div>
+        <div class="skel-bone todo-skel-track"></div>
+      </div>
+      <div class="todo-skel-lane">${[68, 52, 76, 60].map(card).join("")}</div>
+    </section>
   </div>`
 }
 
@@ -271,6 +375,7 @@ function viewHTML() {
         <span class="todo-count">${rows.length}</span>
         <button class="todo-addnote" id="todoAddNote">${H.ico("plus")} Note</button>
       </div>
+      ${meterHTML(rows)}
       <div class="todo-scroll todo-drop" data-lane="list">${listBody}</div>
       <p class="todo-foot">Tap a row to open it — the tick and the progress are the timeline's own.</p>
     </section>
@@ -286,11 +391,7 @@ export function render() {
     </div></div>`
     return
   }
-  if (!loaded) {
-    mount.innerHTML = `<div class="todo-view"><div class="todo-empty wide">
-      <span class="big">${H.ico("check-square")}</span>Loading your list…</div></div>`
-    return
-  }
+  if (!loaded) { mount.innerHTML = skeletonHTML(); return }
   // A re-render mid-drag would tear the row out from under the finger.
   if (drag && drag.active) { pendingRender = true; return }
 
@@ -324,6 +425,18 @@ function wire() {
 
   const addNote = document.getElementById("todoAddNote")
   if (addNote) addNote.onclick = onAddNote
+
+  // The target is the other half of the reading, so the reading is the way
+  // to it — otherwise it lives only in a settings screen nothing points at.
+  const tgt = document.getElementById("todoMeterTarget")
+  if (tgt && H.openSettings) tgt.onclick = () => H.openSettings()
+
+  const flip = document.getElementById("todoMeterFlip")
+  if (flip) flip.onclick = () => {
+    meterMode = meterMode === "load" ? "earned" : "load"
+    try { localStorage.setItem(METER_KEY, meterMode) } catch (e) {}
+    render()
+  }
 
   mount.querySelectorAll("[data-add]").forEach(b =>
     b.onclick = e => { e.stopPropagation(); addTaskToList(b.dataset.add) })

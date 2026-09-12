@@ -46,6 +46,7 @@ A full task document:
     note       str
     markerType str   markers only, e.g. "quiz"
     date       str   markers only, mirrors start/end
+    difficulty int   optional, 1-999 points (see point 3)
     createdAt  int   epoch ms
     updatedAt  int   epoch ms, edits only
 
@@ -54,7 +55,8 @@ belong to the whole class, so "done" lives in `userDone/{uid}`:
 
     { done:         { taskId: true },
       archiveHidden: { taskId: true },
-      progress:     { taskId: { mode: "steps"|"percent", value, total } } }
+      progress:     { taskId: { mode: "steps"|"percent", value, total } },
+      difficulty:   { taskId: points } }
 
 Pass `uid=` to `list_tasks` / `get_task` to fold that person's `done`
 and `progress` into each task. Without a uid there is no meaningful
@@ -62,6 +64,24 @@ answer to "is this done?", so the field is simply absent.
 
 Personal tasks in `userTasks/{uid}/tasks` are a separate collection,
 covered by `list_personal_tasks`.
+
+**3. Every task has a weight, and it may be a guess.** More points
+means harder. All four tools return two fields for it:
+
+    points           int   1-999, or 0 for a marker
+    points_estimated bool  true when nobody set it and this is a guess
+
+Three layers, first one that exists wins: the reader's own weight in
+`userDone/{uid}.difficulty`, then the author's `difficulty` on the task
+itself, then an estimate from the task's type and how many days it runs.
+Only that last case sets `points_estimated`. Treat an estimated weight
+as rough -- it is the app's arithmetic, not a judgement anyone made.
+
+The ladder the app offers is 10 (Trivial), 25 (Easy), 50 (Normal),
+100 (Hard), 200 (Brutal), and a student sets a personal point target
+in `settings/{uid}.pointTarget` that their To Do list measures against.
+The arithmetic is mirrored from `web/tas-points.js`, which is the
+version of record.
 
 ## Whose data
 

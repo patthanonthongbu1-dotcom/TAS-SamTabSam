@@ -117,10 +117,37 @@
 </head>
 <body>
 
-<div id="authGate">
-  <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffc73f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM21 14v3M18 21h3M14 21h1"/></svg>
-  <div class="gate-spin"></div>
-  <div class="gate-msg">Checking sign-in...</div>
+<!-- Auth gate — a ghost of the page, not a spinner. See tools-shell.css. -->
+<div id="authGate" role="status" aria-label="Checking your sign-in">
+  <div class="gate-top">
+    <div class="skel-bone gate-chip"></div>
+    <div class="skel-bone skel-line" style="width:118px;height:14px"></div>
+    <div class="gate-tabs">
+      <div class="skel-bone gate-tab"></div>
+      <div class="skel-bone gate-tab"></div>
+      <div class="skel-bone gate-tab"></div>
+      <div class="skel-bone gate-tab"></div>
+    </div>
+    <div class="skel-bone gate-pill"></div>
+  </div>
+  <div class="gate-page">
+    <div class="skel-bone gate-back"></div>
+    <div class="skel-bone gate-h2"></div>
+    <div class="skel-bone gate-sub"></div>
+    <div class="gate-card">
+      <div class="skel-bone gate-card-title"></div>
+      <div class="skel-bone gate-field"></div>
+      <div class="skel-bone gate-field"></div>
+      <div class="skel-bone gate-field"></div>
+      <div class="skel-bone gate-field"></div>
+    </div>
+    <div class="gate-card">
+      <div class="skel-bone gate-card-title"></div>
+      <div class="skel-bone gate-field"></div>
+      <div class="skel-bone gate-field"></div>
+    </div>
+  </div>
+  <div class="gate-msg">Checking your sign-in…</div>
 </div>
 
 <div id="appWrap" style="display:none">

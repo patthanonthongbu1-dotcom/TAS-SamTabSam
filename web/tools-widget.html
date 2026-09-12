@@ -39,6 +39,10 @@
       box-shadow:0 0 0 4px rgba(255,255,255,0.06)}
     .state-row.on .state-dot{background:#1D9E75;box-shadow:0 0 0 4px rgba(29,158,117,0.18)}
     .state-k{font-size:15.5px;font-weight:600}
+    /* Bones the width of "Widget is off" and the line under it, so the row
+       is its final height before the read lands and nothing jumps. */
+    .sk-state-k{display:inline-block;width:118px;height:14px;border-radius:6px;vertical-align:middle}
+    .sk-state-v{display:inline-block;width:196px;height:11px;border-radius:6px;vertical-align:middle}
     .state-v{font-size:13px;font-weight:300;color:var(--label);margin-top:2px;line-height:1.5}
 
     /* The personal link */
@@ -99,10 +103,37 @@
 </head>
 <body>
 
-<div id="authGate">
-  <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffc73f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 5.5h3"/></svg>
-  <div class="gate-spin"></div>
-  <div class="gate-msg">Checking sign-in...</div>
+<!-- Auth gate — a ghost of the page, not a spinner. See tools-shell.css. -->
+<div id="authGate" role="status" aria-label="Checking your sign-in">
+  <div class="gate-top">
+    <div class="skel-bone gate-chip"></div>
+    <div class="skel-bone skel-line" style="width:118px;height:14px"></div>
+    <div class="gate-tabs">
+      <div class="skel-bone gate-tab"></div>
+      <div class="skel-bone gate-tab"></div>
+      <div class="skel-bone gate-tab"></div>
+      <div class="skel-bone gate-tab"></div>
+    </div>
+    <div class="skel-bone gate-pill"></div>
+  </div>
+  <div class="gate-page">
+    <div class="skel-bone gate-back"></div>
+    <div class="skel-bone gate-h2"></div>
+    <div class="skel-bone gate-sub"></div>
+    <div class="gate-card">
+      <div class="skel-bone gate-card-title"></div>
+      <div class="skel-bone gate-field"></div>
+      <div class="skel-bone gate-field"></div>
+    </div>
+    <div class="gate-card">
+      <div class="skel-bone gate-card-title"></div>
+      <div class="skel-bone gate-field"></div>
+      <div class="skel-bone gate-field"></div>
+      <div class="skel-bone gate-field"></div>
+      <div class="skel-bone gate-field"></div>
+    </div>
+  </div>
+  <div class="gate-msg">Checking your sign-in…</div>
 </div>
 
 <div id="appWrap" style="display:none">
@@ -122,8 +153,8 @@
           <div class="state-row" id="stateRow">
             <span class="state-dot"></span>
             <div style="flex:1;min-width:0">
-              <div class="state-k" id="stateK">Checking…</div>
-              <div class="state-v" id="stateV">&nbsp;</div>
+              <div class="state-k" id="stateK"><span class="skel-bone sk-state-k"></span></div>
+              <div class="state-v" id="stateV"><span class="skel-bone sk-state-v"></span></div>
             </div>
           </div>
 
@@ -221,7 +252,7 @@
           <iframe class="pv-frame" id="pvFrame" title="Widget preview" width="170" height="170"></iframe>
         </div>
         <div class="pv-note">This is the real widget page, not a mock-up — it's showing your actual tasks.</div>
-        <div class="pv-updated"><span class="ico" data-ico="clock" data-size="13"></span> <span id="pvUpdatedText">Loading…</span></div>
+        <div class="pv-updated"><span class="ico" data-ico="clock" data-size="13"></span> <span id="pvUpdatedText"><span class="skel-bone sk-state-v" style="width:132px"></span></span></div>
       </div>
     </div>
   </div>

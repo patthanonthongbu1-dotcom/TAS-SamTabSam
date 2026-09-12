@@ -67,14 +67,70 @@ body{
 
 #appWrap{position:relative;z-index:1}
 
-/* ── Auth gate ─────────────────────────────────────────────── */
+/* ── Skeleton bones ────────────────────────────────────────────
+   The shared waiting primitive, matching the calendar's. A bone is a
+   dim block with one highlight sweeping across it: enough to read as
+   "not ready yet" without the pulsing that makes a whole page of them
+   throb. Every skeleton in the app is built out of these, so waiting
+   looks the same wherever you are. */
+.skel-bone{position:relative;overflow:hidden;background:rgba(255,255,255,0.07);border-radius:6px}
+.skel-bone::after{
+  content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.10),transparent);
+  animation:skelSweep 1.5s ease-in-out infinite;
+}
+@keyframes skelSweep{100%{transform:translateX(100%)}}
+.skel-line{height:11px;width:var(--sk-nw,70%)}
+.skel-line.sub{height:9px;width:var(--sk-sw,45%);opacity:0.7}
+@media (prefers-reduced-motion: reduce){.skel-bone::after{animation:none}}
+
+/* ── Auth gate ─────────────────────────────────────────────────
+   A ghost of the page rather than a spinner on a dark field. A spinner
+   only says "wait"; this says what is coming and where it will sit, so
+   the page settles into its own outline instead of replacing a
+   placeholder. Every Tools page has the same chrome, so they all share
+   one ghost — only the card heights below differ, and not enough to
+   draw twice. */
 #authGate{
   position:fixed;inset:0;background:var(--navy-dark);
-  display:flex;align-items:center;justify-content:center;
-  z-index:9999;flex-direction:column;gap:12px;font-family:'Kanit',sans-serif;
+  z-index:9999;overflow:hidden;font-family:'Kanit',sans-serif;
+  /* A column, so the caption sits after the ghost instead of floating over
+     it — on a short screen an absolutely-placed caption lands on top of a
+     card and reads as a rendering fault rather than a status line. */
+  display:flex;flex-direction:column;
 }
-#authGate .gate-spin{width:28px;height:28px;border:3px solid rgba(255,255,255,0.18);border-top-color:var(--pink);border-radius:50%;animation:spin 0.7s linear infinite}
-#authGate .gate-msg{font-size:16px;color:var(--muted);font-weight:300}
+#authGate .gate-top{
+  height:var(--topbar-h);padding:0 1.25rem;display:flex;align-items:center;gap:11px;
+  background:rgba(30,48,84,0.72);border-bottom:1px solid var(--glass-brd);
+}
+#authGate .gate-chip{width:40px;height:40px;border-radius:12px;flex-shrink:0}
+#authGate .gate-tabs{display:flex;gap:6px;margin-left:auto}
+#authGate .gate-tab{width:64px;height:30px;border-radius:10px}
+#authGate .gate-pill{width:96px;height:32px;border-radius:22px;flex-shrink:0}
+#authGate .gate-page{flex:1;min-height:0;overflow:hidden;width:100%;max-width:940px;margin:0 auto;padding:2rem 1.25rem}
+#authGate .gate-back{width:104px;height:12px;margin-bottom:18px}
+#authGate .gate-h2{width:min(280px,62%);height:26px;border-radius:8px}
+#authGate .gate-sub{width:min(420px,84%);height:13px;margin-top:11px}
+#authGate .gate-card{
+  margin-top:1.6rem;border-radius:18px;padding:1.4rem 1.5rem;
+  background:var(--card);border:1px solid var(--glass-brd);
+}
+#authGate .gate-card + .gate-card{margin-top:1.1rem}
+#authGate .gate-card-title{width:132px;height:14px;margin-bottom:16px}
+#authGate .gate-field{height:40px;border-radius:12px;margin-bottom:11px}
+/* The converter leads with a drop zone rather than a row of fields */
+#authGate .gate-drop{height:132px;border-radius:14px}
+#authGate .gate-field:last-child{margin-bottom:0}
+/* Under the bones, not over them: a caption on the page being built. */
+#authGate .gate-msg{
+  flex-shrink:0;padding:1.1rem 1rem 2.25rem;text-align:center;
+  font-size:14px;color:var(--label);font-weight:300;letter-spacing:0.02em;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+}
+@media(max-width:640px){
+  #authGate .gate-tabs{display:none}
+  #authGate .gate-h2{height:22px}
+}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ── Topbar — same lockup as the calendar ──────────────────── */
@@ -307,7 +363,12 @@ html[data-theme="light"]{
 html[data-theme="light"] body{background:#f4f6f4}
 html[data-theme="light"] .bg-orbs{display:none}
 html[data-theme="light"] #authGate{background:#f4f6f4}
-html[data-theme="light"] #authGate .gate-spin{border-color:#dde3dd;border-top-color:var(--pink)}
+/* The gate is a ghost of the page, so it follows the page into light */
+html[data-theme="light"] #authGate{background:#f4f6f4}
+html[data-theme="light"] #authGate .gate-top{background:rgba(255,255,255,0.86);border-bottom-color:#dde3dd}
+html[data-theme="light"] #authGate .gate-card{background:#ffffff;border-color:#dde3dd}
+html[data-theme="light"] .skel-bone{background:rgba(0,0,0,0.07)}
+html[data-theme="light"] .skel-bone::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent)}
 html[data-theme="light"] .topbar{background:rgba(255,255,255,0.88);border-bottom-color:#dde3dd}
 html[data-theme="light"] .brand-chip{background:#ffffff;border-color:#dde3dd;box-shadow:0 2px 8px -2px rgba(0,0,0,0.12)}
 html[data-theme="light"] .brand-mini{animation:none}
