@@ -36,6 +36,7 @@
    whitelist. Order is deliberate: the formatter sits between the
    two so the pill does not reshuffle when it appears. */
 const PAGES = [
+  { key:"home",     href:"index.html",     icon:"home",     label:"Home" },
   { key:"calendar", href:"calendar.html",  icon:"calendar", label:"Calendar" },
   { key:"announce", href:"announce.html",  icon:"note",     label:"Formatter", admin:true },
   { key:"hub",      href:"tools.html",     icon:"tools",    label:"Tools" },
@@ -49,6 +50,7 @@ const TOOL_KEYS = ["hub", "qr", "link", "convert", "widget"]
    convention as tools-shell.js, so the two icon sets look like
    one hand drew them. */
 const PATHS = {
+  home:     `<path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.5V19a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V9.5"/><path d="M9.5 20v-6h5v6"/>`,
   calendar: `<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v4M16 3v4"/>`,
   note:     `<path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M8 13h8M8 17h5"/>`,
   tools:    `<path d="M4 9h16a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9a1 1 0 0 1 1-1Z"/><path d="M9 9V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v3"/><path d="M3 14h18"/>`,

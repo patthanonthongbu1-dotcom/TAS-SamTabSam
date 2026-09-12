@@ -96,7 +96,7 @@
    grows a grip, the way a sheet says "pull me down". */
 .tasnav-hit{
   position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
-  width:152px;height:40px;padding:0;border:0;background:transparent;
+  width:132px;height:30px;padding:0;border:0;background:transparent;
   cursor:pointer;border-radius:20px;color:var(--text, #fff);
   transition:width 0.3s ease, height 0.3s ease, bottom 0.3s ease;
 }

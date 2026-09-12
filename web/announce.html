@@ -44,7 +44,7 @@
       background-size: 200% 200%;
       animation: bgShift 24s ease-in-out infinite alternate;
       display: flex; justify-content: center;
-      padding: 2.5rem 1rem 4rem;
+      padding: 2.5rem 1rem calc(var(--tasnav-bottom, 1.25rem) + 92px);
       position: relative; overflow-x: hidden;
     }
     @keyframes bgShift { 0% { background-position: 0% 0%; } 100% { background-position: 100% 100%; } }
@@ -425,7 +425,7 @@
     .tour-back:disabled { opacity: 0.4; cursor: not-allowed; }
 
     @media (max-width: 480px) {
-      body { padding: 1.5rem 0.85rem 3rem; }
+      body { padding: 1.5rem 0.85rem calc(var(--tasnav-bottom, 1.25rem) + 92px); }
       .header { margin-bottom: 1.35rem; }
       .header-text h1 { font-size: 24px; }
       .card { padding: 1.15rem 1.15rem 1.5rem; }
@@ -599,6 +599,7 @@ import { mountCard, embeddedFontCSS } from "./tas-card.js"
 // The page navigator — the glass dot bottom-right, shared with the
 // calendar and the Tools pages.
 import { mountNav } from "./tas-nav.js"
+import { startTimeTracking, stopTimeTracking } from "./tas-time.js"
 import { toBlob } from "https://esm.sh/html-to-image@1.11.13"
 
 // Today as a local calendar date. NOT toISOString(): that formats in UTC, so
@@ -720,6 +721,8 @@ function revealApp(user) {
   // Anyone who is through this page's gate has formatter access, whether
   // by whitelist or by the panel password — so the navigator shows it.
   mountNav({ active:"announce", admin:true })
+  // Counts into the same total as every other page — see tas-time.js.
+  if (db) startTimeTracking(db, user.uid)
   fbReady = true; setFbStatus(!!db); renderUserPill(user); initApp()
   // First-time visitors get the walkthrough automatically.
   try { if (!localStorage.getItem("tas_tour_seen")) setTimeout(openTour, 550) } catch(e) {}
@@ -754,7 +757,7 @@ document.addEventListener("click", () => {
   document.querySelectorAll(".add-dd-btn.open").forEach(b => b.classList.remove("open"))
 })
 window.handleReturnToMenu = () => { window.location.href = LOGIN_URL }
-window.handleSignOut = async () => { await signOut(auth); window.location.href = LOGIN_URL }
+window.handleSignOut = async () => { await stopTimeTracking(); await signOut(auth); window.location.href = LOGIN_URL }
 
 // ── Modals: confirm dialog + "How it works" tour ──────────────
 function closeOverlay(ov) {

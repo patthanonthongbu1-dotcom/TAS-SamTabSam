@@ -21,6 +21,7 @@ import { getFirestore, doc, getDoc }
 // so the five Tools pages get it the same way they get the topbar: by
 // calling initShell.
 import { mountNav } from "./tas-nav.js"
+import { startTimeTracking, stopTimeTracking } from "./tas-time.js"
 
 const firebaseConfig = {
   apiKey:"AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18",
@@ -254,6 +255,7 @@ export function initShell({ title="TAS Tools", active="hub" } = {}){
   document.addEventListener("click", () =>
     document.getElementById("userDropdown")?.classList.remove("open"))
   document.getElementById("signOutBtn").onclick = async () => {
+    await stopTimeTracking()     // send the minutes before the account goes
     await signOut(auth)
     window.location.href = LOGIN_URL
   }
@@ -268,6 +270,9 @@ export function initShell({ title="TAS Tools", active="hub" } = {}){
       // as a promise so the navigator appears with the pages everyone gets
       // and picks up the third when the whitelist answers.
       mountNav({ active, admin: isWhitelisted(user) })
+      // "Time on site" is meant to mean TAS, not one page of it — every
+      // signed-in page counts into the same total. See tas-time.js.
+      startTimeTracking(db, user.uid)
       renderUserPill(user)
       resolve(user)
     })

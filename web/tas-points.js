@@ -22,17 +22,17 @@
    and the meter stays honest about what it actually knows.
    ───────────────────────────────────────────────────────────── */
 
-export const MAX_POINTS = 999
+export const MAX_POINTS = 7500
 
 /* The ladder. A plain number is what gets stored, never a preset id —
    so a custom value and a worked-out one live in the same field, and
    nothing downstream has to know which door a number came through. */
 export const PRESETS = [
-  { id: "trivial", label: "Trivial", points: 10,  desc: "Minutes"          },
-  { id: "easy",    label: "Easy",    points: 25,  desc: "One sitting"      },
-  { id: "normal",  label: "Normal",  points: 50,  desc: "An evening"       },
-  { id: "hard",    label: "Hard",    points: 100, desc: "Several sessions" },
-  { id: "brutal",  label: "Brutal",  points: 200, desc: "Days of work"     }
+  { id: "trivial", label: "Trivial", points: 100,  desc: "Minutes"          },
+  { id: "easy",    label: "Easy",    points: 250,  desc: "One sitting"      },
+  { id: "normal",  label: "Normal",  points: 500,  desc: "An evening"       },
+  { id: "hard",    label: "Hard",    points: 1000, desc: "Several sessions" },
+  { id: "brutal",  label: "Brutal",  points: 2000, desc: "Days of work"     }
 ]
 
 /* Anything read back from Firestore is untrusted — an old client, a
@@ -55,11 +55,15 @@ export function normPoints(v) {
    legacy spellings are listed here too so a caller handing over a raw
    document still gets a sensible answer rather than the fallback. */
 const TYPE_BASE = {
-  normal: 50, send_on: 50,
-  deadline: 50, send_before: 50,
-  prediction: 25, estimated: 25,
+  normal: 500, send_on: 500,
+  deadline: 500, send_before: 500,
+  prediction: 250, estimated: 250,
   marker: 0
 }
+
+/* What an unrecognised type is worth: the same as an ordinary one.
+   Named, so a rescale of the ladder cannot leave a bare 50 behind. */
+const NORMAL_BASE = TYPE_BASE.normal
 
 /* A task that runs three weeks is not three weeks of work, but it is
    more work than one due tomorrow. Bands rather than a curve, since the
@@ -95,7 +99,7 @@ export function nearestPreset(points) {
 export function suggestPoints(task) {
   if (!task) return 0
   const type = String(task.type || "normal")
-  const base = TYPE_BASE[type] === undefined ? 50 : TYPE_BASE[type]
+  const base = TYPE_BASE[type] === undefined ? NORMAL_BASE : TYPE_BASE[type]
   if (!base) return 0
   const raw = base * spanFactor(spanDays(task.start, task.end))
   return nearestPreset(raw).points
@@ -125,7 +129,7 @@ export function explainSuggestion(task) {
   const canon = { send_on: "normal", send_before: "deadline", estimated: "prediction" }[type] || type
   if (canon === "marker") return null
 
-  const base = TYPE_BASE[type] === undefined ? 50 : TYPE_BASE[type]
+  const base = TYPE_BASE[type] === undefined ? NORMAL_BASE : TYPE_BASE[type]
   const days = spanDays(task.start, task.end)
   const known = Number.isFinite(days)
   const band = known ? SPAN_BANDS.find(b => days <= b.upto) : null
@@ -168,11 +172,11 @@ export function pointsOf(task, overrides) {
 /* ── The factor panel ────────────────────────────────────────
    Three 1–5 rows multiplied together, for when no preset fits and a bare
    number field is too blank a page. Tuned so the middle of everything is
-   Normal: 50 × 1 × 1. The range runs 3…493, bracketing the ladder at
+   Normal: 500 × 1 × 1. The range runs 34…4928, bracketing the ladder at
    both ends. */
 export const FACTORS = {
   effort: { label: "Effort", desc: "How hard is the thinking",
-            scale: [12, 25, 50, 85, 140],
+            scale: [120, 250, 500, 850, 1400],
             words: ["Barely", "A little", "Real work", "Tough", "Gruelling"] },
   time:   { label: "Time", desc: "How long it takes",
             scale: [0.4, 0.7, 1.0, 1.5, 2.2],
@@ -241,9 +245,9 @@ export function listTotals(rows, { overrides, resolve, isDone, progressOf, progr
    Not a limit — an indicator. It is whatever this person reckons a
    comfortable amount of work to be carrying, and the meter reads
    against it. */
-export const TARGET_FALLBACK = 1000
-export const TARGET_MIN = 50
-export const TARGET_MAX = 20000
+export const TARGET_FALLBACK = 10000
+export const TARGET_MIN = 500
+export const TARGET_MAX = 200000
 
 export function normTarget(v) {
   const n = Math.round(Number(v))
@@ -252,12 +256,12 @@ export function normTarget(v) {
 }
 
 /* The ± buttons move by more as the number grows — forty taps to reach
-   2000 in fifties would be its own kind of homework. */
+   20000 in five-hundreds would be its own kind of homework. */
 export function targetStep(target) {
   const n = normTarget(target)
-  if (n < 500) return 50
-  if (n < 2000) return 100
-  return 250
+  if (n < 5000) return 500
+  if (n < 20000) return 1000
+  return 2500
 }
 
 /* How the meter describes itself. Bands rather than a bare percentage,

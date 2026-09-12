@@ -84,6 +84,10 @@
          lifted clear by one button plus a gap. Every other page uses the
          default. Toasts keep the bottom 24px here, below all of it. */
       --tasnav-bottom:calc(1.5rem + 58px);
+      /* Where the bar is parked, plus the 74px pill it becomes when open,
+         plus a gap. Every scrolling wrap reserves this, so moving the bar
+         moves the room made for it and the last row can't hide under it. */
+      --nav-clear:calc(var(--tasnav-bottom) + 92px);
     }
     /* One seamless backdrop — fixed gradient, dark html fallback for overscroll */
     html{min-height:100%;background:var(--navy-dark)}
@@ -108,8 +112,16 @@
     @keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-52px,-40px) scale(1.1)}}
     @keyframes drift3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-38px,44px) scale(0.92)}}
 
-    /* App content sits above the orbs */
-    #appWrap{position:relative;z-index:1}
+    /* App content sits above the orbs. Deliberately NO z-index: that would
+       make this a stacking context, and every z-index below it — the config
+       sheet at 610, the detail popup at 600, every modal at 900+ — would
+       then only be ranked against each other, never against the page
+       navigator, which is a sibling of this element on <body>. The
+       navigator would win at 550 against this wrapper's 1 and paint over
+       the lot, which is exactly what it used to do. Positioned with
+       z-index:auto still sits above .bg-orbs (z-index:0, earlier in the
+       document), which is all this rule was ever for. */
+    #appWrap{position:relative}
 
     /* ── Auth gate ─────────────────────────────────────────────────
        A ghost of the page rather than a spinner on a black field. A
@@ -315,7 +327,7 @@
     .user-dropdown-btn.signout:hover{background:rgba(192,57,43,0.18);color:var(--red-text)}
 
     /* THREE-COLUMN LAYOUT — frosted side columns over the gradient */
-    .cal-wrap{padding-bottom:7rem;min-height:calc(100vh - var(--topbar-h));display:flex;flex-direction:column}
+    .cal-wrap{padding-bottom:var(--nav-clear);min-height:calc(100vh - var(--topbar-h));display:flex;flex-direction:column}
     .cal-layout{display:flex;flex-direction:row;align-items:stretch;flex:1;min-height:0}
     .cal-left{width:var(--label-w);flex-shrink:0;background:var(--col);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-right:2px solid var(--glass-brd);box-shadow:4px 0 14px -4px rgba(0,0,0,0.35);position:relative;z-index:30;align-self:stretch}
     .cal-right{width:var(--check-w);flex-shrink:0;background:var(--col);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-left:2px solid var(--glass-brd);box-shadow:-4px 0 14px -4px rgba(0,0,0,0.35);position:relative;z-index:30;align-self:stretch}
@@ -1170,7 +1182,7 @@
     @keyframes pillPop{from{transform:scale(0.7);opacity:0}to{transform:scale(1);opacity:1}}
 
     /* ARCHIVE — Gmail-style list */
-    .archive-wrap{padding:1.5rem 1.5rem 7rem;max-width:980px;margin:0 auto}
+    .archive-wrap{padding:1.5rem 1.5rem var(--nav-clear);max-width:980px;margin:0 auto}
     .archive-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap}
     .archive-title{font-size:19.5px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:9px}
     .archive-count-pill{background:var(--accent-soft);border:1px solid var(--accent-brd);color:var(--accent-soft-text);font-size:12.5px;font-weight:600;border-radius:20px;padding:1px 9px;line-height:18px;animation:pillPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both}
@@ -1231,7 +1243,7 @@
     .archive-hint b{color:var(--muted)}
     .pt-extend-banner{background:var(--accent-soft);border:1px solid var(--accent-brd);color:var(--accent-soft-text);font-size:13px;border-radius:10px;padding:8px 12px;margin-bottom:10px;display:none;line-height:1.4}
     @media(max-width:600px){
-      .archive-wrap{padding:1.25rem 1rem 7rem}
+      .archive-wrap{padding:1.25rem 1rem var(--nav-clear)}
       .archive-main{flex-wrap:wrap;row-gap:2px}
       .archive-name{flex-basis:100%;max-width:100%}
       .archive-desc{display:none}
@@ -1332,7 +1344,7 @@
       .marker-modal-overlay{padding:0;align-items:flex-end}
       .marker-modal{border-radius:20px 20px 0 0;max-height:90vh;max-width:100%}
 
-      .archive-wrap{padding:1rem 1rem 7rem}
+      .archive-wrap{padding:1rem 1rem var(--nav-clear)}
     }
 
     /* ── 380 px and below (small phones) ───────────────────────── */
@@ -2889,6 +2901,24 @@
           </button>
           <div class="score-guide" id="scoreGuide" hidden></div>
         </div>
+
+        <!-- Class tasks belong to whoever posted them, so nobody's own copy
+             of the app can rescale them the way it rescales its own. One
+             moderator runs this once; every document it touches is marked,
+             so a second run finds nothing left to do. -->
+        <div class="set-row stack" id="rescaleRow" style="display:none">
+          <div class="set-row-main">
+            <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-trend"/></svg></div>
+            <div class="set-row-text">
+              <div class="set-row-title">Rescale class task weights</div>
+              <div class="set-row-desc">Points went up tenfold in V.3.3. Weights already set on shared tasks are still on the old scale and read as almost nothing. This brings them across — once, for everyone.</div>
+            </div>
+          </div>
+          <button class="pts-fold" id="rescaleBtn" onclick="rescaleSharedPoints()" type="button">
+            <svg class="ic" aria-hidden="true"><use href="#ic-refresh"/></svg>
+            <span id="rescaleBtnLab">Check what needs rescaling</span>
+          </button>
+        </div>
       </div>
       <div class="set-group-note">This one is saved to your account, so it follows you to your phone.</div>
 
@@ -2990,7 +3020,7 @@
     <div class="set-section">
       <div class="pts-custom-row">
         <label for="ptsCustom">Or set it exactly</label>
-        <input type="number" id="ptsCustom" min="1" max="999" step="1" inputmode="numeric" />
+        <input type="number" id="ptsCustom" min="1" max="7500" step="1" inputmode="numeric" />
         <span class="prog-read">pt</span>
       </div>
     </div>
@@ -3025,13 +3055,14 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
 import {
   getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
-  onSnapshot, setDoc, getDoc, query, orderBy
+  onSnapshot, setDoc, getDoc, getDocs, writeBatch, query, orderBy
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 import { publishWidgetFeed, widgetFeedExists }
   from "./tas-widget-feed.js"
 // The page navigator — the glass dot bottom-right. Shared with announce
 // and the Tools pages, and the only cross-page nav any of them carry.
 import { mountNav } from "./tas-nav.js"
+import { startTimeTracking, stopTimeTracking } from "./tas-time.js"
 // The To Do view. Split three ways on purpose: state is pure and tested,
 // the store owns Firestore, and the UI owns the DOM. This page supplies the
 // live task lists it renders against, so nothing is fetched twice.
@@ -3352,6 +3383,12 @@ let tasksLoaded=false   // first shared-tasks snapshot received — until then, 
 let currentUser = null
 
 // ── Per-user done state ───────────────────────────────────────
+// { [taskId]: epochMs } — the value is WHEN it was ticked, because the
+// statistics on the home page have nothing else to go on: there is no
+// completion timestamp on the task itself and there never was. Every
+// reader of this map tests it for truthiness, never for `true`, so the
+// stamp needed no migration — entries written before V.3.3 are still
+// `true` and simply mean "done, date unknown".
 let userDoneCache = {}
 // Per-user archive dismissals — deleting from the archive only hides the
 // task for this account (shared tasks stay in Firestore for everyone)
@@ -3369,6 +3406,11 @@ const savingIds = new Set()
 
 let userStateLoaded = false   // true only after the user's real doc was read
 
+/* Which version of the points ladder the weights in this doc are on.
+   See migratePointScale() for what it is for and why each of the three
+   places weights are stored carries its own marker. */
+let userPointsScale = 0
+
 async function loadUserDone(uid) {
   try {
     const snap = await getDoc(doc(db, "userDone", uid))
@@ -3376,9 +3418,13 @@ async function loadUserDone(uid) {
     userHiddenCache = snap.exists() ? (snap.data().archiveHidden || {}) : {}
     userProgressCache = snap.exists() ? sanitizeProgressMap(snap.data().progress) : {}
     userPointsCache = snap.exists() ? sanitizePointsMap(snap.data().difficulty) : {}
+    userPointsScale = snap.exists() ? (Number(snap.data().ptsScale) || 0) : POINTS_SCALE
     userStateLoaded = true
   } catch(e) {
     console.warn("Could not load done state:", e)
+    // Not "never migrated" — a failed read must not let the rescale run
+    // against an empty cache. persistUserState refuses to write anyway.
+    userPointsScale = POINTS_SCALE
     userDoneCache = {}
     userHiddenCache = {}
     userProgressCache = {}
@@ -3395,7 +3441,7 @@ async function persistUserState(uid) {
   // roll back and show the save-failed toast.
   if (!userStateLoaded) { console.warn("User state never loaded — refusing to overwrite it"); return false }
   try {
-    await setDoc(doc(db, "userDone", uid), { done: userDoneCache, archiveHidden: userHiddenCache, progress: userProgressCache, difficulty: userPointsCache })
+    await setDoc(doc(db, "userDone", uid), { done: userDoneCache, archiveHidden: userHiddenCache, progress: userProgressCache, difficulty: userPointsCache, ptsScale: userPointsScale || POINTS_SCALE })
     queueWidgetFeed()   // a tick here is a task that should leave the widget
     return true
   } catch(e) {
@@ -3407,6 +3453,124 @@ const persistUserDone     = (uid) => persistUserState(uid)
 const persistUserHidden   = (uid) => persistUserState(uid)
 const persistUserProgress = (uid) => persistUserState(uid)
 const persistUserPoints   = (uid) => persistUserState(uid)
+
+/* ── The x10 rescale (V.3.3) ──────────────────────────────────
+   The ladder went from 10/25/50/100/200 to 100/250/500/1000/2000, so a
+   weight saved before that reads as almost nothing beside one saved
+   after it. There is no way to tell the two apart from the number alone
+   — 100 was Hard and is now Trivial — so each place a weight is stored
+   carries a marker saying which ladder it is on.
+
+   Three stores, three markers, each written in the same operation as the
+   numbers it describes:
+     userDone/{uid}.ptsScale        this reader's own overrides
+     userTasks/{uid}/tasks/*        .pointsScale, per document
+     settings/{uid}.ptsScale        the To Do meter's target
+
+   Keeping them separate is what makes this safe to interrupt: every step
+   is atomic on its own and skips itself if it already ran, so a rescale
+   that dies halfway through resumes on the next launch and can never
+   multiply the same number twice. Shared tasks are written by whoever
+   authored them and cannot be migrated per-reader — that is the
+   moderator action in Settings. */
+const POINTS_SCALE = 2
+const SCALE_FACTOR = 10
+
+async function migratePointScale(uid){
+  // 1. This reader's own weights. One whole-document write, marker included.
+  if(userStateLoaded && userPointsScale < POINTS_SCALE){
+    const ids = Object.keys(userPointsCache)
+    for(const id of ids){
+      const up = Points.normPoints(userPointsCache[id] * SCALE_FACTOR)
+      if(up !== null) userPointsCache[id] = up
+    }
+    userPointsScale = POINTS_SCALE
+    // Rolls itself back on failure so the next launch tries again rather
+    // than leaving the cache and the document disagreeing.
+    const ok = await persistUserState(uid)
+    if(!ok){
+      userPointsScale = 0
+      for(const id of ids) userPointsCache[id] = Math.round(userPointsCache[id] / SCALE_FACTOR)
+    }
+  }
+
+  // 2. Personal tasks. Read directly rather than waiting on the listener:
+  //    this runs once ever, and the listener will pick the writes back up.
+  try{
+    const snap = await getDocs(collection(db, "userTasks", uid, "tasks"))
+    const stale = snap.docs.filter(d =>
+      (Number(d.data().pointsScale) || 0) < POINTS_SCALE && d.data().difficulty !== undefined)
+    if(stale.length){
+      const batch = writeBatch(db)
+      for(const d of stale){
+        const up = Points.normPoints(d.data().difficulty * SCALE_FACTOR)
+        batch.update(d.ref, { difficulty: up === null ? null : up, pointsScale: POINTS_SCALE })
+      }
+      await batch.commit()
+    }
+  }catch(e){ console.warn("Could not rescale your own tasks:", e) }
+
+  // 3. The target the meter reads against — same merge as its own marker.
+  if(pointTargetScale < POINTS_SCALE){
+    pointTarget = Points.normTarget(pointTarget * SCALE_FACTOR)
+    pointTargetScale = POINTS_SCALE
+    syncPointTargetUI()
+    await saveSettings()
+  }
+}
+
+/* Walks the shared task list and brings every weight still on the old
+   ladder across, marking each document as it goes. Idempotent by that
+   marker rather than by a single flag somewhere, so two moderators
+   running it — or one running it twice — cannot multiply anything twice.
+   Counted and confirmed first: this writes to the whole class's data. */
+window.rescaleSharedPoints = async function(){
+  const btn = document.getElementById("rescaleBtn")
+  const lab = document.getElementById("rescaleBtnLab")
+  if(!btn || btn.disabled) return
+  btn.disabled = true
+  const done = (msg) => { lab.textContent = msg; btn.disabled = false }
+
+  let stale
+  try{
+    const snap = await getDocs(collection(db, "tasks"))
+    stale = snap.docs.filter(d =>
+      (Number(d.data().pointsScale) || 0) < POINTS_SCALE && d.data().difficulty !== undefined)
+  }catch(e){
+    console.warn("Could not read the task list:", e)
+    return done("Couldn't read the task list — try again")
+  }
+
+  if(!stale.length) return done("Nothing left to rescale")
+
+  const n = stale.length
+  const ok = await confirmDialog({
+    title: "Rescale " + n + " task" + (n === 1 ? "" : "s") + "?",
+    message: "Every weight set on a class task gets multiplied by ten, for everyone. Tasks already on the new scale are left alone, so this is safe to run again.",
+    confirmLabel: "Rescale them"
+  })
+  if(!ok) return done("Check what needs rescaling")
+
+  lab.textContent = "Rescaling " + n + "…"
+  try{
+    // Firestore caps a batch at 500 writes; the class list is nowhere near
+    // that today, but a chunked walk costs nothing and can't be outgrown.
+    for(let i = 0; i < stale.length; i += 400){
+      const batch = writeBatch(db)
+      for(const d of stale.slice(i, i + 400)){
+        const up = Points.normPoints(d.data().difficulty * SCALE_FACTOR)
+        batch.update(d.ref, { difficulty: up === null ? null : up, pointsScale: POINTS_SCALE })
+      }
+      await batch.commit()
+    }
+  }catch(e){
+    console.warn("Could not rescale the shared tasks:", e)
+    return done("Rescale failed — run it again")
+  }
+
+  toast("Rescaled " + n + " task" + (n === 1 ? "" : "s"))
+  done("Nothing left to rescale")
+}
 
 // ── Real role check: the moderator whitelist lives in Firestore ──
 // (same config/modWhitelist document the task formatter uses)
@@ -3432,10 +3596,15 @@ onAuthStateChanged(auth, async user => {
   currentUser = user
   const [whitelist] = await Promise.all([fetchWhitelist(), loadUserDone(user.uid), loadSettings(user.uid)])
   isWhitelisted = whitelist.includes((user.email || "").toLowerCase())
+  // Before anything renders a weight, so nothing is ever drawn on the old
+  // ladder and then redrawn on the new one.
+  await migratePointScale(user.uid)
 
   gate.style.display = "none"
   wrap.style.display  = "block"
   mountNav({ active:"calendar", admin:isWhitelisted })   // only once we are past the gate
+  // Counts into the same total as every other page — see tas-time.js.
+  startTimeTracking(db, user.uid)
   renderUserPill(user)
   updateRoleUI()
   syncTopbarH()
@@ -3558,6 +3727,7 @@ document.addEventListener("click", closeMenus)
 window.handleReturnToMenu = () => { window.location.href = LOGIN_URL }
 
 window.handleSignOut = async () => {
+  await stopTimeTracking()     // send the minutes before the account goes
   await signOut(auth)
   window.location.href = LOGIN_URL
 }
@@ -3939,13 +4109,22 @@ async function publishNotifyPrefs(){
    second is worse than a bar that admits it doesn't know yet. */
 let pointTarget = Points.TARGET_FALLBACK
 let pointTargetLoaded = false
+// Which ladder the stored target is on — see migratePointScale().
+let pointTargetScale = 0
 
 async function loadSettings(uid){
   try{
     const snap = await getDoc(doc(db, "settings", uid))
     if(snap.exists() && snap.data().pointTarget !== undefined)
       pointTarget = Points.normTarget(snap.data().pointTarget)
-  }catch(e){ console.warn("Could not load your settings:", e) }
+    // A doc with no target has nothing on the old scale to rescale, and a
+    // doc that isn't there at all starts life on the current one.
+    pointTargetScale = (snap.exists() && snap.data().pointTarget !== undefined)
+      ? (Number(snap.data().ptsScale) || 0) : POINTS_SCALE
+  }catch(e){
+    console.warn("Could not load your settings:", e)
+    pointTargetScale = POINTS_SCALE   // never rescale against a failed read
+  }
   // Loaded either way: a doc that isn't there yet means the fallback is
   // this person's target, which is a real answer.
   pointTargetLoaded = true
@@ -3956,7 +4135,7 @@ async function saveSettings(){
   if(!currentUser) return
   try{
     await setDoc(doc(db, "settings", currentUser.uid),
-      { pointTarget, updatedAt: Date.now() }, { merge: true })
+      { pointTarget, ptsScale: pointTargetScale || POINTS_SCALE, updatedAt: Date.now() }, { merge: true })
   }catch(e){
     console.warn("Could not save your settings:", e)
     saveFailToast()
@@ -3989,6 +4168,9 @@ window.toggleScoreGuide = function(){
 }
 
 function scoreGuideHTML(){
+  // The middle rung. Every example in the prose is written off it, so a
+  // rescale of the ladder carries the explanation of the ladder with it.
+  const mid = Points.PRESETS[2]
   const ladder = Points.PRESETS.map(p =>
     `<div class="sg-rung"><span class="pts-pill">${p.points} pt</span>
        <span>${esc(p.label)}</span><i>${esc(p.desc)}</i></div>`).join("")
@@ -4012,9 +4194,9 @@ function scoreGuideHTML(){
     <p>…then scales it by how long you have to do it:</p>
     <table class="sg-table"><tr><th>Span</th><th></th><th>Scale</th></tr>${spans}</table>
     <p>The result is rounded to the nearest rung of the ladder. A guess is drawn
-       faintly, like <span class="pts-pill est">~50 pt</span>, so you can always tell
+       faintly, like <span class="pts-pill est">~${mid.points} pt</span>, so you can always tell
        it apart from a weight someone actually chose — which is drawn solid,
-       like <span class="pts-pill">50 pt</span>.</p>
+       like <span class="pts-pill">${mid.points} pt</span>.</p>
 
     <h4>Setting it yourself</h4>
     <p>Open any task and tap <b>Difficulty</b>. Whatever you pick beats both the
@@ -4025,8 +4207,8 @@ function scoreGuideHTML(){
     <h4>What the meter counts</h4>
     <p>Your To Do list adds up what it is holding and measures it against your
        target above. Work you have started only counts for what is left of it: a
-       50-point task you are three parts of five through carries
-       <b>${Math.round(50 * 0.4)}</b>, not 50, and a ticked one carries nothing.
+       ${mid.points}-point task you are three parts of five through carries
+       <b>${Math.round(mid.points * 0.4)}</b>, not ${mid.points}, and a ticked one carries nothing.
        Tap <b>&#8646;</b> on the meter to flip between what is left and what you
        have cleared — the two always add up to the whole list.</p>
     <p>The target is an indicator, not a limit. Nothing stops you going over it —
@@ -4038,7 +4220,7 @@ function syncPointTargetUI(){
   if(el) el.textContent = pointTarget.toLocaleString()
   const hint = document.getElementById("ptTargetHint")
   if(hint) hint.textContent =
-    `About ${Math.max(1, Math.round(pointTarget / 50))} ordinary evening-sized tasks.`
+    `About ${Math.max(1, Math.round(pointTarget / Points.PRESETS[2].points))} ordinary evening-sized tasks.`
 }
 
 function sendNotification(title, body, tag){
@@ -5602,7 +5784,10 @@ function confettiFromEl(el){
 // ── toggleDone ─────────────────────────────────────────────────
 window.toggleDone = async function(id, checked, checkbox) {
   if (!currentUser) return
-  if (checked) userDoneCache[id] = true
+  // Kept so a failed save can put back the original stamp rather than a
+  // fresh one — rolling back to `true` would quietly lose the real date.
+  const wasDone = userDoneCache[id]
+  if (checked) userDoneCache[id] = Date.now()
   else delete userDoneCache[id]
   if (checked) confettiFromEl(checkbox)
 
@@ -5622,7 +5807,7 @@ window.toggleDone = async function(id, checked, checkbox) {
   if (!ok) {
     // Roll the tick back so the UI never lies about what's saved
     if (checked) delete userDoneCache[id]
-    else userDoneCache[id] = true
+    else userDoneCache[id] = wasDone
     saveFailToast()
   }
   if (savingIds.size === 0) {
@@ -6018,7 +6203,7 @@ function offerMarkDone(id){
       const box = document.querySelector('#cr-' + CSS.escape(id) + ' input')
       if(box){ box.checked = true; toggleDone(id, true, box) }
       else {
-        userDoneCache[id] = true
+        userDoneCache[id] = Date.now()
         const ok = await persistUserDone(currentUser.uid)
         if(!ok){ delete userDoneCache[id]; saveFailToast() }
         rerenderCurrentView()
@@ -6172,7 +6357,7 @@ function updateLatestPill(){
 window.markDoneFromDetail=async function(){
   if(!detailTaskId||!currentUser)return
   const id=detailTaskId
-  userDoneCache[id]=true
+  userDoneCache[id]=Date.now()
   confettiFromEl(document.getElementById("dp-mark-done"))
   savingIds.add(id)
   const ok=await persistUserDone(currentUser.uid)
@@ -6368,6 +6553,8 @@ function updateRoleUI(){
   if(role) role.textContent=isModerator?"Moderator":"Member"
   const fb=document.getElementById("ddFirebase")
   if(fb) fb.style.display=isModerator?"flex":"none"
+  const rescale=document.getElementById("rescaleRow")
+  if(rescale) rescale.style.display=isModerator?"":"none"
   const at=document.getElementById("ddAddTask")
   if(at) at.style.display=isMod?"flex":"none"
   const dd=document.getElementById("ddModMode")
@@ -6650,7 +6837,7 @@ function myTasksHTML(){
           <div class="pts-grid" id="mtPtsGrid"></div>
           <div class="pts-custom-row" style="margin-top:13px">
             <label for="mtPtsCustom">Or set it exactly</label>
-            <input type="number" id="mtPtsCustom" min="1" max="999" step="1" inputmode="numeric" />
+            <input type="number" id="mtPtsCustom" min="1" max="7500" step="1" inputmode="numeric" />
             <span class="prog-read">pt</span>
           </div>
           <button class="pts-fold" type="button" style="margin-top:13px" onclick="mtOpenFactors()">

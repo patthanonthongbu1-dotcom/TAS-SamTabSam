@@ -24,24 +24,26 @@ A note on the schema, because it is not what you would guess:
       note       str
       markerType str   markers only, e.g. "quiz"
       date       str   markers only, mirrors start/end
-      difficulty int   optional, 1-999 points; see below
+      difficulty int   optional, 1-7500 points; see below
       createdAt  int   epoch ms
       updatedAt  int   epoch ms, edits only
 
   Whether a task is *done* is per-user, not a property of the task:
   it lives in `userDone/{uid}` as
 
-      { done:       {taskId: true}, archiveHidden: {...},
+      { done:       {taskId: epoch_ms}, archiveHidden: {...},
         progress:   {taskId: {mode: "steps"|"percent", value, total}},
         difficulty: {taskId: points} }
 
   so a task is only "done" relative to somebody. Pass a uid to
-  list_tasks/get_task to have that folded in.
+  list_tasks/get_task to have that folded in. The value is *when* it
+  was ticked; entries written before V.3.3 are still `true`, meaning
+  done with no date, so test it for truthiness rather than equality.
 
   Every task also carries a weight -- more points means harder work.
   Tools return it as two fields:
 
-      points           int   1-999, or 0 for a marker
+      points           int   1-7500, or 0 for a marker
       points_estimated bool  true when nobody set it and this is a guess
 
   `difficulty` on the task is the author's number; `difficulty` in

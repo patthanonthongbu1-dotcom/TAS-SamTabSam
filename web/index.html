@@ -14,7 +14,8 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3/3 Academic System — Sign In</title>
+  <title>3/3 Academic System</title>
+  <link rel="stylesheet" href="tas-nav.css">
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -26,7 +27,10 @@
       --pink: #ff4fa3; --pink-dark: #8e1c63; --pink-soft: #ffd6ea;
       --red: #c0392b; --text: #1a1a1a; --muted: #6b7b6b; --label: #9aaa9a;
     }
-    html, body { height: 100%; }
+    /* min-height, not height: the statistics section lives below the
+       hero, and a body fixed to the viewport would have it overflow
+       its own box rather than extend the page. */
+    html, body { min-height: 100%; }
     body {
       font-family: 'Prompt', sans-serif;
       min-height: 100vh;
@@ -164,7 +168,8 @@
     .hint { font-size: 12.5px; color: rgba(255,255,255,0.45); text-align: center; line-height: 1.6; }
 
     /* ── Dashboard (userPanel) ──────────────────────────────────── */
-    #userPanel { flex: 1; display: flex; flex-direction: column; padding: 2.75rem 3.5rem; }
+    #userPanel { flex: 1; display: flex; flex-direction: column;
+                 padding: 2.75rem 3.5rem calc(var(--tasnav-bottom, 1.25rem) + 92px); }
     .rp-top, .rp-middle, .rp-bottom { position: relative; z-index: 1; }
     .rp-top { display: flex; justify-content: flex-end; }
     #todayDate { font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.75); }
@@ -204,7 +209,8 @@
        page. Showing the sign-in card in that gap makes a returning user
        watch it appear and vanish; showing nothing makes the panel snap in
        from blank. A ghost of the welcome does neither. */
-    #bootPanel { flex: 1; display: flex; flex-direction: column; padding: 2.75rem 3.5rem; }
+    #bootPanel { flex: 1; display: flex; flex-direction: column;
+                 padding: 2.75rem 3.5rem calc(var(--tasnav-bottom, 1.25rem) + 92px); }
     #bootPanel .boot-avatar { width: 60px; height: 60px; border-radius: 50%; flex-shrink: 0; }
     #bootPanel .boot-hi { width: 108px; height: 13px; }
     #bootPanel .boot-name { width: min(230px, 70%); height: 33px; border-radius: 9px; margin-top: 10px; }
@@ -333,7 +339,7 @@
 
       /* ── Dashboard — full-bleed: sticky header bar, top-aligned
            content, roomy pills, footer pinned to the bottom ────── */
-      #userPanel, #bootPanel { padding: 0; }
+      #userPanel, #bootPanel { padding: 0 0 calc(var(--tasnav-bottom, 1.25rem) + 92px); }
 
       .rp-top {
         justify-content: space-between; align-items: center;
@@ -357,7 +363,8 @@
       .nav-pills { gap: 16px; }
       .nav-pill { min-height: 92px; border-radius: 24px; }
 
-      .rp-bottom { justify-content: center; padding: 0.5rem 1.4rem 1.8rem; }
+      .rp-bottom { flex-direction: column; align-items: center; gap: 0.35rem;
+                   justify-content: center; padding: 0.5rem 1.4rem 0.6rem; }
       .logout-link { font-size: 16px; padding: 10px; }
 
       .role-tip { width: 240px; }
@@ -444,6 +451,233 @@
     /* Logout nudges on hover */
     .logout-link { transition: color 0.15s ease, transform 0.15s ease; }
     .logout-link:hover { color: white; transform: translateX(3px); }
+
+    /* ═══ YOUR TERM SO FAR ═══════════════════════════════════════
+       The statistics section, below the hero. Built as a ledger
+       rather than a grid of cards: one figure leads, the supporting
+       readings share a single baseline separated by hairlines, and
+       only the thirty-day strip is allowed to be loud. Boxes are
+       used where two things genuinely sit side by side, and nowhere
+       else — a page of identical rounded cards says nothing about
+       which number matters.
+
+       Colour does one of two jobs here and never both. Pink is the
+       single series: every bar that measures points is the same
+       pink, because darker-where-bigger would encode the bar's own
+       length twice. Green/grey/red appear once, on the handing-in
+       bar, where they mean early / on the day / late — every one of
+       them labelled, so nothing is carried by colour alone. */
+    .stats {
+      position: relative;
+      background: linear-gradient(180deg, var(--navy-dark) 0%, #0a111f 100%);
+      color: white;
+      padding: 4.5rem 3.5rem calc(var(--tasnav-bottom, 1.25rem) + 92px);
+      --surface: #192131;
+      --ink-2: rgba(255,255,255,0.62);
+      --ink-3: rgba(255,255,255,0.40);
+      --hair: rgba(255,255,255,0.10);
+      /* The one series. Everything that measures points wears it. */
+      --series: #ff4fa3;
+      /* Early / on the day / late — a diverging set with a neutral
+         middle, validated for contrast and colour-vision separation
+         against --surface. */
+      --early: #34d399;
+      --onday: #94a3b8;
+      --late:  #ff6b6b;
+    }
+    .stats-inner { max-width: 980px; margin: 0 auto; position: relative; z-index: 1; }
+
+    .stats-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 1rem; flex-wrap: wrap; margin-bottom: 2.5rem;
+    }
+    .stats-head h2 { font-size: 27px; font-weight: 600; letter-spacing: 0.2px; }
+    .stats-since { font-size: 13.5px; color: var(--ink-3); }
+
+    /* ── The one figure the section leads with ── */
+    .hero-fig {
+      font-size: clamp(56px, 11vw, 86px); font-weight: 700; line-height: 1;
+      letter-spacing: -0.02em; color: var(--series);
+    }
+    .hero-cap { font-size: 16px; color: var(--ink-2); margin-top: 0.6rem; }
+
+    /* ── The supporting readings ──
+       One row, one baseline, hairlines between. They are four
+       measures of the same term, not four separate cards. */
+    .readings {
+      display: flex; flex-wrap: wrap; margin: 2.5rem 0 0;
+      border-top: 1px solid var(--hair);
+    }
+    .reading {
+      flex: 1 1 150px; padding: 1.4rem 1.4rem 1.4rem 0;
+      border-right: 1px solid var(--hair);
+    }
+    .reading:last-child { border-right: none; }
+    .reading:not(:first-child) { padding-left: 1.4rem; }
+    .reading-val { font-size: 31px; font-weight: 600; line-height: 1.1; }
+    .reading-val.warn { color: var(--late); }
+    .reading-lab { font-size: 13.5px; color: var(--ink-2); margin-top: 0.35rem; }
+    .reading-sub { font-size: 12px; color: var(--ink-3); margin-top: 0.2rem; }
+
+    /* ── Blocks ── */
+    .block { margin-top: 3.25rem; border-top: 1px solid var(--hair); padding-top: 1.6rem; }
+    .block-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 0.5rem 1rem; flex-wrap: wrap; margin-bottom: 1.25rem;
+    }
+    .block-head h3 { font-size: 18px; font-weight: 600; white-space: nowrap; }
+    .block-note { font-size: 13px; color: var(--ink-3); }
+
+    /* Nothing to draw yet. An invitation, not an apology. */
+    .stats-empty {
+      font-size: 14px; color: var(--ink-2); line-height: 1.65;
+      padding: 1.1rem 1.2rem; border: 1px dashed var(--hair); border-radius: 12px;
+      max-width: 62ch;
+    }
+
+    /* ── The thirty-day strip — the one loud thing ── */
+    .act-chart { position: relative; }
+    .act-plot {
+      display: flex; align-items: flex-end; gap: 2px;
+      height: 168px; padding: 0; margin: 0; list-style: none;
+      border-bottom: 1px solid var(--hair);
+    }
+    /* Each column is the hit target, full height, so a quiet day is
+       still hoverable — the visible mark inside it is the data. */
+    .act-col {
+      flex: 1 1 0; min-width: 0; max-width: 24px; height: 100%;
+      display: flex; align-items: flex-end; justify-content: stretch;
+      padding: 0; border: 0; background: none; cursor: default;
+      border-radius: 3px 3px 0 0;
+      transition: background 0.12s;
+    }
+    .act-col:hover, .act-col:focus-visible { background: rgba(255,255,255,0.07); outline: none; }
+    .act-col:focus-visible { box-shadow: inset 0 0 0 1px var(--series); }
+    .act-bar {
+      width: 100%; min-height: 2px;
+      background: var(--series);
+      border-radius: 4px 4px 0 0;
+    }
+    /* A day with nothing on it still gets a mark, or the strip reads
+       as missing data rather than as a quiet Tuesday. */
+    .act-bar.zero { background: rgba(255,255,255,0.09); }
+    .act-axis {
+      display: flex; justify-content: space-between;
+      font-size: 12px; color: var(--ink-3); margin-top: 0.55rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .block-head-right { display: flex; align-items: center; gap: 0.9rem; }
+
+    /* One tooltip, moved around — thirty of them would be thirty
+       elements doing nothing for the life of the page. */
+    .chart-tip {
+      position: absolute; z-index: 5; pointer-events: none;
+      transform: translate(-50%, -100%);
+      background: rgba(11,20,38,0.98); border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 10px; padding: 7px 10px; white-space: nowrap;
+      font-size: 12.5px; line-height: 1.45;
+      box-shadow: 0 14px 30px -12px rgba(0,0,0,0.8);
+      opacity: 0; transition: opacity 0.12s;
+    }
+    .chart-tip.on { opacity: 1; }
+    .chart-tip b { font-weight: 600; }
+    .chart-tip span { color: var(--ink-3); }
+
+    /* ── The two side-by-side blocks ── */
+    .split-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 3.25rem; }
+    .split-2 > .block { margin-top: 0; }
+
+    /* Handing in: one bar, three segments, each labelled below. */
+    .pun-lead { font-size: 27px; font-weight: 600; line-height: 1.15; }
+    .pun-lead-sub { font-size: 13.5px; color: var(--ink-2); margin-top: 0.3rem; }
+    .pun-bar { display: flex; gap: 2px; height: 14px; margin: 1.35rem 0 0.95rem; }
+    .pun-seg { border-radius: 3px; min-width: 3px; }
+    .pun-seg.early { background: var(--early); }
+    .pun-seg.onday { background: var(--onday); }
+    .pun-seg.late  { background: var(--late); }
+    .pun-key { display: flex; flex-wrap: wrap; gap: 0.4rem 1.1rem; font-size: 13px; color: var(--ink-2); }
+    .pun-key span { display: inline-flex; align-items: center; gap: 7px; }
+    .pun-key i { width: 9px; height: 9px; border-radius: 2px; display: block; flex-shrink: 0; }
+    .pun-extreme { font-size: 13px; color: var(--ink-3); margin-top: 1.1rem; line-height: 1.7; }
+    .pun-extreme b { color: var(--ink-2); font-weight: 500; }
+
+    /* Where it went: horizontal bars, value at the tip. */
+    .subj-row { display: grid; grid-template-columns: 108px 1fr auto; align-items: center; gap: 12px; padding: 6px 0; }
+    .subj-name { font-size: 13.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .subj-track { display: block; height: 12px; border-radius: 3px; background: rgba(255,255,255,0.06); overflow: hidden; }
+    .subj-fill { display: block; height: 100%; background: var(--series); border-radius: 3px; min-width: 3px; }
+    .subj-val { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+    /* ── Awards — readings, not trophies ── */
+    .awards { display: flex; flex-wrap: wrap; gap: 0.9rem 2.4rem; }
+    .award { font-size: 14px; color: var(--ink-2); line-height: 1.6; }
+    .award b { display: block; font-size: 22px; font-weight: 600; color: white; line-height: 1.2; }
+
+    /* ── The table view every chart is obliged to have ── */
+    .table-toggle {
+      background: none; border: 1px solid var(--hair); border-radius: 9px;
+      color: var(--ink-2); font-family: 'Prompt', sans-serif; font-size: 12.5px;
+      padding: 5px 11px; cursor: pointer; transition: border-color 0.15s, color 0.15s;
+    }
+    .table-toggle:hover { border-color: var(--series); color: white; }
+    .stat-table { width: 100%; border-collapse: collapse; margin-top: 1.1rem; font-size: 13px; }
+    .stat-table th, .stat-table td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--hair); }
+    .stat-table th { color: var(--ink-3); font-weight: 500; }
+    .stat-table td { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+    /* The way down from the hero. Sits opposite Log Out. */
+    .scroll-cue {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: none; border: none; padding: 6px 2px;
+      font-family: 'Prompt', sans-serif; font-size: 15px; font-weight: 400;
+      color: rgba(255,255,255,0.55); cursor: pointer;
+      transition: color 0.15s;
+    }
+    .scroll-cue:hover { color: white; }
+    .scroll-cue svg { transition: transform 0.2s ease; }
+    .scroll-cue:hover svg { transform: translateY(3px); }
+    .rp-bottom { justify-content: space-between; }
+
+    /* Loading: the readings are already in place, so nothing moves
+       when the numbers land. */
+    .stats.waiting .stats-body { display: none; }
+    .stats-bones { display: grid; gap: 1.1rem; }
+    .stats-bones .skel-bone:nth-child(1) { width: min(320px, 70%); height: 74px; border-radius: 12px; }
+    .stats-bones .skel-bone:nth-child(2) { width: 100%; height: 92px; border-radius: 12px; }
+    .stats-bones .skel-bone:nth-child(3) { width: 100%; height: 168px; border-radius: 12px; }
+    .stats:not(.waiting) .stats-bones { display: none; }
+
+    @media (max-width: 860px) {
+      .stats { padding: 3rem 1.4rem calc(var(--tasnav-bottom, 1.25rem) + 92px); }
+      .stats-head h2 { font-size: 24px; }
+      .split-2 { grid-template-columns: 1fr; gap: 0; }
+      .split-2 > .block:last-child { margin-top: 2.5rem; border-top: 1px solid var(--hair); padding-top: 1.6rem; }
+      .split-2 > .block:first-child { border-top: none; padding-top: 0; }
+
+      /* Two by two. A wrapping flex row left the second pair indented
+         under the first, which read as a sub-list rather than a grid. */
+      .readings { display: grid; grid-template-columns: 1fr 1fr; }
+      .reading { padding: 1.2rem 1.2rem 1.2rem 0; border-bottom: 1px solid var(--hair); }
+      .reading:nth-child(2n) { padding: 1.2rem 0 1.2rem 1.2rem; border-right: none; }
+      .reading:nth-last-child(-n+2) { border-bottom: none; }
+
+      /* The subject's name gets its own line rather than an ellipsis. */
+      .subj-row {
+        grid-template-columns: 1fr auto;
+        grid-template-areas: "name val" "bar bar";
+        gap: 5px 12px; padding: 9px 0;
+      }
+      .subj-name { grid-area: name; }
+      .subj-val  { grid-area: val; }
+      .subj-track { grid-area: bar; }
+
+      .act-plot { height: 132px; }
+    }
+    @media (max-width: 420px) {
+      .stats { padding: 2.5rem 1.25rem calc(var(--tasnav-bottom, 1.25rem) + 92px); }
+      .reading-val { font-size: 26px; }
+      .act-plot { height: 112px; }
+    }
 
     /* Respect users who prefer less motion */
     @media (prefers-reduced-motion: reduce) {
@@ -571,6 +805,13 @@
       </div>
 
       <div class="rp-bottom">
+        <button class="scroll-cue" id="scrollCue" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 5v14M6 13l6 6 6-6"/>
+          </svg>
+          Your term so far
+        </button>
         <button class="logout-link" id="signOutBtn">🚪 Log Out</button>
       </div>
     </div>
@@ -579,13 +820,37 @@
 
 </div>
 
+<!-- ═══ YOUR TERM SO FAR ══════════════════════════════════════
+     Below the hero, so signing in still opens on the welcome and
+     the three places to go. Hidden until somebody is signed in —
+     there is nothing to count for a visitor. -->
+<section class="stats waiting" id="statsSection" hidden>
+  <div class="stats-inner">
+    <div class="stats-head">
+      <h2>Your term so far</h2>
+      <span class="stats-since" id="statsSince"></span>
+    </div>
+
+    <div class="stats-bones" aria-hidden="true">
+      <div class="skel-bone"></div>
+      <div class="skel-bone"></div>
+      <div class="skel-bone"></div>
+    </div>
+
+    <div class="stats-body" id="statsBody"></div>
+  </div>
+</section>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js"
 import {
   getAuth, signInWithPopup, signOut, onAuthStateChanged, GoogleAuthProvider
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
-import { getFirestore, doc, getDoc }
+import { getFirestore, doc, getDoc, getDocs, collection }
   from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
+import { mountNav } from "./tas-nav.js"
+import { startTimeTracking, stopTimeTracking, pendingTime } from "./tas-time.js"
+import { summarise, humanMs, humanDays } from "./tas-stats.js"
 
 const firebaseConfig = {
   apiKey: "AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18",
@@ -667,6 +932,15 @@ async function showUserPanel(user) {
 
   document.getElementById("userName").textContent = user.displayName || "—"
 
+  /* The whitelist read is already in flight below; handing the navigator
+     the promise lets it draw Home / Calendar / Tools now and slot the
+     Formatter in when the answer lands, rather than holding the whole
+     bar back on a round trip. */
+  const whitelistP = fetchWhitelist()
+  mountNav({ active: "home", admin: whitelistP.then(w => w.includes(user.email.toLowerCase())) })
+  startTimeTracking(db, user.uid)
+  loadStats(user.uid)
+
   const badge       = document.getElementById("roleBadge")
   const continueBtn = document.getElementById("continueBtn")
 
@@ -677,7 +951,7 @@ async function showUserPanel(user) {
   badge.classList.remove("is-mod")
 
   // Check whitelist from Firestore
-  const whitelist = await fetchWhitelist()
+  const whitelist = await whitelistP
   const isMod = whitelist.includes(user.email.toLowerCase())
 
   badge.classList.remove("checking")
@@ -698,8 +972,12 @@ function showLoginPanel() {
   hideBootPanel()
   document.getElementById("loginPanel").style.display = "flex"
   document.getElementById("userPanel").style.display   = "none"
+  document.getElementById("statsSection").hidden = true
   clearStatus("status")
 }
+
+document.getElementById("scrollCue").onclick = () =>
+  document.getElementById("statsSection").scrollIntoView({ behavior: "smooth", block: "start" })
 
 let authAnswered = false
 setTimeout(() => {
@@ -728,7 +1006,333 @@ document.getElementById("googleBtn").onclick = async () => {
   }
 }
 
-document.getElementById("signOutBtn").onclick = async () => { await signOut(auth) }
+document.getElementById("signOutBtn").onclick = async () => {
+  // Send the minutes before the account they belong to goes away.
+  await stopTimeTracking()
+  await signOut(auth)
+}
+
+/* ═══ Statistics ══════════════════════════════════════════════
+   Four one-shot reads and one pure function. A home page has
+   nothing to listen for — whatever is true when it opens is the
+   answer — and four live listeners on a page people leave within
+   seconds would cost more than they tell anybody.
+
+   All the arithmetic is in tas-stats.js so it can be tested
+   without a browser; everything below is drawing. */
+
+const EN_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+const shortDay = d => d.getDate() + " " + EN_MONTHS[d.getMonth()]
+const num = n => Math.round(n || 0).toLocaleString()
+
+// Subject and task names reach innerHTML, and both are typed by people.
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g,
+    c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]))
+}
+
+async function loadStats(uid) {
+  const section = document.getElementById("statsSection")
+  section.hidden = false
+
+  let shared = [], mine = [], done = {}, overrides = {}, time = {}
+  try {
+    const [sharedSnap, mineSnap, doneSnap, setSnap] = await Promise.all([
+      getDocs(collection(db, "tasks")),
+      getDocs(collection(db, "userTasks", uid, "tasks")),
+      getDoc(doc(db, "userDone", uid)),
+      getDoc(doc(db, "settings", uid))
+    ])
+    shared = sharedSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+    mine   = mineSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+    if (doneSnap.exists()) {
+      done = doneSnap.data().done || {}
+      overrides = doneSnap.data().difficulty || {}
+    }
+    if (setSnap.exists()) time = setSnap.data().time || {}
+  } catch (e) {
+    console.warn("Could not load your statistics:", e)
+    section.classList.remove("waiting")
+    document.getElementById("statsBody").innerHTML =
+      `<p class="stats-empty">Couldn't reach your data just now. Reload the page to try again.</p>`
+    return
+  }
+
+  /* This session's own minutes are still sitting in the flush buffer —
+     counting them here is the difference between "12h 4m" and a number
+     that pretends you only just arrived. */
+  const pending = pendingTime()
+  for (const [day, v] of Object.entries(pending)) {
+    const cur = time[day] || { ms: 0, opens: 0 }
+    time[day] = { ms: (Number(cur.ms) || 0) + v.ms, opens: (Number(cur.opens) || 0) + v.opens }
+  }
+
+  renderStats(summarise({ tasks: shared, personal: mine, done, overrides, time }))
+  section.classList.remove("waiting")
+}
+
+function renderStats(s) {
+  const since = document.getElementById("statsSince")
+  const active = s.time.activeDays
+  since.textContent = active
+    ? active + (active === 1 ? " day" : " days") + " on TAS"
+    : ""
+
+  document.getElementById("statsBody").innerHTML =
+    heroHTML(s) + readingsHTML(s) + activityHTML(s) +
+    `<div class="split-2">${punctualityHTML(s)}${subjectsHTML(s)}</div>` +
+    awardsHTML(s)
+
+  wireActivity(s)
+  wireTables(s)
+}
+
+/* ── The figure the section leads with ── */
+function heroHTML(s) {
+  return `<div class="hero-fig">${num(s.done.points)}</div>
+    <div class="hero-cap">points cleared${
+      s.done.count ? ` across ${num(s.done.count)} task${s.done.count === 1 ? "" : "s"}` : ""}</div>`
+}
+
+/* ── Four readings on one baseline ── */
+function readingsHTML(s) {
+  const od = s.overdue
+  const r = (val, lab, sub, cls) =>
+    `<div class="reading">
+       <div class="reading-val${cls ? " " + cls : ""}">${val}</div>
+       <div class="reading-lab">${lab}</div>
+       ${sub ? `<div class="reading-sub">${sub}</div>` : ""}
+     </div>`
+
+  return `<div class="readings">
+    ${r(num(s.done.count), "Tasks finished",
+        s.open.count ? num(s.open.count) + " still open" : "Nothing left open")}
+    ${r(num(od.count), od.count === 1 ? "Overdue task" : "Overdue tasks",
+        od.count ? "Oldest is " + od.oldestDays + " day" + (od.oldestDays === 1 ? "" : "s") + " past" : "All caught up",
+        od.count ? "warn" : "")}
+    ${r(humanMs(s.time.totalMs), "Spent on TAS",
+        s.time.perDayMs ? humanMs(s.time.perDayMs) + " on a typical day" : "")}
+    ${r(s.awards.current, "Day streak",
+        s.awards.longest ? "Best run: " + s.awards.longest + " days" : "Nothing dated yet")}
+  </div>`
+}
+
+/* ── The thirty-day strip ──
+   Columns scale against the busiest day rather than a round number:
+   the question is which days were the heavy ones, and a fixed axis
+   would flatten a quiet fortnight into nothing. The peak is named
+   above the chart so the scale is never a mystery. */
+function activityHTML(s) {
+  const a = s.activity
+  if (!a.stamped) {
+    return `<div class="block"><div class="block-head"><h3>Last 30 days</h3></div>
+      <p class="stats-empty">Nothing dated to chart yet. TAS started recording <em>when</em> you finish something
+      in V.3.3 — tick a task off and this fills in from today.${
+        s.undated ? ` Your ${num(s.undated)} earlier finish${s.undated === 1 ? "" : "es"} still count everywhere else on this page.` : ""}</p>
+    </div>`
+  }
+
+  const cols = a.series.map((b, i) => {
+    const pct = a.peak ? Math.round((b.points / a.peak) * 100) : 0
+    return `<li style="display:contents"><button type="button" class="act-col" data-i="${i}"
+      tabindex="${i === 0 ? 0 : -1}"
+      aria-label="${esc(shortDay(b.date))}: ${num(b.points)} points, ${b.count} task${b.count === 1 ? "" : "s"}">
+      <span class="act-bar${b.points ? "" : " zero"}" style="height:${b.points ? Math.max(pct, 2) : 2}%"></span>
+    </button></li>`
+  }).join("")
+
+  const first = a.series[0].date, last = a.series[a.series.length - 1].date
+  return `<div class="block">
+    <div class="block-head">
+      <h3>Last 30 days</h3>
+      <span class="block-head-right">
+        <span class="block-note">Busiest day: ${num(a.peak)} pts</span>
+        <button class="table-toggle" data-table="act">Show the numbers</button>
+      </span>
+    </div>
+    <div class="act-chart" id="actChart">
+      <ul class="act-plot" id="actPlot" aria-label="Points cleared each day over the last 30 days">${cols}</ul>
+      <div class="act-axis"><span>${esc(shortDay(first))}</span><span>${esc(shortDay(last))}</span></div>
+      <div class="chart-tip" id="actTip" role="status"></div>
+    </div>
+    <div id="actTable" hidden></div>
+  </div>`
+}
+
+/* ── Handing in ──
+   Measured against the deadline, because that is the question people
+   actually ask themselves about their own work. */
+function punctualityHTML(s) {
+  const p = s.punctuality
+  if (!p.rated) {
+    return `<div class="block"><div class="block-head"><h3>Handing in</h3></div>
+      <p class="stats-empty">Once a few dated tasks are done, this says how far ahead of the deadline you tend to finish.</p>
+    </div>`
+  }
+
+  const avg = p.avgDays
+  const lead = Math.abs(avg) < 0.5 ? "On the day"
+    : (Math.abs(avg) < 10 ? Math.abs(avg).toFixed(1) : Math.round(Math.abs(avg))) +
+      (Math.abs(avg).toFixed(1) === "1.0" ? " day " : " days ") + (avg < 0 ? "early" : "late")
+
+  const seg = (n, cls) => n ? `<span class="pun-seg ${cls}" style="flex:${n}"></span>` : ""
+  const key = (n, cls, word) => n
+    ? `<span><i style="background:var(--${cls})"></i>${n} ${word}</span>` : ""
+
+  return `<div class="block">
+    <div class="block-head">
+      <h3>Handing in</h3>
+      <button class="table-toggle" data-table="pun">Show the numbers</button>
+    </div>
+    <div class="pun-lead">${esc(lead)}</div>
+    <div class="pun-lead-sub">on average, across ${num(p.rated)} dated task${p.rated === 1 ? "" : "s"}</div>
+    <div class="pun-bar" role="img" aria-label="${p.early} early, ${p.onTime} on the day, ${p.late} late">
+      ${seg(p.early, "early")}${seg(p.onTime, "onday")}${seg(p.late, "late")}
+    </div>
+    <div class="pun-key">
+      ${key(p.early, "early", "early")}${key(p.onTime, "onday", "on the day")}${key(p.late, "late", "late")}
+    </div>
+    <div class="pun-extreme">
+      ${p.best ? `Furthest ahead: <b>${esc(p.best.name)}</b>, ${esc(humanDays(p.best.days))}.<br>` : ""}
+      ${p.worst && p.worst.id !== (p.best && p.best.id)
+        ? `Closest call: <b>${esc(p.worst.name)}</b>, ${esc(humanDays(p.worst.days))}.` : ""}
+    </div>
+    <div id="punTable" hidden></div>
+  </div>`
+}
+
+/* ── Where it went ──
+   Every bar is the same pink: the length already says which subject
+   took the most, and colouring them by size would say it twice. */
+function subjectsHTML(s) {
+  const all = s.subjects
+  if (!all.length) {
+    return `<div class="block"><div class="block-head"><h3>Where it went</h3></div>
+      <p class="stats-empty">Finish something and the subjects it came from show up here.</p>
+    </div>`
+  }
+
+  // Past six bars the tail is unreadable, so it becomes one row.
+  const top = all.slice(0, 6)
+  const rest = all.slice(6)
+  if (rest.length) {
+    top.push({ subject: "Everything else", points: rest.reduce((n, r) => n + r.points, 0),
+               count: rest.reduce((n, r) => n + r.count, 0) })
+  }
+  const max = top.reduce((m, r) => Math.max(m, r.points), 0) || 1
+
+  return `<div class="block">
+    <div class="block-head">
+      <h3>Where it went</h3>
+      <button class="table-toggle" data-table="subj">Show the numbers</button>
+    </div>
+    ${top.map(r => `<div class="subj-row">
+      <span class="subj-name" title="${esc(r.subject)}">${esc(r.subject)}</span>
+      <span class="subj-track"><span class="subj-fill" style="width:${Math.max(2, Math.round(r.points / max * 100))}%"></span></span>
+      <span class="subj-val">${num(r.points)}</span>
+    </div>`).join("")}
+    <div id="subjTable" hidden></div>
+  </div>`
+}
+
+/* ── The fun ones ── */
+function awardsHTML(s) {
+  const a = s.awards
+  const bits = []
+  if (a.biggest) bits.push(`<div class="award"><b>${esc(a.biggest.name || "Untitled")}</b>
+    the heaviest thing you've cleared, at ${num(a.biggest.points)} points</div>`)
+  if (a.bestDay) bits.push(`<div class="award"><b>${num(a.bestDay.points)} points</b>
+    your best single day, ${esc(shortDay(new Date(a.bestDay.day + "T00:00:00")))}</div>`)
+  if (a.longest) bits.push(`<div class="award"><b>${a.longest} day${a.longest === 1 ? "" : "s"}</b>
+    your longest run of finishing something</div>`)
+  if (a.nightOwl) bits.push(`<div class="award"><b>${num(a.nightOwl)}</b>
+    finished after ten at night</div>`)
+  if (!bits.length) return ""
+
+  return `<div class="block"><div class="block-head"><h3>Odds and ends</h3></div>
+    <div class="awards">${bits.join("")}</div></div>`
+}
+
+/* ── Hover, and the same thing from the keyboard ──
+   Thirty buttons would be thirty tab stops, so the strip takes one
+   and the arrow keys walk it — the pattern a toolbar uses. */
+function wireActivity(s) {
+  const plot = document.getElementById("actPlot")
+  if (!plot) return
+  const chart = document.getElementById("actChart")
+  const tip = document.getElementById("actTip")
+  const cols = [...plot.querySelectorAll(".act-col")]
+
+  const show = (col) => {
+    const b = s.activity.series[Number(col.dataset.i)]
+    tip.innerHTML = `<b>${num(b.points)} pts</b> <span>·</span> ${b.count} task${b.count === 1 ? "" : "s"}
+      <br><span>${esc(shortDay(b.date))}</span>`
+    const r = col.getBoundingClientRect(), cr = chart.getBoundingClientRect()
+    tip.style.left = (r.left - cr.left + r.width / 2) + "px"
+    tip.style.top = (r.top - cr.top - 8) + "px"
+    tip.classList.add("on")
+  }
+  const hide = () => tip.classList.remove("on")
+
+  plot.addEventListener("pointerover", e => {
+    const col = e.target.closest(".act-col")
+    if (col) show(col)
+  })
+  plot.addEventListener("pointerleave", hide)
+  plot.addEventListener("focusin", e => { if (e.target.classList.contains("act-col")) show(e.target) })
+  plot.addEventListener("focusout", hide)
+
+  plot.addEventListener("keydown", e => {
+    const i = cols.indexOf(document.activeElement)
+    if (i < 0) return
+    let to = null
+    if (e.key === "ArrowRight") to = Math.min(cols.length - 1, i + 1)
+    else if (e.key === "ArrowLeft") to = Math.max(0, i - 1)
+    else if (e.key === "Home") to = 0
+    else if (e.key === "End") to = cols.length - 1
+    if (to === null) return
+    e.preventDefault()
+    cols[i].tabIndex = -1
+    cols[to].tabIndex = 0
+    cols[to].focus()
+  })
+}
+
+/* Every chart has a table behind it — the tooltip enhances, it never
+   gates. */
+function wireTables(s) {
+  const build = {
+    act: () => table(["Day", "Points", "Tasks"],
+      s.activity.series.filter(b => b.count).map(b => [shortDay(b.date), num(b.points), b.count])),
+    subj: () => table(["Subject", "Points", "Tasks"],
+      s.subjects.map(r => [r.subject, num(r.points), r.count])),
+    pun: () => table(["Handed in", "Tasks"], [
+      ["Early", s.punctuality.early],
+      ["On the day", s.punctuality.onTime],
+      ["Late", s.punctuality.late]
+    ])
+  }
+  const target = { act: "actTable", subj: "subjTable", pun: "punTable" }
+
+  document.getElementById("statsBody").addEventListener("click", e => {
+    const btn = e.target.closest(".table-toggle")
+    if (!btn) return
+    const key = btn.dataset.table
+    const box = document.getElementById(target[key])
+    if (!box) return
+    if (!box.innerHTML) box.innerHTML = build[key]()
+    box.hidden = !box.hidden
+    btn.textContent = box.hidden ? "Show the numbers" : "Hide the numbers"
+  })
+}
+
+function table(head, rows) {
+  if (!rows.length) return `<p class="stats-empty">Nothing to list yet.</p>`
+  return `<table class="stat-table"><thead><tr>${
+    head.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${
+    rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")
+  }</tbody></table>`
+}
 </script>
 </body>
 </html>
