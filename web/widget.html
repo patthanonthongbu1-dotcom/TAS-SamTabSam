@@ -269,6 +269,21 @@
 
   var DAY = 864e5
   var ZONE_DEFAULTS = { red:3, orange:7, yellow:14 }
+
+  // Read budget. Firestore bills one read per document returned, and this
+  // page runs on every phone in the class at once, so the polling interval
+  // is multiplied by however many widgets exist. At five minutes a single
+  // widget spent ~288 full task-list reads a day and the project's daily
+  // quota ran out — every read in the app then fails, calendar included.
+  // Half-hourly is still fresher than a home-screen glance needs.
+  var POLL_MS = 30 * 60 * 1000
+  // A widget host fires visibilitychange every time the home screen comes
+  // back, which on a phone is constantly. Coming into view is worth a
+  // refresh, but not one per glance.
+  var MIN_REFETCH_MS = 10 * 60 * 1000
+  // Nothing behind today is drawn any more, so nothing behind today needs
+  // to be read. Everything older stays unread and unbilled.
+  var QUERY_LIMIT = 40
   // Markers and estimated dates aren't handed in. Live docs still carry the
   // older "estimated" spelling of "prediction", so both are excluded.
   var NOT_SUBMITTABLE = ["marker", "prediction", "estimated"]
@@ -340,6 +355,44 @@
     return o
   }
   function idOf(name){ return String(name || "").split("/").pop() }
+
+  // The collection read pulled every task ever posted, archive included,
+  // and paid for each one. A range query on `end` returns only what the
+  // card can actually show. It's a single-field range, so the automatic
+  // index covers it — no composite index to deploy.
+  //
+  // If it fails for any reason the old read still works, and a widget that
+  // costs too much is better than a widget that shows nothing.
+  function fetchTasks(){
+    var body = {
+      structuredQuery: {
+        from: [{ collectionId: "tasks" }],
+        where: { fieldFilter: {
+          field: { fieldPath: "end" },
+          op: "GREATER_THAN_OR_EQUAL",
+          value: { stringValue: ymd(today()) }
+        } },
+        orderBy: [{ field: { fieldPath: "end" }, direction: "ASCENDING" }],
+        limit: QUERY_LIMIT
+      }
+    }
+    return fetch(BASE + ":runQuery?key=" + API_KEY, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store"
+    }).then(function(r){
+      if (!r.ok) throw new Error("HTTP " + r.status)
+      return r.json()
+    }).then(function(rows){
+      return (rows || []).filter(function(r){ return r.document })
+                         .map(function(r){ return r.document })
+    }).catch(function(err){
+      console.warn("Range query failed, falling back to the full read:", err)
+      return getJSON(BASE + "/tasks?key=" + API_KEY + "&pageSize=300")
+        .then(function(res){ return res.documents || [] })
+    })
+  }
 
   function getJSON(url){
     return fetch(url, { cache:"no-store" }).then(function(r){
@@ -568,20 +621,31 @@
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)) } catch(e){}
   }
 
+  var lastFetchAt = 0
+
   function load(){
     if (!uid){
       showState("Not set up yet", "Open TAS → Tools → Phone widget and use the link it gives you.")
       return
     }
 
+    // Too soon since the last one: redraw what we already have instead of
+    // paying for the same answer again. Dates are recomputed on every
+    // render, so a cached list still counts down correctly.
+    if (lastFetchAt && Date.now() - lastFetchAt < MIN_REFETCH_MS){
+      var c = readCache()
+      if (c) { render(c); return }
+    }
+    lastFetchAt = Date.now()
+
     Promise.all([
       // Shared class tasks are public by rule, so this needs no sign-in.
-      getJSON(BASE + "/tasks?key=" + API_KEY + "&pageSize=300"),
+      fetchTasks(),
       // The owner's opt-in feed: ticked-off ids + personal tasks.
       getJSON(BASE + "/widgetFeed/" + encodeURIComponent(uid) + "?key=" + API_KEY)
         .catch(function(){ return null })
     ]).then(function(res){
-      var taskDocs = (res[0] && res[0].documents) || []
+      var taskDocs = res[0] || []
       var feed = res[1] ? unwrap(res[1].fields || {}) : {}
 
       var data = {
@@ -610,6 +674,9 @@
       render(data)
     }).catch(function(err){
       console.warn("Widget load failed:", err)
+      // Don't let a failure hold the throttle open — the next glance
+      // should be free to try again.
+      lastFetchAt = 0
       var cached = readCache()
       if (cached){
         cached.stale = true
@@ -623,7 +690,7 @@
   load()
   // Widget hosts keep this page alive between refreshes; re-pull on a timer
   // and whenever the widget comes back into view.
-  setInterval(load, 5 * 60 * 1000)
+  setInterval(load, POLL_MS)
   document.addEventListener("visibilitychange", function(){
     if (!document.hidden) load()
   })
