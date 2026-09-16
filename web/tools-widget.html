@@ -221,7 +221,11 @@
             </div></div>
             <div class="step"><div class="step-body">
               Set the refresh interval to <b>15–30 minutes</b> and turn scrolling off.
-              <span class="sub">Too small? Bump <b>Text size</b> on the right — it's baked into the link you copy. Add <b>&amp;n=8</b> for more rows on a tall widget, or <b>&amp;compact=1</b> to drop the header on a small one.</span>
+              <span class="sub">Too small? Bump <b>Text size</b> on the right — it's baked into the link you copy. A tall widget fills itself with as many tasks as fit; add <b>&amp;n=4</b> to hold it to fewer, or <b>&amp;compact=1</b> to drop the header on a small one.</span>
+            </div></div>
+            <div class="step"><div class="step-body">
+              Tap the widget any time to jump straight into the calendar.
+              <span class="sub">If your widget app has an “on tap” setting, leave it on <b>open the page</b> rather than <b>refresh</b>.</span>
             </div></div>
           </div>
           <div class="btn-row">
@@ -499,12 +503,21 @@ async function gatherAndPublish(){
   const personalTasks = personalSnap
     ? personalSnap.docs.map(d => ({ id:d.id, ...d.data() }))
     : []
-  const done = doneSnap && doneSnap.exists() ? (doneSnap.data().done || {}) : {}
+  // Progress lives in the same userDone doc as the tick marks, so the read
+  // above already has it — without passing it on, a student who sets the
+  // widget up here gets no progress bars until they next open the calendar.
+  const userDone = doneSnap && doneSnap.exists() ? doneSnap.data() : {}
+  const done = userDone.done || {}
+  const progress = userDone.progress || {}
 
   let zones = null
   try { zones = JSON.parse(localStorage.getItem("tas_rush_zones") || "null") } catch(e){}
+  // Same key the calendar's Settings write, so "Missing" reaches back
+  // exactly as far here as it does there.
+  let overdueMode = null
+  try { overdueMode = localStorage.getItem("tas_overdue_mode") } catch(e){}
 
-  return publishWidgetFeed(db, user.uid, { personalTasks, done, zones })
+  return publishWidgetFeed(db, user.uid, { personalTasks, done, progress, zones, overdueMode })
 }
 
 $("enableBtn").onclick = async () => {
@@ -571,7 +584,7 @@ function loadPreview(){
   f.height = s.h
   f.style.width = s.w + "px"
   f.style.height = s.h + "px"
-  f.src = widgetURL() + "&n=" + s.n + "&_=" + Date.now()
+  f.src = widgetURL() + "&n=" + s.n + "&preview=1&_=" + Date.now()
   const now = new Date()
   document.getElementById("pvUpdatedText").textContent =
     "Last updated " + now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })

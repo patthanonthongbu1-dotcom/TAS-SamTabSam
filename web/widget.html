@@ -15,9 +15,11 @@
 
     Query params
       u        the owner's uid (required) — from Tools → Phone widget
-      n        max rows to draw (default 6)
+      n        max rows to draw (default: as many as fit the box)
       theme    dark | light   (default dark)
       compact  1 to drop the header, for very small widget boxes
+      preview  1 to make the card inert — used by the Tools preview iframe,
+               which shouldn't open the calendar every time it's clicked
 
     Reads two public things: the shared `tasks` collection, and this
     person's opt-in widgetFeed/{uid} doc (their ticked-off ids + personal
@@ -33,6 +35,7 @@
       --bg1:#1c2f56; --bg2:#182848; --bg3:#0d1526;
       --card:rgba(255,255,255,0.06);
       --brd:rgba(255,255,255,0.12);
+      --track:rgba(255,255,255,0.20);
       --text:#fff;
       --muted:rgba(255,255,255,0.55);
       --faint:rgba(255,255,255,0.38);
@@ -43,6 +46,7 @@
       --bg1:#ffffff; --bg2:#fdf4f9; --bg3:#ffe3f1;
       --card:rgba(0,0,0,0.035);
       --brd:rgba(0,0,0,0.10);
+      --track:rgba(0,0,0,0.13);
       --text:#16233d;
       --muted:rgba(22,35,61,0.6);
       --faint:rgba(22,35,61,0.42);
@@ -128,8 +132,8 @@
     .wg-main{min-width:0; flex:1; display:block}
     /* Progress: a hairline under the subject, so a started task reads as
        started from across the room without costing a row of height. */
-    .wg-prog{display:block; height:0.16rem; border-radius:99px; background:var(--brd); margin-top:0.19rem; overflow:hidden}
-    .wg-prog-fill{display:block; height:100%; border-radius:99px}
+    .wg-prog{display:block; height:0.25rem; border-radius:99px; background:var(--track); margin-top:0.22rem; overflow:hidden}
+    .wg-prog-fill{display:block; height:100%; border-radius:99px; min-width:0.25rem}
     .wg-name{
       display:block;
       font-size:0.78rem; font-weight:500; line-height:1.25;
@@ -169,6 +173,19 @@
       .wg-row{padding:0.32rem 0.5rem}
     }
 
+    /* ── Tap target ───────────────────────────────────────────
+       The whole card opens the calendar. It's one invisible anchor over
+       everything rather than a link per row: a widget box is small, a
+       thumb is not, and there is nothing else here to tap. Kept out of
+       the preview iframe, which would otherwise open a tab per click. */
+    .wg-tap{
+      position:fixed; inset:0; z-index:5; display:block;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .wg-tap:active{background:rgba(255,255,255,0.06)}
+    html[data-theme="light"] .wg-tap:active{background:rgba(0,0,0,0.04)}
+    body.preview .wg-tap{display:none}
+
     /* ── Loading skeleton — a widget that flashes "nothing due"
          before its data lands is worse than one that says nothing ── */
     .sk{
@@ -181,6 +198,9 @@
   </style>
 </head>
 <body>
+
+<a class="wg-tap" id="wgTap" href="calendar.html" target="_blank" rel="noopener"
+   aria-label="Open the TAS calendar"></a>
 
 <img class="wg-watermark" id="wgWatermark" src="TASLogoLIGHT.png" alt="" aria-hidden="true">
 
@@ -221,7 +241,11 @@
 
   var params  = new URLSearchParams(location.search)
   var uid     = (params.get("u") || "").trim()
-  var maxRows = Math.max(1, Math.min(20, parseInt(params.get("n"), 10) || 6))
+  // Without ?n the card draws as many rows as it has, and fitRows() below
+  // trims back to whatever the host's box can actually hold. A fixed six
+  // left a tall Android widget two-thirds empty.
+  var FILL_ROWS = 20
+  var maxRows = Math.max(1, Math.min(FILL_ROWS, parseInt(params.get("n"), 10) || FILL_ROWS))
   var theme   = params.get("theme") === "light" ? "light" : "dark"
   // Text size. Everything is in rem off one root font-size, so this scales
   // the whole card — rows, padding, logo and all — not just the type.
@@ -237,6 +261,29 @@
     document.getElementById("wgWatermark").src = "TASLogo.png"
   }
   if (params.get("compact") === "1") document.body.classList.add("compact")
+  if (params.get("preview") === "1") document.body.classList.add("preview")
+
+  // ── Tap opens the calendar ──────────────────────────────────
+  // The href has to be absolute: an Android webpage-widget app hands the
+  // URL to the system browser, and a relative one resolves against
+  // whatever that app thinks the current page is — usually nothing.
+  var tap = document.getElementById("wgTap")
+  var calUrl = new URL("calendar.html", location.href).href
+  tap.href = calUrl
+  // target=_blank is what a well-behaved host picks up. The ones that
+  // swallow it leave the click to us, so try to open a real browser tab
+  // and fall back to navigating the widget's own view.
+  tap.addEventListener("click", function(e){
+    if (e.defaultPrevented) return
+    var win = null
+    try { win = window.open(calUrl, "_blank", "noopener") } catch(err){}
+    if (win) { e.preventDefault(); return }
+    // No window came back — the host blocked it. Let the anchor's own
+    // navigation happen rather than trapping the reader in the widget.
+    try { if (window.top !== window.self) return } catch(err){}
+    e.preventDefault()
+    location.href = calUrl
+  })
 
   var CACHE_KEY = "tas_widget_cache_" + uid
 
