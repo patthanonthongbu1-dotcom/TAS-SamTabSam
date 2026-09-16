@@ -23,8 +23,12 @@
 
     Reads two public things: the shared `tasks` collection, and this
     person's opt-in widgetFeed/{uid} doc (their ticked-off ids + personal
-    tasks). Everything else — what's missing, what's due, the colours — is
-    worked out here, so a class task posted five minutes ago still shows up.
+    tasks). Everything else — what's due, how soon, the colours — is worked
+    out here, so a class task posted five minutes ago still shows up.
+
+    Only shows work that is still ahead of its due date. Once a date has
+    passed the feed cannot tell handed-in from forgotten, so overdue work
+    belongs to the calendar's archive rather than to a glanceable card.
   -->
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -40,7 +44,6 @@
       --muted:rgba(255,255,255,0.55);
       --faint:rgba(255,255,255,0.38);
       --pink:#ff4fa3;
-      --red:#ef4444; --red-text:#ff9b8a;
     }
     html[data-theme="light"]{
       --bg1:#ffffff; --bg2:#fdf4f9; --bg3:#ffe3f1;
@@ -50,7 +53,6 @@
       --text:#16233d;
       --muted:rgba(22,35,61,0.6);
       --faint:rgba(22,35,61,0.42);
-      --red-text:#c0392b;
     }
 
     /* Everything below is sized in rem, so the whole widget scales together
@@ -117,7 +119,6 @@
       color:var(--faint); margin-top:0.125rem;
     }
     .wg-group:first-child{margin-top:0}
-    .wg-group.missing{color:var(--red-text)}
 
     .wg-row{
       display:flex; align-items:center; gap:0.5rem;
@@ -125,7 +126,6 @@
       border-radius:0.625rem; padding:0.44rem 0.56rem;
       min-width:0;
     }
-    .wg-row.missing{background:rgba(239,68,68,0.13); border-color:rgba(239,68,68,0.3)}
     .wg-dot{width:0.44rem; height:0.44rem; border-radius:50%; flex-shrink:0}
     /* These are spans (a row is one flat line of markup) so they need an
        explicit block, or the subject runs on after the task name. */
@@ -148,7 +148,6 @@
       font-size:0.68rem; font-weight:600; flex-shrink:0;
       font-variant-numeric:tabular-nums; text-align:right;
     }
-    .wg-when.missing{color:var(--red-text)}
     .wg-more{font-size:0.6rem; color:var(--faint); text-align:center; padding-top:0.125rem}
 
     /* ── Mini calendar ────────────────────────────────────────
@@ -201,9 +200,9 @@
 
     /* ── Short boxes ──────────────────────────────────────────
        A small or medium home-screen widget is only ~170px tall. At that
-       height the subject line and the group headings cost a whole extra
-       row each, and one more task is worth more than either — the red
-       tint already says which ones are missing. */
+       height the subject line and the group heading cost a whole extra
+       row each, and one more task is worth more than either — the dot
+       colour already says how soon each one is due. */
     @media (max-height:200px){
       .wg-head{margin-bottom:0.375rem}
       .wg-list{gap:0.25rem}
@@ -270,10 +269,6 @@
 
   var DAY = 864e5
   var ZONE_DEFAULTS = { red:3, orange:7, yellow:14 }
-  // How far back a missed task keeps showing. The calendar hides archived
-  // work after 20 days; a widget should give up sooner than that or it
-  // fills with things nobody is going to hand in any more.
-  var MISSING_WINDOW = 14
   // Markers and estimated dates aren't handed in. Live docs still carry the
   // older "estimated" spelling of "prediction", so both are excluded.
   var NOT_SUBMITTABLE = ["marker", "prediction", "estimated"]
@@ -359,15 +354,15 @@
   function daysLeft(t, s){ return Math.round((parseDate(s) - t) / DAY) }
 
   function whenLabel(dl){
-    if (dl < 0)  return Math.abs(dl) + "d late"
     if (dl === 0) return "Today"
     if (dl === 1) return "Tomorrow"
     if (dl < 7)  return dl + " days"
     return dl + "d"
   }
 
+  // dl < 0 only reaches here from the mini calendar's past days, which
+  // never carry a dot — nothing overdue is drawn any more.
   function urgencyColor(dl, z){
-    if (dl < 0)          return "#dc2626"
     if (dl <= z.red)     return "#ef4444"
     if (dl <= z.orange)  return "#f97316"
     if (dl <= z.yellow)  return "#f59e0b"
@@ -395,26 +390,22 @@
     ;(data.done || []).forEach(function(id){ doneSet[id] = true })
     var prog = data.progress || {}
 
-    // How far back "Missing" reaches, per the calendar's Overdue setting:
-    // clear straight away (nothing overdue at all), on tick (the retention
-    // window), or keep (no cutoff).
-    var mode = data.overdueMode || "tick"
-    var back = mode === "auto" ? 0 : mode === "keep" ? Infinity : MISSING_WINDOW
-
+    // The widget is a "what's coming" card, nothing else. A past due date
+    // does not mean the work is outstanding — it may have been handed in on
+    // paper, or in person, or the date may just have moved — and the feed
+    // has no way to tell. Guessing produced a red "3d late" for work that
+    // was already done, so overdue tasks are left to the calendar's archive,
+    // which is the one place that can show them with their full history.
     var all = (data.tasks || []).concat(data.personal || [])
-    var live = all.filter(function(x){
+    var upcoming = all.filter(function(x){
       if (!x.end || NOT_SUBMITTABLE.indexOf(x.type) !== -1) return false
       if (doneSet[x.id]) return false
-      var dl = daysLeft(t, x.end)
-      return dl >= -back
+      return daysLeft(t, x.end) >= 0
     }).sort(function(a,b){ return parseDate(a.end) - parseDate(b.end) })
-
-    var missing = live.filter(function(x){ return daysLeft(t, x.end) < 0 })
-    var upcoming = live.filter(function(x){ return daysLeft(t, x.end) >= 0 })
+    var live = upcoming
 
     // Summary line — the one thing readable at a glance from across a room
     var sumParts = []
-    if (missing.length)  sumParts.push(missing.length + " missing")
     var dueToday = upcoming.filter(function(x){ return daysLeft(t, x.end) === 0 }).length
     if (dueToday) sumParts.push(dueToday + " due today")
     if (!sumParts.length) sumParts.push(upcoming.length ? upcoming.length + " coming up" : "nothing due")
@@ -431,19 +422,19 @@
       (data.stale ? "Couldn't reach TAS — showing the last data from " : "Last updated ") + d.toLocaleString()
 
     if (!live.length){
-      showState("All clear ✓", missingEverHad(data) ? "Nothing due and nothing missing." : "No tasks on the calendar.")
+      showState("All clear ✓", hasAnyTasks(data) ? "Nothing coming up." : "No tasks on the calendar.")
       return
     }
 
     var html = ""
     var shown = 0
 
-    function rows(list, isMissing){
+    function rows(list){
       for (var i = 0; i < list.length && shown < maxRows; i++, shown++){
         var x = list[i]
         var dl = daysLeft(t, x.end)
         var pc = prog[x.id] || 0
-        html += '<div class="wg-row' + (isMissing ? ' missing' : '') + '">' +
+        html += '<div class="wg-row">' +
                   '<span class="wg-dot" style="background:' + urgencyColor(dl, z) + '"></span>' +
                   '<span class="wg-main">' +
                     '<span class="wg-name">' + esc(x.name || "Untitled") + '</span>' +
@@ -453,19 +444,14 @@
                     (pc ? '<span class="wg-prog"><span class="wg-prog-fill" style="width:' + pc +
                           '%;background:' + urgencyColor(dl, z) + '"></span></span>' : "") +
                   '</span>' +
-                  '<span class="wg-when' + (isMissing ? ' missing' : '') + '">' +
-                    esc(whenLabel(dl)) + '</span>' +
+                  '<span class="wg-when">' + esc(whenLabel(dl)) + '</span>' +
                 '</div>'
       }
     }
 
-    if (missing.length){
-      html += '<div class="wg-group missing">Missing</div>'
-      rows(missing, true)
-    }
-    if (upcoming.length && shown < maxRows){
+    if (upcoming.length){
       html += '<div class="wg-group">Due next</div>'
-      rows(upcoming, false)
+      rows(upcoming)
     }
     document.getElementById("wgList").innerHTML = html
     fitRows(live.length)
@@ -569,7 +555,7 @@
   }
 
   // Distinguishes "you're on top of everything" from "there is nothing here"
-  function missingEverHad(data){ return (data.tasks || []).length > 0 }
+  function hasAnyTasks(data){ return (data.tasks || []).length > 0 }
 
   // ── Load ────────────────────────────────────────────────────
   function readCache(){
@@ -601,7 +587,6 @@
       var data = {
         fetchedAt: Date.now(),
         zones: feed.zones || null,
-        overdueMode: feed.overdueMode || "tick",
         done: feed.done || [],
         progress: feed.progress || {},
         tasks: taskDocs.map(function(d){
@@ -642,7 +627,8 @@
   document.addEventListener("visibilitychange", function(){
     if (!document.hidden) load()
   })
-  // Past midnight every "2 days late" on screen is wrong by one.
+  // Past midnight every "3 days" on screen is wrong by one, and whatever
+  // was due today has dropped off the card entirely.
   setInterval(function(){
     var c = readCache()
     if (c) render(c)
