@@ -609,8 +609,11 @@ document.querySelectorAll("#scaleGrid .seg-btn").forEach(b => {
 })
 syncScaleButtons()
 // The widget page repulls on its own timer, so the preview follows along
-// rather than needing a button.
-setInterval(loadPreview, 5 * 60 * 1000)
+// rather than needing a button. Every reload here is a real read against
+// the same daily quota every phone in the class is drawing on, so this is
+// deliberately slower than it could be — nobody watches a preview for
+// twenty minutes.
+setInterval(loadPreview, 20 * 60 * 1000)
 
 // ── Boot ───────────────────────────────────────────────────────
 // Paint from the last known answer straight away and correct it when the
