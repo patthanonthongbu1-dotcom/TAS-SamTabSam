@@ -165,6 +165,14 @@
     .btn-google:hover { background: #fff6fb; border-color: var(--pink); }
     .btn-google:active { transform: scale(0.99); }
     .btn-google:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-quiet {
+      width: 100%; padding: 12px; border-radius: 14px; cursor: pointer;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.85); font-size: 15px; font-weight: 400;
+      font-family: inherit;
+    }
+    .btn-quiet:hover { background: rgba(255,255,255,0.12); }
+    .btn-quiet:active { transform: scale(0.99); }
     .hint { font-size: 12.5px; color: rgba(255,255,255,0.45); text-align: center; line-height: 1.6; }
 
     /* ── Dashboard (userPanel) ──────────────────────────────────── */
@@ -736,21 +744,18 @@
       <div class="rp-bottom"><div class="skel-bone boot-foot"></div></div>
     </div>
 
+    <!-- Signed out. Not a gate any more: the calendar is public, so the
+         front door opens it and signing in is the quieter of the two
+         buttons. The sheet handles the Google popup — same one the
+         calendar and Tools use. -->
     <div id="loginPanel" style="display:none;">
       <img class="mobile-brand" src="TASLogoLIGHT.png" alt="3/3 Academic System">
-      <div class="card-title">Sign in with Google</div>
-      <div class="card-sub">Use your school Google account</div>
-      <div class="status" id="status"></div>
-      <button class="btn-google" id="googleBtn">
-        <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
-          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
-          <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
-        </svg>
-        Continue with Google
-      </button>
-      <div class="hint">Sign in with any Google account to view the calendar.<br>Mod panel access is restricted to authorised accounts.</div>
+      <div class="card-title">3/3 Academic System</div>
+      <div class="card-sub">Everything the class is working on, in one calendar.</div>
+      <a class="btn-google" href="calendar.html" style="text-decoration:none">Open the calendar</a>
+      <button class="btn-quiet" id="googleBtn">Sign in</button>
+      <div class="hint">The calendar is open to everyone. Sign in to tick tasks
+        off, keep your own list, and use the Tools.</div>
     </div>
 
     <div id="userPanel" style="display:none;">
@@ -844,11 +849,12 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js"
 import {
-  getAuth, signInWithPopup, signOut, onAuthStateChanged, GoogleAuthProvider
+  getAuth, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
 import { getFirestore, doc, getDoc, getDocs, collection }
   from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 import { mountNav } from "./tas-nav.js"
+import { promptSignIn } from "./tas-signin.js"
 import { startTimeTracking, stopTimeTracking, pendingTime } from "./tas-time.js"
 import { summarise, humanMs, humanDays } from "./tas-stats.js"
 
@@ -866,8 +872,6 @@ const MOD_PANEL_URL = "announce.html"
 const app      = initializeApp(firebaseConfig)
 const auth     = getAuth(app)
 const db       = getFirestore(app)
-const provider = new GoogleAuthProvider()
-provider.setCustomParameters({ prompt: "select_account" })
 
 // ⚠️ Do NOT call setPersistence() here. getAuth() already installs the local
 // hierarchy [indexedDB, localStorage, sessionStorage], and every other page
@@ -895,11 +899,13 @@ async function fetchWhitelist() {
 
 function setStatus(id, cls, text) {
   const el = document.getElementById(id)
+  if (!el) return
   el.className = "status " + cls
   el.textContent = text
 }
 function clearStatus(id) {
   const el = document.getElementById(id)
+  if (!el) return
   el.className = "status"
   el.textContent = ""
 }
@@ -973,7 +979,6 @@ function showLoginPanel() {
   document.getElementById("loginPanel").style.display = "flex"
   document.getElementById("userPanel").style.display   = "none"
   document.getElementById("statsSection").hidden = true
-  clearStatus("status")
 }
 
 document.getElementById("scrollCue").onclick = () =>
@@ -993,18 +998,9 @@ onAuthStateChanged(auth, user => {
   else showLoginPanel()
 })
 
-document.getElementById("googleBtn").onclick = async () => {
-  const btn = document.getElementById("googleBtn")
-  btn.disabled = true
-  setStatus("status", "s-loading", "⏳ Opening Google sign-in...")
-  try {
-    await signInWithPopup(auth, provider)
-  } catch(e) {
-    if (e.code === "auth/popup-closed-by-user") clearStatus("status")
-    else setStatus("status", "s-error", "Sign-in failed: " + e.message)
-    btn.disabled = false
-  }
-}
+// The same sheet the calendar and Tools use, rather than a third copy of
+// the Google flow. onAuthStateChanged below swaps the panel on success.
+document.getElementById("googleBtn").onclick = () => promptSignIn(auth)
 
 document.getElementById("signOutBtn").onclick = async () => {
   // Send the minutes before the account they belong to goes away.

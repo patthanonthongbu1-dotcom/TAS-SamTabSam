@@ -13,6 +13,9 @@ import { GoogleAuthProvider, signInWithPopup }
   from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
 
 const provider = new GoogleAuthProvider()
+// Always offer the account chooser. Shared machines are the norm here and
+// a silent reuse of whoever signed in last is the wrong default.
+provider.setCustomParameters({ prompt: "select_account" })
 
 let el = null          // the overlay, built once and reused
 let openResolve = null // resolves the promise the caller is awaiting
