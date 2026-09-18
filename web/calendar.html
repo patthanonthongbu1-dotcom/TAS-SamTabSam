@@ -2185,6 +2185,34 @@
     @media (prefers-reduced-motion: reduce){
       *,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}
     }
+  /* ── Signed out ───────────────────────────────────────────────
+     The shared calendar reads fine without an account; everything keyed
+     to a uid does not. Those tabs and settings are hidden rather than
+     shown broken, and the one-line bar says why the ticks are missing.
+     Anything still reachable by tapping prompts — see requireSignIn(). */
+  body.guest #tabTodo,
+  body.guest #tabTasks,
+  body.guest .acct-only,
+  body.guest .check-row{ display:none !important }
+
+  .guest-bar{
+    display:none;
+    align-items:center; gap:10px; flex-wrap:wrap;
+    margin:0 0 14px; padding:10px 14px;
+    border:1px solid var(--glass-brd); border-radius:13px;
+    background:var(--glass-2);
+    font-size:13.5px; font-weight:300; line-height:1.55; color:var(--label);
+  }
+  body.guest .guest-bar{ display:flex }
+  .guest-bar b{ font-weight:600; color:var(--text) }
+  .guest-bar .guest-cta{
+    margin-left:auto; flex-shrink:0;
+    padding:7px 14px; border-radius:9px; border:0; cursor:pointer;
+    background:var(--pink); color:#fff; font-size:13px; font-weight:600;
+    font-family:inherit;
+  }
+  @media (max-width:520px){ .guest-bar .guest-cta{ margin-left:0; width:100% } }
+
   </style>
 </head>
 <body>
@@ -2478,6 +2506,13 @@
     <a class="user-dropdown-btn menu" id="ddFirebase" href="https://console.firebase.google.com/u/0/project/tas-samtabsam/overview" target="_blank" rel="noopener" style="text-decoration:none;display:none;"><svg class="ic" aria-hidden="true"><use href="#ic-flame"/></svg> Firebase console</a>
     <button class="user-dropdown-btn signout" onclick="handleSignOut()"><svg class="ic" aria-hidden="true"><use href="#ic-exit"/></svg> Sign out</button>
   </div>
+</div>
+
+<!-- Only rendered for signed-out visitors — see enterGuestMode(). -->
+<div class="guest-bar" id="guestBar">
+  <span><b>You're browsing signed out.</b> The class calendar is public, but ticking tasks off,
+  your own task list and the To Do board need an account.</span>
+  <button class="guest-cta" onclick="window.location.href='index.html'">Sign in</button>
 </div>
 
 <div class="cal-wrap" id="calWrap">
@@ -2783,8 +2818,8 @@
         </div>
       </div>
 
-      <div class="set-group-label">Notifications</div>
-      <div class="set-group">
+      <div class="set-group-label acct-only">Notifications</div>
+      <div class="set-group acct-only">
         <div class="set-row tap" onclick="toggleNotify()">
           <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-bell"/></svg></div>
           <div class="set-row-text">
@@ -2864,8 +2899,8 @@
       </div>
       <div class="set-group-note">Everything above this is saved on this device, not your account — set it up again on your phone.</div>
 
-      <div class="set-group-label">Workload</div>
-      <div class="set-group">
+      <div class="set-group-label acct-only">Workload</div>
+      <div class="set-group acct-only">
         <div class="set-row stack">
           <div class="set-row-main">
             <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-trend"/></svg></div>
@@ -3253,7 +3288,7 @@ function barProgressChip(id){
 // Optimistic write, same shape as toggleDone: update the cache, persist, and
 // put the old value back if the write fails.
 async function writeProgress(id, next){
-  if(!currentUser) return false
+  if(!currentUser) return requireSignIn("track progress")
   const prev = userProgressCache[id] ? { ...userProgressCache[id] } : null
   if(next) userProgressCache[id] = next
   else delete userProgressCache[id]
@@ -3300,7 +3335,7 @@ function pointsPillHTML(t, {cls = ""} = {}){
 // Optimistic write, same shape as writeProgress: update the cache, persist,
 // and put the old value back if the write fails.
 async function writeUserPoints(id, next){
-  if(!currentUser) return false
+  if(!currentUser) return requireSignIn("weight a task")
   const prev = userPointsCache[id] === undefined ? null : userPointsCache[id]
   const n = Points.normPoints(next)
   if(n) userPointsCache[id] = n
@@ -3589,7 +3624,7 @@ onAuthStateChanged(auth, async user => {
   const wrap  = document.getElementById("appWrap")
 
   if (!user) {
-    window.location.href = LOGIN_URL
+    enterGuestMode()
     return
   }
 
@@ -3623,6 +3658,59 @@ onAuthStateChanged(auth, async user => {
   // First-time visitors get the walkthrough automatically
   try{ if(!localStorage.getItem("tas_cal_tour_seen")) setTimeout(()=>window.openTour(),700) }catch(e){}
 })
+
+// ── Signed-out browsing ───────────────────────────────────────
+// The shared task list is public by rule, so there is nothing to protect
+// in reading it, and sending someone to a login screen to answer "what's
+// due tomorrow" is the wrong trade — especially from the widget, which is
+// one tap away and belongs to a phone that may not be signed in.
+//
+// Everything personal still needs an account: ticks, progress, your own
+// tasks, the To Do list, reminders. Those aren't hidden so much as honest
+// — reach for one and it says why, rather than failing quietly.
+function enterGuestMode(){
+  currentUser = null
+  isWhitelisted = false
+  document.body.classList.add("guest")
+
+  document.getElementById("authGate").style.display = "none"
+  document.getElementById("appWrap").style.display  = "block"
+
+  renderGuestPill()
+  updateRoleUI()          // no account, so no mod controls either
+  syncTopbarH()
+  applyStoredRangeToUI()
+  applyFilterUI()
+  applySortUI()
+  // Shared tasks only. Every other listener here is keyed to a uid, and
+  // startTimeTracking would have nowhere to write.
+  startTasksListener()
+}
+
+function renderGuestPill(){
+  const pill = document.getElementById("userPill")
+  if(!pill) return
+  document.getElementById("pillName").textContent = "Sign in"
+  document.getElementById("pillAv").innerHTML =
+    '<svg class="nav-ic" aria-hidden="true"><use href="#ic-user"/></svg>'
+  pill.title = "Sign in to tick tasks off and keep your own list"
+  pill.classList.add("visible")
+}
+
+// One prompt at a time — a stray double-tap shouldn't stack toasts.
+let signInPromptAt = 0
+function requireSignIn(what){
+  const now = Date.now()
+  if(now - signInPromptAt > 1200){
+    signInPromptAt = now
+    toast(what ? "Sign in to " + what : "Sign in to do that", {
+      action: "Sign in",
+      duration: 5000,
+      onAction: () => { window.location.href = LOGIN_URL }
+    })
+  }
+  return false
+}
 
 function renderUserPill(user) {
   const pill = document.getElementById("userPill")
@@ -3716,6 +3804,9 @@ function closeMenus(){
 window.closeMenus = closeMenus
 
 window.toggleUserDropdown = (e) => {
+  // Signed out the pill is a Sign in button, not a profile menu — the
+  // menu behind it is all account actions.
+  if(!currentUser){ e.stopPropagation(); window.location.href = LOGIN_URL; return }
   e.stopPropagation()
   const open = document.getElementById("userDropdown").classList.contains("open")
   closeMenus()
@@ -4527,7 +4618,7 @@ window.toggleArchiveSelectAll = el => {
 }
 
 async function archiveRemoveIds(ids){
-  if(!currentUser) return []
+  if(!currentUser){ requireSignIn("tidy the archive"); return [] }
   const hiddenIds = []
   try{
     for(const id of ids){
@@ -5783,7 +5874,8 @@ function confettiFromEl(el){
 
 // ── toggleDone ─────────────────────────────────────────────────
 window.toggleDone = async function(id, checked, checkbox) {
-  if (!currentUser) return
+  // Put the box back — nothing was saved, so nothing should look saved.
+  if (!currentUser) { if(checkbox) checkbox.checked = !checked; return requireSignIn("tick tasks off") }
   // Kept so a failed save can put back the original stamp rather than a
   // fresh one — rolling back to `true` would quietly lose the real date.
   const wasDone = userDoneCache[id]
@@ -6203,6 +6295,7 @@ function offerMarkDone(id){
       const box = document.querySelector('#cr-' + CSS.escape(id) + ' input')
       if(box){ box.checked = true; toggleDone(id, true, box) }
       else {
+        if(!currentUser) return requireSignIn("tick tasks off")
         userDoneCache[id] = Date.now()
         const ok = await persistUserDone(currentUser.uid)
         if(!ok){ delete userDoneCache[id]; saveFailToast() }
@@ -6313,7 +6406,8 @@ function repaintBarProgress(id){
 
 let detailTaskId=null, detailTaskIsPersonal=false
 window.deleteFromDetail=async function(){
-  if(!detailTaskId||!currentUser)return
+  if(!detailTaskId)return
+  if(!currentUser)return requireSignIn("change tasks")
   const id=detailTaskId, isPersonal=detailTaskIsPersonal
   const t=tasks.find(x=>x.id===id)||personalTasks.find(x=>x.id===id)
   const ok=await confirmDialog({
@@ -6355,7 +6449,8 @@ function updateLatestPill(){
 }
 
 window.markDoneFromDetail=async function(){
-  if(!detailTaskId||!currentUser)return
+  if(!detailTaskId)return
+  if(!currentUser)return requireSignIn("tick tasks off")
   const id=detailTaskId
   userDoneCache[id]=Date.now()
   confettiFromEl(document.getElementById("dp-mark-done"))
@@ -6373,7 +6468,8 @@ window.markDoneFromDetail=async function(){
    never claims something it didn't save; the personal-tasks snapshot
    redraws every view a moment later. */
 window.toggleDetailSideQuest=async function(){
-  if(!currentUser||!detailTaskId||!detailTaskIsPersonal)return
+  if(!detailTaskId||!detailTaskIsPersonal)return
+  if(!currentUser)return requireSignIn("keep your own tasks")
   const t=personalTasks.find(x=>x.id===detailTaskId)
   if(!t)return
   const next=!t.sideQuest
@@ -6568,7 +6664,7 @@ function updateModUI(){
 // Mod quick-delete — the bin button on each row while mod mode is on
 window.quickDeleteTask=async function(e,id){
   e.stopPropagation()
-  if(!currentUser)return
+  if(!currentUser)return requireSignIn("change tasks")
   const t=tasks.find(x=>x.id===id)||personalTasks.find(x=>x.id===id)
   if(!t)return
   const isPersonal=!!t._personal
@@ -7163,7 +7259,8 @@ window.updatePtPreview = function(){
 
 let ptSaving=false
 window.savePtTask = async function(){
-  if(!currentUser||ptSaving) return
+  if(ptSaving) return
+  if(!currentUser) return requireSignIn("keep your own tasks")
   const col = collection(db,"userTasks",currentUser.uid,"tasks")
 
   ptSaving=true
@@ -7323,7 +7420,7 @@ window.ptRowOpen = function(e, id){
 
 window.deletePtTask = async function(e,id){
   e.stopPropagation()
-  if(!currentUser) return
+  if(!currentUser) return requireSignIn("keep your own tasks")
   const t=personalTasks.find(x=>x.id===id)
   const ok=await confirmDialog({title:"Delete personal task?",message:`"${t?t.name:"This task"}" will be deleted permanently.`})
   if(!ok) return
