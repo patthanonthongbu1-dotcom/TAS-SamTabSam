@@ -2512,7 +2512,7 @@
 <div class="guest-bar" id="guestBar">
   <span><b>You're browsing signed out.</b> The class calendar is public, but ticking tasks off,
   your own task list and the To Do board need an account.</span>
-  <button class="guest-cta" onclick="window.location.href='index.html'">Sign in</button>
+  <button class="guest-cta" onclick="requireSignIn()">Sign in</button>
 </div>
 
 <div class="cal-wrap" id="calWrap">
@@ -3097,6 +3097,9 @@ import { publishWidgetFeed, widgetFeedExists }
 // The page navigator — the glass dot bottom-right. Shared with announce
 // and the Tools pages, and the only cross-page nav any of them carry.
 import { mountNav } from "./tas-nav.js"
+// The sign-in sheet. Shared with the Tools pages and the formatter so
+// "you need an account" never means "you have lost your place".
+import { promptSignIn } from "./tas-signin.js"
 import { startTimeTracking, stopTimeTracking } from "./tas-time.js"
 // The To Do view. Split three ways on purpose: state is pure and tested,
 // the store owns Firestore, and the UI owns the DOM. This page supplies the
@@ -3629,6 +3632,9 @@ onAuthStateChanged(auth, async user => {
   }
 
   currentUser = user
+  // Signing in from the sheet runs this handler on a page that has already
+  // booted as a guest, so undo that before anything renders.
+  document.body.classList.remove("guest")
   const [whitelist] = await Promise.all([fetchWhitelist(), loadUserDone(user.uid), loadSettings(user.uid)])
   isWhitelisted = whitelist.includes((user.email || "").toLowerCase())
   // Before anything renders a weight, so nothing is ever drawn on the old
@@ -3697,20 +3703,16 @@ function renderGuestPill(){
   pill.classList.add("visible")
 }
 
-// One prompt at a time — a stray double-tap shouldn't stack toasts.
-let signInPromptAt = 0
+// The sheet is its own guard against stacking — a second ask while one is
+// open just waits on the first. Nothing to do with the result here:
+// onAuthStateChanged fires on its own and boots the signed-in page.
 function requireSignIn(what){
-  const now = Date.now()
-  if(now - signInPromptAt > 1200){
-    signInPromptAt = now
-    toast(what ? "Sign in to " + what : "Sign in to do that", {
-      action: "Sign in",
-      duration: 5000,
-      onAction: () => { window.location.href = LOGIN_URL }
-    })
-  }
+  promptSignIn(auth, { reason: what })
   return false
 }
+// The guest bar and the profile pill call this from inline onclick, which
+// resolves against the global scope and cannot see a module binding.
+window.requireSignIn = requireSignIn
 
 function renderUserPill(user) {
   const pill = document.getElementById("userPill")
@@ -3806,7 +3808,7 @@ window.closeMenus = closeMenus
 window.toggleUserDropdown = (e) => {
   // Signed out the pill is a Sign in button, not a profile menu — the
   // menu behind it is all account actions.
-  if(!currentUser){ e.stopPropagation(); window.location.href = LOGIN_URL; return }
+  if(!currentUser){ e.stopPropagation(); requireSignIn(); return }
   e.stopPropagation()
   const open = document.getElementById("userDropdown").classList.contains("open")
   closeMenus()
@@ -3820,7 +3822,10 @@ window.handleReturnToMenu = () => { window.location.href = LOGIN_URL }
 window.handleSignOut = async () => {
   await stopTimeTracking()     // send the minutes before the account goes
   await signOut(auth)
-  window.location.href = LOGIN_URL
+  // Stay on the calendar — it reads fine signed out. A reload rather than
+  // letting the listener fall into guest mode on a page that has already
+  // booted as a member, which would leave half the signed-in state behind.
+  window.location.reload()
 }
 
 // ── "How to use" tour (for everyone) ──────────────────────────
