@@ -2186,32 +2186,14 @@
       *,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}
     }
   /* ── Signed out ───────────────────────────────────────────────
-     The shared calendar reads fine without an account; everything keyed
-     to a uid does not. Those tabs and settings are hidden rather than
-     shown broken, and the one-line bar says why the ticks are missing.
-     Anything still reachable by tapping prompts — see requireSignIn(). */
+     Ticks, progress and weights all work — they save to the device
+     instead of an account (see loadGuestState). What genuinely needs a
+     uid is hidden rather than shown broken: your own task list, the To Do
+     board, and the settings that follow you between devices. */
   body.guest #tabTodo,
   body.guest #tabTasks,
-  body.guest .acct-only,
-  body.guest .check-row{ display:none !important }
+  body.guest .acct-only{ display:none !important }
 
-  .guest-bar{
-    display:none;
-    align-items:center; gap:10px; flex-wrap:wrap;
-    margin:0 0 14px; padding:10px 14px;
-    border:1px solid var(--glass-brd); border-radius:13px;
-    background:var(--glass-2);
-    font-size:13.5px; font-weight:300; line-height:1.55; color:var(--label);
-  }
-  body.guest .guest-bar{ display:flex }
-  .guest-bar b{ font-weight:600; color:var(--text) }
-  .guest-bar .guest-cta{
-    margin-left:auto; flex-shrink:0;
-    padding:7px 14px; border-radius:9px; border:0; cursor:pointer;
-    background:var(--pink); color:#fff; font-size:13px; font-weight:600;
-    font-family:inherit;
-  }
-  @media (max-width:520px){ .guest-bar .guest-cta{ margin-left:0; width:100% } }
 
   </style>
 </head>
@@ -2506,13 +2488,6 @@
     <a class="user-dropdown-btn menu" id="ddFirebase" href="https://console.firebase.google.com/u/0/project/tas-samtabsam/overview" target="_blank" rel="noopener" style="text-decoration:none;display:none;"><svg class="ic" aria-hidden="true"><use href="#ic-flame"/></svg> Firebase console</a>
     <button class="user-dropdown-btn signout" onclick="handleSignOut()"><svg class="ic" aria-hidden="true"><use href="#ic-exit"/></svg> Sign out</button>
   </div>
-</div>
-
-<!-- Only rendered for signed-out visitors — see enterGuestMode(). -->
-<div class="guest-bar" id="guestBar">
-  <span><b>You're browsing signed out.</b> The class calendar is public, but ticking tasks off,
-  your own task list and the To Do board need an account.</span>
-  <button class="guest-cta" onclick="requireSignIn()">Sign in</button>
 </div>
 
 <div class="cal-wrap" id="calWrap">
@@ -3291,11 +3266,10 @@ function barProgressChip(id){
 // Optimistic write, same shape as toggleDone: update the cache, persist, and
 // put the old value back if the write fails.
 async function writeProgress(id, next){
-  if(!currentUser) return requireSignIn("track progress")
   const prev = userProgressCache[id] ? { ...userProgressCache[id] } : null
   if(next) userProgressCache[id] = next
   else delete userProgressCache[id]
-  const ok = await persistUserProgress(currentUser.uid)
+  const ok = await persistUserProgress()
   if(!ok){
     if(prev) userProgressCache[id] = prev
     else delete userProgressCache[id]
@@ -3338,12 +3312,11 @@ function pointsPillHTML(t, {cls = ""} = {}){
 // Optimistic write, same shape as writeProgress: update the cache, persist,
 // and put the old value back if the write fails.
 async function writeUserPoints(id, next){
-  if(!currentUser) return requireSignIn("weight a task")
   const prev = userPointsCache[id] === undefined ? null : userPointsCache[id]
   const n = Points.normPoints(next)
   if(n) userPointsCache[id] = n
   else delete userPointsCache[id]
-  const ok = await persistUserPoints(currentUser.uid)
+  const ok = await persistUserPoints()
   if(!ok){
     if(prev) userPointsCache[id] = prev
     else delete userPointsCache[id]
@@ -3449,6 +3422,53 @@ let userStateLoaded = false   // true only after the user's real doc was read
    places weights are stored carries its own marker. */
 let userPointsScale = 0
 
+/* ── Signed out, the same state lives on the device ───────────
+   Ticking something off is the whole point of the calendar, and making
+   it wait for an account made the public view a poster rather than a
+   tool. The caches below don't care where they came from, and there is
+   exactly one read and one write for all of them, so signed out both
+   ends swap to localStorage and nothing above this line changes.
+
+   Per device, not per person: no sync, no widget feed, and a cleared
+   browser takes it with it. That is the trade for not asking. */
+const GUEST_KEY = "tas_guest_state"
+
+function loadGuestState(){
+  let raw = null
+  try { raw = JSON.parse(localStorage.getItem(GUEST_KEY) || "null") } catch(e){}
+  const d = raw || {}
+  userDoneCache     = d.done || {}
+  userHiddenCache   = d.archiveHidden || {}
+  userProgressCache = sanitizeProgressMap(d.progress)
+  userPointsCache   = sanitizePointsMap(d.difficulty)
+  // Nothing local predates the new ladder, so there is nothing to rescale.
+  userPointsScale   = POINTS_SCALE
+  userStateLoaded   = true
+}
+
+function guestStateSnapshot(){
+  return {
+    done: userDoneCache, archiveHidden: userHiddenCache,
+    progress: userProgressCache, difficulty: userPointsCache,
+    ptsScale: userPointsScale || POINTS_SCALE
+  }
+}
+
+function saveGuestState(){
+  try { localStorage.setItem(GUEST_KEY, JSON.stringify(guestStateSnapshot())); return true }
+  catch(e){ console.warn("Could not save on this device:", e); return false }
+}
+
+function hasGuestState(){
+  try {
+    const d = JSON.parse(localStorage.getItem(GUEST_KEY) || "null")
+    return !!d && (Object.keys(d.done || {}).length || Object.keys(d.progress || {}).length ||
+                   Object.keys(d.difficulty || {}).length || Object.keys(d.archiveHidden || {}).length)
+  } catch(e){ return false }
+}
+
+function clearGuestState(){ try { localStorage.removeItem(GUEST_KEY) } catch(e){} }
+
 async function loadUserDone(uid) {
   try {
     const snap = await getDoc(doc(db, "userDone", uid))
@@ -3473,11 +3493,13 @@ async function loadUserDone(uid) {
 // Write the whole doc (no merge): with {merge:true} Firestore keeps map keys
 // that were deleted locally, so un-ticking a task would come back on reload.
 // Both maps live in this one doc and are fully cached, so overwriting is safe.
-async function persistUserState(uid) {
+async function persistUserState(uid = currentUser && currentUser.uid) {
   // If the login-time load failed, the caches may be missing the user's real
   // ticks — a no-merge write would wipe them all. Refuse; callers already
   // roll back and show the save-failed toast.
   if (!userStateLoaded) { console.warn("User state never loaded — refusing to overwrite it"); return false }
+  // No account: the device is the store. Same caches, same shape.
+  if (!uid) return saveGuestState()
   try {
     await setDoc(doc(db, "userDone", uid), { done: userDoneCache, archiveHidden: userHiddenCache, progress: userProgressCache, difficulty: userPointsCache, ptsScale: userPointsScale || POINTS_SCALE })
     queueWidgetFeed()   // a tick here is a task that should leave the widget
@@ -3635,7 +3657,25 @@ onAuthStateChanged(auth, async user => {
   // Signing in from the sheet runs this handler on a page that has already
   // booted as a guest, so undo that before anything renders.
   document.body.classList.remove("guest")
+  const hadGuestWork = hasGuestState()
   const [whitelist] = await Promise.all([fetchWhitelist(), loadUserDone(user.uid), loadSettings(user.uid)])
+
+  // Ticked a few things off before signing in? Keep them — but only into
+  // an account that has nothing of its own yet. Merging into an account
+  // that already has state risks resurrecting ticks from whoever used
+  // this browser last, and there is no way to tell the two apart.
+  if (hadGuestWork && userStateLoaded && !Object.keys(userDoneCache).length
+      && !Object.keys(userProgressCache).length && !Object.keys(userPointsCache).length){
+    loadGuestState()
+    if (await persistUserState(user.uid)) {
+      clearGuestState()
+      toast("Kept what you'd ticked off before signing in")
+    }
+  } else if (hadGuestWork) {
+    // Their account wins, so the local copy is only going to confuse the
+    // next signed-out visit on this device.
+    clearGuestState()
+  }
   isWhitelisted = whitelist.includes((user.email || "").toLowerCase())
   // Before anything renders a weight, so nothing is ever drawn on the old
   // ladder and then redrawn on the new one.
@@ -3681,6 +3721,10 @@ function enterGuestMode(){
 
   document.getElementById("authGate").style.display = "none"
   document.getElementById("appWrap").style.display  = "block"
+
+  // Same caches the signed-in path fills, read off the device instead.
+  // Before any render, or the first paint shows nothing ticked.
+  loadGuestState()
 
   renderGuestPill()
   updateRoleUI()          // no account, so no mod controls either
@@ -4623,18 +4667,17 @@ window.toggleArchiveSelectAll = el => {
 }
 
 async function archiveRemoveIds(ids){
-  if(!currentUser){ requireSignIn("tidy the archive"); return [] }
   const hiddenIds = []
   try{
     for(const id of ids){
-      if(personalTasks.some(t=>t.id===id)){
+      if(currentUser && personalTasks.some(t=>t.id===id)){
         await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",id))
       } else {
         userHiddenCache[id] = true
         hiddenIds.push(id)
       }
     }
-    if(hiddenIds.length && !await persistUserHidden(currentUser.uid)) throw new Error("persist failed")
+    if(hiddenIds.length && !await persistUserHidden()) throw new Error("persist failed")
   }catch(e){
     console.warn("Archive remove failed:",e)
     hiddenIds.forEach(id=>delete userHiddenCache[id])
@@ -4651,7 +4694,7 @@ function offerArchiveUndo(hiddenIds){
     action:"Undo", duration:6000,
     onAction:async ()=>{
       hiddenIds.forEach(id=>delete userHiddenCache[id])
-      if(!await persistUserHidden(currentUser.uid)) saveFailToast()
+      if(!await persistUserHidden()) saveFailToast()
       if(currentView==="archive") renderArchive()
     }
   })
@@ -5880,7 +5923,6 @@ function confettiFromEl(el){
 // ── toggleDone ─────────────────────────────────────────────────
 window.toggleDone = async function(id, checked, checkbox) {
   // Put the box back — nothing was saved, so nothing should look saved.
-  if (!currentUser) { if(checkbox) checkbox.checked = !checked; return requireSignIn("tick tasks off") }
   // Kept so a failed save can put back the original stamp rather than a
   // fresh one — rolling back to `true` would quietly lose the real date.
   const wasDone = userDoneCache[id]
@@ -5897,7 +5939,7 @@ window.toggleDone = async function(id, checked, checkbox) {
   const row = document.getElementById("cr-"+id)
   if (row) row.classList.add("saving")
   savingIds.add(id)
-  const ok = await persistUserDone(currentUser.uid)
+  const ok = await persistUserDone()
   savingIds.delete(id)
   if (row) row.classList.remove("saving")
 
@@ -6300,9 +6342,8 @@ function offerMarkDone(id){
       const box = document.querySelector('#cr-' + CSS.escape(id) + ' input')
       if(box){ box.checked = true; toggleDone(id, true, box) }
       else {
-        if(!currentUser) return requireSignIn("tick tasks off")
         userDoneCache[id] = Date.now()
-        const ok = await persistUserDone(currentUser.uid)
+        const ok = await persistUserDone()
         if(!ok){ delete userDoneCache[id]; saveFailToast() }
         rerenderCurrentView()
       }
@@ -6455,12 +6496,11 @@ function updateLatestPill(){
 
 window.markDoneFromDetail=async function(){
   if(!detailTaskId)return
-  if(!currentUser)return requireSignIn("tick tasks off")
   const id=detailTaskId
   userDoneCache[id]=Date.now()
   confettiFromEl(document.getElementById("dp-mark-done"))
   savingIds.add(id)
-  const ok=await persistUserDone(currentUser.uid)
+  const ok=await persistUserDone()
   savingIds.delete(id)
   if(!ok){delete userDoneCache[id];saveFailToast()}
   closeDetail()
@@ -7299,7 +7339,7 @@ window.savePtTask = async function(){
       // Extended from the archive: remove the original so it doesn't show twice
       if(extendSource){
         if(extendSource._personal) await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",extendSource.id))
-        else { userHiddenCache[extendSource.id] = true; await persistUserHidden(currentUser.uid) }
+        else { userHiddenCache[extendSource.id] = true; await persistUserHidden() }
         if(currentView==="archive") renderArchive()
       }
     }
@@ -7432,7 +7472,7 @@ window.deletePtTask = async function(e,id){
   try{
     await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",id))
     // Don't leave progress behind for an id that no longer exists
-    if(userProgressCache[id]){ delete userProgressCache[id]; persistUserProgress(currentUser.uid) }
+    if(userProgressCache[id]){ delete userProgressCache[id]; persistUserProgress() }
     toast("Task deleted")
   }
   catch(err){ console.warn("Could not delete personal task:",err); toast("Couldn't delete the task — try again",{error:true}) }
