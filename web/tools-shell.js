@@ -22,6 +22,10 @@ import { getFirestore, doc, getDoc }
 // calling initShell.
 import { mountNav } from "./tas-nav.js"
 import { startTimeTracking, stopTimeTracking } from "./tas-time.js"
+// Ask for the account here rather than sending them to index.html — a
+// Tools page is somewhere you meant to be, and losing it to a login screen
+// means finding your way back afterwards.
+import { promptSignIn } from "./tas-signin.js"
 
 const firebaseConfig = {
   apiKey:"AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18",
@@ -257,13 +261,25 @@ export function initShell({ title="TAS Tools", active="hub" } = {}){
   document.getElementById("signOutBtn").onclick = async () => {
     await stopTimeTracking()     // send the minutes before the account goes
     await signOut(auth)
-    window.location.href = LOGIN_URL
+    // Back to the part of TAS that works without an account.
+    window.location.href = "calendar.html"
   }
   paintIcons()
 
   return new Promise(resolve => {
     onAuthStateChanged(auth, user => {
-      if(!user){ window.location.href = LOGIN_URL; return }
+      if(!user){
+        // These pages read and write under a uid, so there is no useful
+        // signed-out view — but the ask still comes to the reader, over the
+        // ghost of the page, and this same listener picks it up on success.
+        // Backing out goes to the calendar, which does work signed out.
+        promptSignIn(auth, {
+          reason: "use the Tools",
+          cancelLabel: "Back to the calendar",
+          onCancel: () => { window.location.href = "calendar.html" }
+        })
+        return
+      }
       document.getElementById("authGate").style.display = "none"
       wrap.style.display = "block"
       // The tab keys double as the navigator's page keys. Authority goes in

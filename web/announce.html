@@ -599,6 +599,7 @@ import { mountCard, embeddedFontCSS } from "./tas-card.js"
 // The page navigator — the glass dot bottom-right, shared with the
 // calendar and the Tools pages.
 import { mountNav } from "./tas-nav.js"
+import { promptSignIn } from "./tas-signin.js"
 import { startTimeTracking, stopTimeTracking } from "./tas-time.js"
 import { toBlob } from "https://esm.sh/html-to-image@1.11.13"
 
@@ -713,7 +714,7 @@ window._submitGatePassword = async function() {
     btn.textContent = "Enter Panel"; btn.disabled = false
   }
 }
-window._cancelGatePassword = async function() { await signOut(auth); window.location.href = LOGIN_URL }
+window._cancelGatePassword = async function() { await signOut(auth); window.location.href = "calendar.html" }
 
 function revealApp(user) {
   document.getElementById("authGate").style.display = "none"
@@ -729,7 +730,17 @@ function revealApp(user) {
 }
 
 onAuthStateChanged(auth, async user => {
-  if (!user) { window.location.href = LOGIN_URL; return }
+  if (!user) {
+    // The formatter is mod-only and writes shared tasks, so there is no
+    // signed-out view — but ask here rather than throwing them at a login
+    // page. This listener runs again once they're through.
+    promptSignIn(auth, {
+      reason: "use the task formatter",
+      cancelLabel: "Back to the calendar",
+      onCancel: () => { window.location.href = "calendar.html" }
+    })
+    return
+  }
   const whitelist = await fetchWhitelist()
   if (whitelist.includes(user.email.toLowerCase())) {
     revealApp(user)
@@ -757,7 +768,7 @@ document.addEventListener("click", () => {
   document.querySelectorAll(".add-dd-btn.open").forEach(b => b.classList.remove("open"))
 })
 window.handleReturnToMenu = () => { window.location.href = LOGIN_URL }
-window.handleSignOut = async () => { await stopTimeTracking(); await signOut(auth); window.location.href = LOGIN_URL }
+window.handleSignOut = async () => { await stopTimeTracking(); await signOut(auth); window.location.href = "calendar.html" }
 
 // ── Modals: confirm dialog + "How it works" tour ──────────────
 function closeOverlay(ov) {
