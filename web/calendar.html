@@ -30,6 +30,7 @@
     try{document.documentElement.dataset.theme=localStorage.getItem("tas_theme")||"dark"}
     catch(e){document.documentElement.dataset.theme="dark"}
   </script>
+  <link rel="stylesheet" href="tas-paper.css">
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
     /* No visible scrollbars anywhere — scrolling still works via wheel/touch */
@@ -329,10 +330,23 @@
     /* THREE-COLUMN LAYOUT — frosted side columns over the gradient */
     .cal-wrap{padding-bottom:var(--nav-clear);min-height:calc(100vh - var(--topbar-h));display:flex;flex-direction:column}
     .cal-layout{display:flex;flex-direction:row;align-items:stretch;flex:1;min-height:0}
+    /* On the timeline the side panels run to the foot of the screen. The
+       room kept clear for the bottom bar moves inside them, so the last row
+       still can't hide under it — the other views keep the wrap's padding. */
+    .cal-wrap:has(> .cal-layout){padding-bottom:0}
+    .cal-layout > .cal-left,.cal-layout > .cal-right,.cal-layout .cal-inner{padding-bottom:var(--nav-clear)}
     .cal-left{width:var(--label-w);flex-shrink:0;background:var(--col);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-right:2px solid var(--glass-brd);box-shadow:4px 0 14px -4px rgba(0,0,0,0.35);position:relative;z-index:30;align-self:stretch}
     .cal-right{width:var(--check-w);flex-shrink:0;background:var(--col);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-left:2px solid var(--glass-brd);box-shadow:-4px 0 14px -4px rgba(0,0,0,0.35);position:relative;z-index:30;align-self:stretch}
     .cal-scroll-outer{flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch}
-    .cal-inner{min-width:500px}
+    /* min-height so the lines laid over it run to the foot of the column,
+       not just to the last row — with one task the board is mostly empty. */
+    .cal-inner{min-width:500px;position:relative;min-height:100%}
+    /* Lines that belong to a date rather than to a row — today and every
+       marker — are drawn once, over the whole track. Drawn per row they
+       broke at every gap between rows and never reached the header. */
+    .cal-lines{position:absolute;inset:0;pointer-events:none;z-index:4}
+    .cal-empty-note{padding:2.2rem 1.2rem;text-align:center;color:var(--muted);font-size:15px;font-weight:300}
+    .cal-empty-note b{display:block;color:var(--text);font-weight:500;font-size:16px;margin-bottom:3px}
 
     /* STICKY HEADER */
     .cal-header-row{display:flex;flex-direction:row;position:sticky;top:var(--topbar-h);z-index:50}
@@ -401,8 +415,8 @@
     .check-row input:hover{border-color:var(--pink);transform:scale(1.12)}
     .check-row input:checked{background:var(--accent-grad);border-color:transparent;box-shadow:0 2px 10px -2px var(--accent-shadow)}
     .check-row input:checked::after{content:'✓';color:#fff;font-size:15.5px;font-weight:700;line-height:1}
-    html[data-theme="light"] .check-row input{background:#ffffff;border-color:#c8d4c8}
-    html[data-theme="light"] .check-row input:checked{background:var(--accent-grad);border-color:transparent}
+    html:is([data-theme="light"],[data-theme="paper"]) .check-row input{background:var(--card);border-color:#c8d4c8}
+    html:is([data-theme="light"],[data-theme="paper"]) .check-row input:checked{background:var(--accent-grad);border-color:transparent}
     .check-row input:checked{animation:checkPop 0.32s cubic-bezier(0.34,1.56,0.64,1)}
     .no-anim .check-row input:checked{animation:none}
     @keyframes checkPop{0%{transform:scale(0.5)}60%{transform:scale(1.3)}100%{transform:scale(1)}}
@@ -584,16 +598,19 @@
     .hl-vline.active{background:rgba(111,227,189,0.55);width:2px}
 
     /* ── Persistent marker vline — always visible ── */
+    /* A 2px line in a 14px strip: the strip is what you tap, so the line
+       doesn't have to be fat to be hittable. Centred on its date, the same
+       way the header tick above it is, so the two meet. */
     .marker-vline{
-      position:absolute;top:0;bottom:0;
-      width:2px;
-      background:rgba(234,88,12,0.50);
-      z-index:4;pointer-events:auto;
-      border-radius:1px;
-      cursor:pointer;
-      transition:background 0.15s,width 0.15s;
+      position:absolute;top:0;bottom:0;width:14px;margin-left:-7px;
+      background:linear-gradient(rgba(234,88,12,0.62),rgba(234,88,12,0.62)) center/2px 100% no-repeat;
+      pointer-events:auto;cursor:pointer;transition:background-size 0.15s;
     }
-    .marker-vline:hover{background:rgba(234,88,12,0.85);width:3px}
+    .marker-vline:hover{background-size:4px 100%}
+    /* The header half of the same line: from under the name tag down to
+       the foot of the header, where the track's line picks it up. */
+    .date-tick.marker-tick{bottom:0}
+    .marker-stem{flex:1;width:2px;min-height:2px;margin-top:2px;background:rgba(234,88,12,0.62)}
 
     .gantt-bar{position:absolute;top:11px;bottom:11px;border-radius:9px;cursor:pointer;display:flex;align-items:center;padding:0 13px;overflow:hidden;z-index:3;min-width:6px;transition:filter 0.15s,transform 0.15s,opacity 0.4s,box-shadow 0.2s;animation:barIn 0.38s ease backwards;box-shadow:0 4px 12px -4px rgba(0,0,0,0.4)}
     @keyframes barIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
@@ -793,7 +810,7 @@
     .toast.error{border-color:rgba(229,62,62,0.55)}
     .toast-action{flex-shrink:0;border:none;cursor:pointer;font:inherit;font-weight:600;padding:5px 12px;border-radius:8px;
       color:#fff;background:var(--accent-grad,linear-gradient(180deg,#ff5fac,#c02e7e))}
-    html[data-theme="light"] .toast{background:rgba(255,255,255,0.98);color:#1f2933;border-color:rgba(0,0,0,0.12);box-shadow:0 8px 28px rgba(0,0,0,0.18)}
+    html:is([data-theme="light"],[data-theme="paper"]) .toast{background:rgba(255,255,255,0.98);color:#1f2933;border-color:rgba(0,0,0,0.12);box-shadow:0 8px 28px rgba(0,0,0,0.18)}
     /* ── Skeleton loading — shimmering ghost of the calendar while tasks load ──
        Mirrors the real layout (same header, columns, row height and gaps) so the
        page doesn't jump when the data lands — incl. mobile weekly view */
@@ -822,8 +839,8 @@
     .skel-a-name{height:12px;width:var(--sk-nw,40%)}
     .skel-a-chip{height:14px;width:64px;border-radius:10px;flex-shrink:0}
     .skel-a-right{height:11px;width:52px;margin-left:auto;flex-shrink:0}
-    html[data-theme="light"] .skel-bone{background:rgba(0,0,0,0.07)}
-    html[data-theme="light"] .skel-bone::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent)}
+    html:is([data-theme="light"],[data-theme="paper"]) .skel-bone{background:rgba(0,0,0,0.07)}
+    html:is([data-theme="light"],[data-theme="paper"]) .skel-bone::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent)}
     @media (prefers-reduced-motion: reduce){.skel-bone::after{animation:none}}
 
     /* ── FLOATING CONTROL — one pill, one sheet ────────────────
@@ -1169,13 +1186,17 @@
     .cd-wrap.marker .cd-box{background:var(--marker-light);border-color:var(--marker-border)}
     .cd-wrap.marker .cd-num{color:var(--marker-dark)}
     .cd-today{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;font-size:15px;font-weight:500;width:fit-content;background:var(--marker-light);color:var(--marker-dark);border:1px solid var(--marker-border)}
-    html[data-theme="light"] .cd-box{background:#f8faf8;border-color:#dde3dd}
-    html[data-theme="light"] .cd-wrap.overdue .cd-box{background:var(--red-light);border-color:var(--red-mid)}
-    html[data-theme="light"] .cd-wrap.marker .cd-box{background:var(--marker-light);border-color:var(--marker-border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .cd-box{background:#f8faf8;border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .cd-wrap.overdue .cd-box{background:var(--red-light);border-color:var(--red-mid)}
+    html:is([data-theme="light"],[data-theme="paper"]) .cd-wrap.marker .cd-box{background:var(--marker-light);border-color:var(--marker-border)}
     .detail-dates{font-size:14px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
     .detail-dates a,.detail-note a{color:var(--pink);text-decoration:none;word-break:break-word}
     .detail-dates a:hover,.detail-note a:hover{text-decoration:underline}
     .filter-search{width:100%;padding:9px 12px;margin-bottom:10px;border:1px solid var(--field-brd);border-radius:10px;font-size:16px;font-family:'Kanit',sans-serif;color:var(--text);background:var(--field-bg);outline:none}
+    .hist-list{max-height:55vh;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+    .hist-row{font-size:14px;line-height:1.5;padding-bottom:10px;border-bottom:1px solid var(--field-brd)}
+    .hist-row b{font-weight:600}
+    .hist-row div,.hist-row small{display:block;color:var(--muted);font-weight:300;word-break:break-word}
     .filter-search:focus{border-color:var(--pink);box-shadow:0 0 0 3px var(--accent-ring)}
     .detail-edit-btn{margin-top:6px;width:100%;padding:9px;background:var(--accent-grad);color:white;border:none;border-radius:10px;font-family:'Kanit',sans-serif;font-size:15px;font-weight:500;cursor:pointer;display:none;transition:filter 0.15s;box-shadow:0 10px 24px -10px var(--accent-shadow)}
     .detail-edit-btn:hover{filter:brightness(1.07)}
@@ -1511,19 +1532,19 @@
       .mt-btn{padding:10px 15px}
     }
 
-    html[data-theme="light"] .mt-pane{background:#ffffff;border-color:#dde3dd}
-    html[data-theme="light"] .mt-tab{background:#f7faf7;border-color:#dde3dd;color:#5c6b5c}
-    html[data-theme="light"] .mt-kind,html[data-theme="light"] .mt-work{background:#f7faf7;border-color:#dde3dd}
-    html[data-theme="light"] .mt-work-detail{background:#f7faf7;border-color:#dde3dd}
-    html[data-theme="light"] .mt-btn.ghost{background:#f7faf7;border-color:#dde3dd;color:#4a564a}
+    html:is([data-theme="light"],[data-theme="paper"]) .mt-pane{background:var(--card);border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .mt-tab{background:#f7faf7;border-color:var(--border);color:#5c6b5c}
+    html:is([data-theme="light"],[data-theme="paper"]) .mt-kind,html:is([data-theme="light"],[data-theme="paper"]) .mt-work{background:#f7faf7;border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .mt-work-detail{background:#f7faf7;border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .mt-btn.ghost{background:#f7faf7;border-color:var(--border);color:#4a564a}
     /* These have to be restated at the theme's own specificity: the plain
        light rules above would otherwise outrank the .active state and
        leave the chosen tab and card looking exactly like the rest. */
-    html[data-theme="light"] .mt-tab.active{background:var(--accent-grad);border-color:transparent;color:#fff}
-    html[data-theme="light"] .mt-tab.active .pt-count{background:#fff;color:#0F6E56}
-    html[data-theme="light"] .mt-kind.active,html[data-theme="light"] .mt-work.active{
+    html:is([data-theme="light"],[data-theme="paper"]) .mt-tab.active{background:var(--accent-grad);border-color:transparent;color:#fff}
+    html:is([data-theme="light"],[data-theme="paper"]) .mt-tab.active .pt-count{background:var(--card);color:var(--accent-soft-text)}
+    html:is([data-theme="light"],[data-theme="paper"]) .mt-kind.active,html:is([data-theme="light"],[data-theme="paper"]) .mt-work.active{
       background:var(--accent-soft);border-color:var(--pink)}
-    html[data-theme="light"] .mt-kind:hover,html[data-theme="light"] .mt-work:hover{
+    html:is([data-theme="light"],[data-theme="paper"]) .mt-kind:hover,html:is([data-theme="light"],[data-theme="paper"]) .mt-work:hover{
       background:var(--accent-soft);border-color:var(--accent-brd)}
 
 
@@ -1760,7 +1781,7 @@
 
     .notify-time-input{background:var(--field-bg);border:1px solid var(--field-brd);border-radius:9px;color:var(--text);font-family:'Kanit',sans-serif;font-size:16px;padding:6px 9px;outline:none;flex-shrink:0;color-scheme:dark;transition:border-color 0.15s}
     .notify-time-input:focus{border-color:var(--pink)}
-    html[data-theme="light"] .notify-time-input{color-scheme:light}
+    html:is([data-theme="light"],[data-theme="paper"]) .notify-time-input{color-scheme:light}
 
     .theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .theme-grid.three{grid-template-columns:repeat(3,1fr)}
@@ -1819,7 +1840,7 @@
     .zone-reset:hover{color:var(--text)}
 
     /* ══ Light theme — the classic look, green accent on white ══ */
-    html[data-theme="light"]{
+    html:is([data-theme="light"],[data-theme="paper"]){
       --navy:#e8ece8;--navy-dark:#f4f6f4;
       --pink:#1D9E75;--pink-soft:#c3ead8;
       --accent-grad:linear-gradient(180deg,#25b587 0%,#0F6E56 100%);
@@ -1844,103 +1865,103 @@
          themes, so a white scrim would swallow it. */
       --bar-scrim:rgba(16,28,48,0.36);--bar-edge:rgba(255,255,255,0.95);
     }
-    html[data-theme="light"] body{background:#f4f6f4}
-    html[data-theme="light"] .bg-orbs{display:none}
+    html:is([data-theme="light"],[data-theme="paper"]) body{background:#f4f6f4}
+    html:is([data-theme="light"],[data-theme="paper"]) .bg-orbs{display:none}
     /* The gate is a ghost of the page, so it follows the page into light */
-    html[data-theme="light"] #authGate{background:#f4f6f4}
-    html[data-theme="light"] #authGate .gate-top{
+    html:is([data-theme="light"],[data-theme="paper"]) #authGate{background:#f4f6f4}
+    html:is([data-theme="light"],[data-theme="paper"]) #authGate .gate-top{
       background:rgba(255,255,255,0.86);border-bottom-color:rgba(20,40,15,0.10);
     }
     /* The floating bar is .topnav now — .topbar is just the transparent slot */
-    html[data-theme="light"] .topnav{
+    html:is([data-theme="light"],[data-theme="paper"]) .topnav{
       background:rgba(255,255,255,0.86);border-color:rgba(20,40,15,0.10);
       box-shadow:0 1px 2px rgba(20,40,15,0.06), 0 16px 40px -22px rgba(20,40,15,0.30);
     }
-    html[data-theme="light"] .brand-chip{background:#ffffff;border-color:#dde3dd;box-shadow:0 2px 8px -2px rgba(0,0,0,0.12)}
-    html[data-theme="light"] .topnav-brand:hover{background:rgba(0,0,0,0.04)}
-    html[data-theme="light"] .topnav-brand:hover .brand-chip{background:#ffffff;border-color:#c8d4c8}
-    html[data-theme="light"] .cfg-toggle{box-shadow:0 4px 18px rgba(0,0,0,0.13);color:var(--text)}
-    html[data-theme="light"] .cfg-toggle.on,html[data-theme="light"] .cfg-toggle.open{color:#fff}
-    html[data-theme="light"] .cfg-toggle.on .cfg-count{color:#0F6E56}
-    html[data-theme="light"] .cfg-sheet{border-color:#dde3dd;box-shadow:0 8px 28px rgba(0,0,0,0.12)}
-    html[data-theme="light"] .cfg-sheet::before{background:rgba(20,40,15,0.2)}
-    html[data-theme="light"] .filter-chip:hover{background:rgba(0,0,0,0.05)}
-    html[data-theme="light"] .filter-switch-row:hover{background:rgba(0,0,0,0.04)}
-    html[data-theme="light"] .dp-sq-row{background:#f7faf7;border-color:#dde3dd}
-    html[data-theme="light"] .dp-sq-row:hover{background:var(--accent-soft);border-color:var(--accent-brd)}
-    html[data-theme="light"] .user-dropdown-name{color:#1a1a1a}
-    html[data-theme="light"] .brand-mini{animation:none}
-    html[data-theme="light"] .cal-header-scroll{background:rgba(244,246,244,0.88)}
-    html[data-theme="light"] .cal-left,html[data-theme="light"] .cal-header-left{box-shadow:4px 0 14px -4px rgba(0,0,0,0.10)}
-    html[data-theme="light"] .cal-right,html[data-theme="light"] .cal-header-right{box-shadow:-4px 0 14px -4px rgba(0,0,0,0.10)}
-    html[data-theme="light"] .grid-col{background:rgba(0,0,0,0.07)}
+    html:is([data-theme="light"],[data-theme="paper"]) .brand-chip{background:var(--card);border-color:var(--border);box-shadow:0 2px 8px -2px rgba(0,0,0,0.12)}
+    html:is([data-theme="light"],[data-theme="paper"]) .topnav-brand:hover{background:rgba(0,0,0,0.04)}
+    html:is([data-theme="light"],[data-theme="paper"]) .topnav-brand:hover .brand-chip{background:var(--card);border-color:#c8d4c8}
+    html:is([data-theme="light"],[data-theme="paper"]) .cfg-toggle{box-shadow:0 4px 18px rgba(0,0,0,0.13);color:var(--text)}
+    html:is([data-theme="light"],[data-theme="paper"]) .cfg-toggle.on,html:is([data-theme="light"],[data-theme="paper"]) .cfg-toggle.open{color:#fff}
+    html:is([data-theme="light"],[data-theme="paper"]) .cfg-toggle.on .cfg-count{color:var(--accent-soft-text)}
+    html:is([data-theme="light"],[data-theme="paper"]) .cfg-sheet{border-color:var(--border);box-shadow:0 8px 28px rgba(0,0,0,0.12)}
+    html:is([data-theme="light"],[data-theme="paper"]) .cfg-sheet::before{background:rgba(20,40,15,0.2)}
+    html:is([data-theme="light"],[data-theme="paper"]) .filter-chip:hover{background:rgba(0,0,0,0.05)}
+    html:is([data-theme="light"],[data-theme="paper"]) .filter-switch-row:hover{background:rgba(0,0,0,0.04)}
+    html:is([data-theme="light"],[data-theme="paper"]) .dp-sq-row{background:#f7faf7;border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .dp-sq-row:hover{background:var(--accent-soft);border-color:var(--accent-brd)}
+    html:is([data-theme="light"],[data-theme="paper"]) .user-dropdown-name{color:#1a1a1a}
+    html:is([data-theme="light"],[data-theme="paper"]) .brand-mini{animation:none}
+    html:is([data-theme="light"],[data-theme="paper"]) .cal-header-scroll{background:rgba(244,246,244,0.88)}
+    html:is([data-theme="light"],[data-theme="paper"]) .cal-left,html:is([data-theme="light"],[data-theme="paper"]) .cal-header-left{box-shadow:4px 0 14px -4px rgba(0,0,0,0.10)}
+    html:is([data-theme="light"],[data-theme="paper"]) .cal-right,html:is([data-theme="light"],[data-theme="paper"]) .cal-header-right{box-shadow:-4px 0 14px -4px rgba(0,0,0,0.10)}
+    html:is([data-theme="light"],[data-theme="paper"]) .grid-col{background:rgba(0,0,0,0.07)}
     /* Grid mode: paler surfaces, and day colours darkened enough to read on white */
-    html[data-theme="light"] .tl-head,html[data-theme="light"] .tl-grid{background:#ffffff;border-color:#dde3dd;backdrop-filter:none;-webkit-backdrop-filter:none}
-    html[data-theme="light"] .tl-grid{box-shadow:0 6px 22px -16px rgba(0,0,0,0.35)}
-    html[data-theme="light"] .tl-nav{background:#f8faf8;border-color:#dde3dd}
-    html[data-theme="light"] .tl-cell.weekend{background:#f8faf8}
-    html[data-theme="light"] .tl-wd.d0{--dc:#c62828}html[data-theme="light"] .tl-wd.d1{--dc:#9a6b00}
-    html[data-theme="light"] .tl-wd.d2{--dc:#c2185b}html[data-theme="light"] .tl-wd.d3{--dc:#2e7d32}
-    html[data-theme="light"] .tl-wd.d4{--dc:#c05621}html[data-theme="light"] .tl-wd.d5{--dc:#1565c0}
-    html[data-theme="light"] .tl-wd.d6{--dc:#6b21a8}
-    html[data-theme="light"] .tl-bar{box-shadow:0 2px 7px -4px rgba(0,0,0,0.45)}
-    html[data-theme="light"] .tl-bar.personal{border-color:rgba(255,255,255,0.85)}
-    html[data-theme="light"] .tl-cell.today{background:#fff1f1}
-    html[data-theme="light"] .tl-legend{background:#ffffff;border-color:#dde3dd}
-    html[data-theme="light"] .tl-leg-sw{border-color:#c8d4c8}
-    html[data-theme="light"] .baseline-track{background:#dde3dd}
-    html[data-theme="light"] .label-row:hover{background:rgba(0,0,0,0.04)}
-    html[data-theme="light"] .nav-pill:hover:not(.active){background:rgba(0,0,0,0.05)}
-    html[data-theme="light"] .nav-pill{color:#6b7b6b}
-    html[data-theme="light"] .nav-pill.active{color:#fff}
-    html[data-theme="light"] .nav-pill.active .tab-count{background:#fff;color:#0F6E56}
-    html[data-theme="light"] .user-dropdown{border-color:#dde3dd;box-shadow:0 18px 44px -12px rgba(0,0,0,0.18)}
-    html[data-theme="light"] .user-dropdown-info{border-bottom-color:#eef1ee}
-    html[data-theme="light"] .user-dropdown-btn{color:#3a463a}
-    html[data-theme="light"] .user-dropdown-btn.signout:hover{background:#fff5f5;color:#e53e3e}
-    html[data-theme="light"] .gantt-bar{box-shadow:0 3px 10px -4px rgba(0,0,0,0.25)}
-    html[data-theme="light"] .check-spin{border-color:#dde3dd;border-top-color:var(--pink)}
-    html[data-theme="light"] .legend-panel,html[data-theme="light"] .range-panel{border-color:#dde3dd;box-shadow:0 8px 28px rgba(0,0,0,0.12)}
+    html:is([data-theme="light"],[data-theme="paper"]) .tl-head,html:is([data-theme="light"],[data-theme="paper"]) .tl-grid{background:var(--card);border-color:var(--border);backdrop-filter:none;-webkit-backdrop-filter:none}
+    html:is([data-theme="light"],[data-theme="paper"]) .tl-grid{box-shadow:0 6px 22px -16px rgba(0,0,0,0.35)}
+    html:is([data-theme="light"],[data-theme="paper"]) .tl-nav{background:#f8faf8;border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .tl-cell.weekend{background:#f8faf8}
+    html:is([data-theme="light"],[data-theme="paper"]) .tl-wd.d0{--dc:#c62828}html:is([data-theme="light"],[data-theme="paper"]) .tl-wd.d1{--dc:#9a6b00}
+    html:is([data-theme="light"],[data-theme="paper"]) .tl-wd.d2{--dc:#c2185b}html:is([data-theme="light"],[data-theme="paper"]) .tl-wd.d3{--dc:#2e7d32}
+    html:is([data-theme="light"],[data-theme="paper"]) .tl-wd.d4{--dc:#c05621}html:is([data-theme="light"],[data-theme="paper"]) .tl-wd.d5{--dc:#1565c0}
+    html:is([data-theme="light"],[data-theme="paper"]) .tl-wd.d6{--dc:#6b21a8}
+    html:is([data-theme="light"],[data-theme="paper"]) .tl-bar{box-shadow:0 2px 7px -4px rgba(0,0,0,0.45)}
+    html:is([data-theme="light"],[data-theme="paper"]) .tl-bar.personal{border-color:rgba(255,255,255,0.85)}
+    html:is([data-theme="light"],[data-theme="paper"]) .tl-cell.today{background:#fff1f1}
+    html:is([data-theme="light"],[data-theme="paper"]) .tl-legend{background:var(--card);border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .tl-leg-sw{border-color:#c8d4c8}
+    html:is([data-theme="light"],[data-theme="paper"]) .baseline-track{background:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .label-row:hover{background:rgba(0,0,0,0.04)}
+    html:is([data-theme="light"],[data-theme="paper"]) .nav-pill:hover:not(.active){background:rgba(0,0,0,0.05)}
+    html:is([data-theme="light"],[data-theme="paper"]) .nav-pill{color:#6b7b6b}
+    html:is([data-theme="light"],[data-theme="paper"]) .nav-pill.active{color:#fff}
+    html:is([data-theme="light"],[data-theme="paper"]) .nav-pill.active .tab-count{background:var(--card);color:var(--accent-soft-text)}
+    html:is([data-theme="light"],[data-theme="paper"]) .user-dropdown{border-color:var(--border);box-shadow:0 18px 44px -12px rgba(0,0,0,0.18)}
+    html:is([data-theme="light"],[data-theme="paper"]) .user-dropdown-info{border-bottom-color:#eef1ee}
+    html:is([data-theme="light"],[data-theme="paper"]) .user-dropdown-btn{color:#3a463a}
+    html:is([data-theme="light"],[data-theme="paper"]) .user-dropdown-btn.signout:hover{background:#fff5f5;color:#e53e3e}
+    html:is([data-theme="light"],[data-theme="paper"]) .gantt-bar{box-shadow:0 3px 10px -4px rgba(0,0,0,0.25)}
+    html:is([data-theme="light"],[data-theme="paper"]) .check-spin{border-color:var(--border);border-top-color:var(--pink)}
+    html:is([data-theme="light"],[data-theme="paper"]) .legend-panel,html:is([data-theme="light"],[data-theme="paper"]) .range-panel{border-color:var(--border);box-shadow:0 8px 28px rgba(0,0,0,0.12)}
     /* Latched sort wears the accent fill, so its label has to flip too */
-    html[data-theme="light"] .range-option{color:#3a463a}
+    html:is([data-theme="light"],[data-theme="paper"]) .range-option{color:#3a463a}
     /* Restated at the theme's specificity — the plain rule above would
        otherwise win and leave dark text on the accent fill. */
-    html[data-theme="light"] .range-option.active{color:#fff}
-    html[data-theme="light"] .modal-overlay,html[data-theme="light"] .marker-modal-overlay,
-    html[data-theme="light"] .pw-overlay{background:rgba(0,0,0,0.35)}
-    html[data-theme="light"] .modal,html[data-theme="light"] .marker-modal,
-    html[data-theme="light"] .pw-box,html[data-theme="light"] .detail-popup,
-    html[data-theme="light"] .modal-field input::placeholder,html[data-theme="light"] .modal-field textarea::placeholder,
-    html[data-theme="light"] .pt-field input::placeholder,html[data-theme="light"] .pw-box input::placeholder{color:rgba(0,0,0,0.35)}
-    html[data-theme="light"] input[type="date"]{color-scheme:light}
-    html[data-theme="light"] .modal-cancel{background:#f8faf8;color:#6b7b6b;border-color:#dde3dd}
-    html[data-theme="light"] .modal-delete{background:#fff5f5;color:#e53e3e;border-color:#fed7d7}
-    html[data-theme="light"] .btn-ghost{background:#f8faf8;border-color:#dde3dd;color:#4a564a}
-    html[data-theme="light"] .btn-ghost:hover{background:#eef2ee}
-    html[data-theme="light"] .tour-close{background:#f1f4f1;color:#6b7b6b}
-    html[data-theme="light"] .tour-close:hover{background:#e5eae5;color:#1a1a1a}
-    html[data-theme="light"] .tour-dot{background:rgba(0,0,0,0.15)}
-    html[data-theme="light"] .tour-dot.active{background:var(--pink)}
-    html[data-theme="light"] .marker-table-dot{background:#1e3a8a}
-    html[data-theme="light"] .marker-days-btn.past{background:rgba(107,123,107,0.55);color:#f0f0f0}
-    html[data-theme="light"] .marker-name-tag.multi-tag{background:#fff0ea;border-color:#ffbbaa;color:#b94010}
-    html[data-theme="light"] .pt-switch{background:#d1d5db}
+    html:is([data-theme="light"],[data-theme="paper"]) .range-option.active{color:#fff}
+    html:is([data-theme="light"],[data-theme="paper"]) .modal-overlay,html:is([data-theme="light"],[data-theme="paper"]) .marker-modal-overlay,
+    html:is([data-theme="light"],[data-theme="paper"]) .pw-overlay{background:rgba(0,0,0,0.35)}
+    html:is([data-theme="light"],[data-theme="paper"]) .modal,html:is([data-theme="light"],[data-theme="paper"]) .marker-modal,
+    html:is([data-theme="light"],[data-theme="paper"]) .pw-box,html:is([data-theme="light"],[data-theme="paper"]) .detail-popup,
+    html:is([data-theme="light"],[data-theme="paper"]) .modal-field input::placeholder,html:is([data-theme="light"],[data-theme="paper"]) .modal-field textarea::placeholder,
+    html:is([data-theme="light"],[data-theme="paper"]) .pt-field input::placeholder,html:is([data-theme="light"],[data-theme="paper"]) .pw-box input::placeholder{color:rgba(0,0,0,0.35)}
+    html:is([data-theme="light"],[data-theme="paper"]) input[type="date"]{color-scheme:light}
+    html:is([data-theme="light"],[data-theme="paper"]) .modal-cancel{background:#f8faf8;color:#6b7b6b;border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .modal-delete{background:#fff5f5;color:#e53e3e;border-color:#fed7d7}
+    html:is([data-theme="light"],[data-theme="paper"]) .btn-ghost{background:#f8faf8;border-color:var(--border);color:#4a564a}
+    html:is([data-theme="light"],[data-theme="paper"]) .btn-ghost:hover{background:#eef2ee}
+    html:is([data-theme="light"],[data-theme="paper"]) .tour-close{background:#f1f4f1;color:#6b7b6b}
+    html:is([data-theme="light"],[data-theme="paper"]) .tour-close:hover{background:#e5eae5;color:#1a1a1a}
+    html:is([data-theme="light"],[data-theme="paper"]) .tour-dot{background:rgba(0,0,0,0.15)}
+    html:is([data-theme="light"],[data-theme="paper"]) .tour-dot.active{background:var(--pink)}
+    html:is([data-theme="light"],[data-theme="paper"]) .marker-table-dot{background:#1e3a8a}
+    html:is([data-theme="light"],[data-theme="paper"]) .marker-days-btn.past{background:rgba(107,123,107,0.55);color:#f0f0f0}
+    html:is([data-theme="light"],[data-theme="paper"]) .marker-name-tag.multi-tag{background:#fff0ea;border-color:#ffbbaa;color:#b94010}
+    html:is([data-theme="light"],[data-theme="paper"]) .pt-switch{background:#d1d5db}
     /* Without this the switch never looks on in light mode at all */
-    html[data-theme="light"] .pt-switch.on{background:var(--pink)}
-    html[data-theme="light"] .pt-tab.active{background:#ffffff;box-shadow:0 -2px 8px rgba(0,0,0,0.06)}
-    html[data-theme="light"] .pt-preview-card{background:#f8faf8}
-    html[data-theme="light"] .archive-row:hover{background:#f4f7f4}
-    html[data-theme="light"] .archive-fchip:hover{background:rgba(0,0,0,0.05)}
-    html[data-theme="light"] .archive-act:hover{background:rgba(0,0,0,0.06);color:#1a1a1a}
-    html[data-theme="light"] .archive-act.danger:hover{background:var(--red-light);color:var(--red-text)}
-    html[data-theme="light"] .archive-tb-btn:hover{background:#eef2ee}
-    html[data-theme="light"] .archive-cb{background:#ffffff;border-color:#c8d4c8}
-    html[data-theme="light"] .archive-cb:checked{background:var(--accent-grad);border-color:transparent}
-    html[data-theme="light"] .archive-strip.deadline{background:#e53e3e}
-    html[data-theme="light"] .archive-toolbar,html[data-theme="light"] .archive-list{backdrop-filter:none;-webkit-backdrop-filter:none}
-    html[data-theme="light"] .pt-list-card:hover{background:#ffffff;border-color:#c8d4c8;box-shadow:0 2px 10px rgba(0,0,0,0.08)}
+    html:is([data-theme="light"],[data-theme="paper"]) .pt-switch.on{background:var(--pink)}
+    html:is([data-theme="light"],[data-theme="paper"]) .pt-tab.active{background:var(--card);box-shadow:0 -2px 8px rgba(0,0,0,0.06)}
+    html:is([data-theme="light"],[data-theme="paper"]) .pt-preview-card{background:#f8faf8}
+    html:is([data-theme="light"],[data-theme="paper"]) .archive-row:hover{background:#f4f7f4}
+    html:is([data-theme="light"],[data-theme="paper"]) .archive-fchip:hover{background:rgba(0,0,0,0.05)}
+    html:is([data-theme="light"],[data-theme="paper"]) .archive-act:hover{background:rgba(0,0,0,0.06);color:#1a1a1a}
+    html:is([data-theme="light"],[data-theme="paper"]) .archive-act.danger:hover{background:var(--red-light);color:var(--red-text)}
+    html:is([data-theme="light"],[data-theme="paper"]) .archive-tb-btn:hover{background:#eef2ee}
+    html:is([data-theme="light"],[data-theme="paper"]) .archive-cb{background:var(--card);border-color:#c8d4c8}
+    html:is([data-theme="light"],[data-theme="paper"]) .archive-cb:checked{background:var(--accent-grad);border-color:transparent}
+    html:is([data-theme="light"],[data-theme="paper"]) .archive-strip.deadline{background:#e53e3e}
+    html:is([data-theme="light"],[data-theme="paper"]) .archive-toolbar,html:is([data-theme="light"],[data-theme="paper"]) .archive-list{backdrop-filter:none;-webkit-backdrop-filter:none}
+    html:is([data-theme="light"],[data-theme="paper"]) .pt-list-card:hover{background:var(--card);border-color:#c8d4c8;box-shadow:0 2px 10px rgba(0,0,0,0.08)}
     @media(max-width:480px){
-      html[data-theme="light"] .detail-popup::before{background:#dde3dd}
+      html:is([data-theme="light"],[data-theme="paper"]) .detail-popup::before{background:var(--border)}
     }
 
     /* ── To Do view ─────────────────────────────────────────────
@@ -2174,17 +2195,17 @@
       .todo-scroll{max-height:none}
     }
 
-    html[data-theme="light"] .todo-col{background:#ffffff;border-color:#dde3dd}
-    html[data-theme="light"] .todo-count{background:#eef2ee;color:#5c6b5c}
-    html[data-theme="light"] .todo-pool-card,html[data-theme="light"] .todo-item{background:#f7faf7;border-color:#dde3dd}
-    html[data-theme="light"] .todo-pool-card:hover,html[data-theme="light"] .todo-item:hover{background:#ffffff;box-shadow:0 2px 10px rgba(0,0,0,0.07)}
-    html[data-theme="light"] .todo-item.notes-open{background:#ffffff}
-    html[data-theme="light"] .todo-notes{background:#f4f7f4;border-color:#dde3dd}
-    html[data-theme="light"] .todo-grip{color:#8d9a8d}
-    html[data-theme="light"] .todo-act:hover{background:rgba(0,0,0,0.06);color:#1a1a1a}
-    html[data-theme="light"] .todo-search{background:#f4f7f4;border-color:#dde3dd}
-    html[data-theme="light"] .todo-empty{border-color:#dde3dd}
-    html[data-theme="light"] .todo-ghost{box-shadow:0 18px 40px -12px rgba(0,0,0,0.28)}
+    html:is([data-theme="light"],[data-theme="paper"]) .todo-col{background:var(--card);border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .todo-count{background:#eef2ee;color:#5c6b5c}
+    html:is([data-theme="light"],[data-theme="paper"]) .todo-pool-card,html:is([data-theme="light"],[data-theme="paper"]) .todo-item{background:#f7faf7;border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .todo-pool-card:hover,html:is([data-theme="light"],[data-theme="paper"]) .todo-item:hover{background:var(--card);box-shadow:0 2px 10px rgba(0,0,0,0.07)}
+    html:is([data-theme="light"],[data-theme="paper"]) .todo-item.notes-open{background:var(--card)}
+    html:is([data-theme="light"],[data-theme="paper"]) .todo-notes{background:#f4f7f4;border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .todo-grip{color:#8d9a8d}
+    html:is([data-theme="light"],[data-theme="paper"]) .todo-act:hover{background:rgba(0,0,0,0.06);color:#1a1a1a}
+    html:is([data-theme="light"],[data-theme="paper"]) .todo-search{background:#f4f7f4;border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .todo-empty{border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .todo-ghost{box-shadow:0 18px 40px -12px rgba(0,0,0,0.28)}
 
     @media (prefers-reduced-motion: reduce){
       *,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}
@@ -2489,6 +2510,7 @@
     <a class="user-dropdown-btn menu" href="tools.html" style="text-decoration:none;"><svg class="ic" aria-hidden="true"><use href="#ic-toolbox"/></svg> Tools</a>
     <button class="user-dropdown-btn menu" id="ddModMode" onclick="toggleModMode()"><svg class="ic" aria-hidden="true"><use href="#ic-lock"/></svg> Mod mode</button>
     <button class="user-dropdown-btn menu" id="ddAddTask" onclick="openAddModal()" style="display:none;"><svg class="ic" aria-hidden="true"><use href="#ic-plus"/></svg> Add shared task</button>
+    <button class="user-dropdown-btn menu" id="ddAddMarker" onclick="openAddModal('marker')" style="display:none;"><svg class="ic" aria-hidden="true"><use href="#ic-pin"/></svg> Add shared marker</button>
     <a class="user-dropdown-btn menu" id="ddFirebase" href="https://console.firebase.google.com/u/0/project/tas-samtabsam/overview" target="_blank" rel="noopener" style="text-decoration:none;display:none;"><svg class="ic" aria-hidden="true"><use href="#ic-flame"/></svg> Firebase console</a>
     <button class="user-dropdown-btn signout" onclick="handleSignOut()"><svg class="ic" aria-hidden="true"><use href="#ic-exit"/></svg> Sign out</button>
   </div>
@@ -2623,22 +2645,42 @@
 <!-- PERSONAL TASK PANEL -->
 <!-- My Tasks is a view now (renderMyTasks), not an overlay. -->
 
+<!-- CHANGE HISTORY (moderators) — above Settings, which it opens from -->
+<div class="modal-overlay" id="historyModal" style="z-index:950">
+  <div class="modal">
+    <h2>Change history</h2>
+    <div class="hist-list" id="historyList"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeHistory()">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- MOD ADD/EDIT MODAL (kept for mod use) -->
 <div class="modal-overlay" id="taskModal">
   <div class="modal">
     <h2 id="modal-title">Add task</h2>
-    <div class="modal-field"><label>Task name</label><input type="text" id="t-name" placeholder="e.g. MindMap งานการงาน" /></div>
+    <div class="modal-field"><label>Name</label><input type="text" id="t-name" placeholder="e.g. MindMap งานการงาน" /></div>
     <div class="modal-field"><label>Subject</label><input type="text" id="t-subject" placeholder="e.g. การงาน, ภาษาไทย" /></div>
     <div class="modal-field" id="t-type-field"><label>Type</label>
-      <select id="t-type">
+      <select id="t-type" onchange="setModalMarker(this.value==='marker')">
         <option value="normal">Send On (fixed send date)</option>
         <option value="deadline">Send Before (hard deadline)</option>
         <option value="prediction">Estimated (no clear deadline)</option>
+        <option value="marker">Marker (one date — quiz, exam, event)</option>
+      </select>
+    </div>
+    <div class="modal-field" id="t-mkind-field" style="display:none"><label>Marker kind</label>
+      <select id="t-mkind">
+        <option value="quiz">Quiz</option>
+        <option value="exam">Exam</option>
+        <option value="event">Event</option>
+        <option value="date">Important date</option>
       </select>
     </div>
     <div class="modal-row">
       <div class="modal-field" id="t-start-field"><label>Start date</label><input type="date" id="t-start" /></div>
-      <div class="modal-field"><label>End / Due date</label><input type="date" id="t-end" /></div>
+      <div class="modal-field"><label id="t-end-label">End / Due date</label><input type="date" id="t-end" /></div>
     </div>
     <!-- The class's starting point for how heavy this is. Each student can
          set their own weight over the top from the task's detail sheet. -->
@@ -2649,7 +2691,7 @@
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeModal()">Cancel</button>
       <button class="modal-delete" id="modal-delete-btn" style="display:none" onclick="deleteTask()"><svg class="ic" aria-hidden="true"><use href="#ic-trash"/></svg> Delete</button>
-      <button class="modal-save" onclick="saveTask()"><svg class="ic" aria-hidden="true"><use href="#ic-save"/></svg> Save task</button>
+      <button class="modal-save" onclick="saveTask()"><svg class="ic" aria-hidden="true"><use href="#ic-save"/></svg> Save</button>
     </div>
   </div>
 </div>
@@ -2736,12 +2778,13 @@
             <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-theme"/></svg></div>
             <div class="set-row-text">
               <div class="set-row-title">Theme</div>
-              <div class="set-row-desc">Dark by default, or the classic green-on-white look</div>
+              <div class="set-row-desc">Dark by default, classic green-on-white, or cut-paper on a cutting mat</div>
             </div>
           </div>
-          <div class="theme-grid">
+          <div class="theme-grid three">
             <button class="theme-opt" id="themeOptDark" onclick="setTheme('dark')"><svg class="ic" aria-hidden="true"><use href="#ic-moon"/></svg> Dark<span>Default</span></button>
             <button class="theme-opt" id="themeOptLight" onclick="setTheme('light')"><svg class="ic" aria-hidden="true"><use href="#ic-sun"/></svg> Light<span>Classic</span></button>
+            <button class="theme-opt" id="themeOptPaper" onclick="setTheme('paper')"><svg class="ic" aria-hidden="true"><use href="#ic-crayon"/></svg> Paper<span>Papercraft</span></button>
           </div>
         </div>
 
@@ -2802,8 +2845,18 @@
           </div>
           <input type="time" id="notifyTimeInput" class="notify-time-input" value="18:00" onclick="event.stopPropagation()" />
         </div>
+        <div class="set-row stack">
+          <div class="set-row-main">
+            <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-bell"/></svg></div>
+            <div class="set-row-text">
+              <div class="set-row-title">Skip subjects</div>
+              <div class="set-row-desc" id="muteHint">Tap a subject to leave it out of the reminder</div>
+            </div>
+          </div>
+          <div class="filter-group" id="muteSubjects"></div>
+        </div>
       </div>
-      <div class="set-group-note">New tasks are announced as they are posted, and one reminder a day covers what is due today or tomorrow. Works while the site is open, even in a background tab — on phones, add it to your home screen first.</div>
+      <div class="set-group-note">One reminder a day covers what is due today or tomorrow, sent to this device even with the site closed — on phones, add it to your home screen first.</div>
 
       <div class="set-group-label">Tasks</div>
       <div class="set-group">
@@ -2919,6 +2972,13 @@
             <svg class="ic" aria-hidden="true"><use href="#ic-refresh"/></svg>
             <span id="rescaleBtnLab">Check what needs rescaling</span>
           </button>
+        </div>
+        <div class="set-row tap" id="historyRow" style="display:none" onclick="openHistory()">
+          <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-refresh"/></svg></div>
+          <div class="set-row-text">
+            <div class="set-row-title">Change history</div>
+            <div class="set-row-desc">Who added, edited or deleted class tasks, newest first</div>
+          </div>
         </div>
       </div>
       <div class="set-group-note">This one is saved to your account, so it follows you to your phone.</div>
@@ -3056,7 +3116,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
 import {
   getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
-  onSnapshot, setDoc, getDoc, getDocs, writeBatch, query, orderBy
+  onSnapshot, setDoc, getDoc, getDocs, writeBatch, query, orderBy, limit
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 import { publishWidgetFeed, widgetFeedExists }
   from "./tas-widget-feed.js"
@@ -3074,6 +3134,7 @@ import * as TodoUI from "./tas-todo-ui.js"
 // How heavy each task is. Pure arithmetic, tested, and shared with the To Do
 // module so the pills and the meter can never disagree about a weight.
 import * as Points from "./tas-points.js"
+import { icsFor } from "./tas-ics.js"
 import {
   getMessaging, getToken, deleteToken, isSupported as messagingSupported
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-messaging.js"
@@ -3153,7 +3214,21 @@ function gcalUrl(t){
 function detailExtrasHTML(t){
   return (t.by?`<span>${ico("user")} Posted by ${esc(t.by)}</span>`:"")+
     (t.editedBy?`<span>${ico("pencil")} Edited by ${esc(t.editedBy)}</span>`:"")+
-    `<a href="${esc(gcalUrl(t))}" target="_blank" rel="noopener noreferrer">${ico("calendar-grid")} Add to Google Calendar</a>`
+    `<a href="${esc(gcalUrl(t))}" target="_blank" rel="noopener noreferrer">${ico("calendar-grid")} Add to Google Calendar</a>`+
+    `<a href="#" onclick="downloadIcs();return false">${ico("save")} Download for Apple Calendar / Outlook (.ics)</a>`
+}
+
+// Whichever task the detail sheet is showing, as a calendar file.
+window.downloadIcs=function(){
+  const t=tasks.find(x=>x.id===detailTaskId)||personalTasks.find(x=>x.id===detailTaskId)
+  const ics=t&&icsFor(t)
+  if(!ics){toast("This one has no date to export",{error:true});return}
+  const url=URL.createObjectURL(new Blob([ics],{type:"text/calendar"}))
+  const a=document.createElement("a")
+  a.href=url
+  a.download=(t.name||"task").replace(/[\\/:*?"<>|]+/g," ").trim().slice(0,60)+".ics"
+  document.body.appendChild(a);a.click();a.remove()
+  setTimeout(()=>URL.revokeObjectURL(url),4000)
 }
 
 // Icon markup for the templates below — mirrors the <symbol> sprite at the
@@ -3958,7 +4033,7 @@ function syncProgDefaultUI(){
 }
 
 window.openSettings=function(){
-  syncZoneInputs();updateNotifyUI();syncOverdueUI();syncProgDefaultUI();syncPointTargetUI()
+  syncZoneInputs();updateNotifyUI();syncOverdueUI();syncProgDefaultUI();syncPointTargetUI();syncMuteUI()
   const wh=document.getElementById("widgetStateHint")
   if(wh) wh.textContent = widgetFeedOn ? "On — tap to get the link or turn it off" : "Works on iPhone and Android"
   setActivePill("settings")
@@ -4050,16 +4125,17 @@ const RANGE_NAMES = {week:"Week","2weeks":"2 Weeks",month:"Month",semester:"Seme
 // silent data refreshes and checkbox saves re-render without any blink.
 let animateRows = true
 
-// ── Theme (dark default · light classic) ─────────────────────
+// ── Theme (dark default · light classic · papercraft) ────────
 const THEME_KEY = "tas_theme"
 window.setTheme = function(t){
   document.documentElement.dataset.theme = t
   try{ localStorage.setItem(THEME_KEY, t) }catch(e){}
   // The sticker-outline logo reads best on dark; the plain one on light
   const logo = document.querySelector(".brand-mini")
-  if(logo) logo.src = t==="light" ? "TASLogo.png" : "TASLogoLIGHT.png"
+  if(logo) logo.src = t==="dark" ? "TASLogoLIGHT.png" : "TASLogo.png"
   document.getElementById("themeOptDark")?.classList.toggle("active", t==="dark")
   document.getElementById("themeOptLight")?.classList.toggle("active", t==="light")
+  document.getElementById("themeOptPaper")?.classList.toggle("active", t==="paper")
 }
 setTheme(document.documentElement.dataset.theme || "dark")
 
@@ -4149,6 +4225,37 @@ try{ notifyPref = localStorage.getItem(NOTIFY_PREF_KEY)==="on" }catch(e){}
 // time of day (default 18:00) instead of firing whenever the page opens
 let notifyTime = "18:00"
 try{ const v=localStorage.getItem(NOTIFY_TIME_KEY); if(/^\d{1,2}:\d{2}$/.test(v||"")) notifyTime=v }catch(e){}
+/* Subjects left out of the daily reminder. Kept per device like the time,
+   and published to the account so the scheduled function skips them too. */
+const NOTIFY_MUTED_KEY = "tas_notify_muted"
+let notifyMuted = []
+try{
+  const v=JSON.parse(localStorage.getItem(NOTIFY_MUTED_KEY)||"[]")
+  if(Array.isArray(v)) notifyMuted=v.filter(s=>typeof s==="string")
+}catch(e){}
+function syncMuteUI(){
+  const box=document.getElementById("muteSubjects")
+  if(!box) return
+  // Everything on the board, plus anything muted that has since left it —
+  // otherwise a muted subject with no tasks could never be switched back on.
+  const subjects=[...new Set([...tasks,...personalTasks].map(t=>t.subject).filter(Boolean).concat(notifyMuted))].sort()
+  box.innerHTML=subjects.map(s=>
+    `<button type="button" class="filter-chip${notifyMuted.includes(s)?" active":""}" data-mute="${esc(s)}">${esc(s)}</button>`).join("")
+  document.getElementById("muteHint").textContent = notifyMuted.length
+    ? `${notifyMuted.length} skipped — tap to bring one back`
+    : (subjects.length ? "Tap a subject to leave it out of the reminder" : "No subjects yet")
+}
+// Delegated, and by data attribute: a subject name is free text, so it
+// never goes into an inline handler.
+document.getElementById("muteSubjects")?.addEventListener("click",e=>{
+  const s=e.target.closest("[data-mute]")?.dataset.mute
+  if(!s) return
+  notifyMuted = notifyMuted.includes(s) ? notifyMuted.filter(x=>x!==s) : [...notifyMuted,s]
+  try{ localStorage.setItem(NOTIFY_MUTED_KEY, JSON.stringify(notifyMuted)) }catch(e){}
+  syncMuteUI()
+  publishNotifyPrefs()
+})
+
 function reminderTimeReached(){
   const [h,m]=notifyTime.split(":").map(Number)
   const now=new Date()
@@ -4273,6 +4380,7 @@ async function publishNotifyPrefs(){
     await setDoc(doc(db, "notifyPrefs", currentUser.uid), {
       on: !!notifyPref,
       time: notifyTime,
+      muted: notifyMuted,
       tz: (Intl.DateTimeFormat().resolvedOptions().timeZone) || "Asia/Bangkok",
       updatedAt: Date.now()
     }, { merge: true })   // merge, or the function's lastSent goes with it
@@ -4433,7 +4541,7 @@ function sendDueReminders(){
   try{ if(localStorage.getItem(NOTIFY_REMINDED_KEY)===todayStr) return }catch(e){}
   const due = [...tasks,...personalTasks].filter(t=>{
     if(t.type==="marker"||t.type==="prediction"||!t.end) return false
-    if(userDoneCache[t.id]) return false
+    if(userDoneCache[t.id] || notifyMuted.includes(t.subject)) return false
     const dl = daysLeft(parseDate(t.end))
     return dl>=0 && dl<=1
   })
@@ -5461,7 +5569,13 @@ function renderCalendar(){
   // Row tasks: exclude markers (markers render as vlines/ticks only, not rows)
   const activeTasks  = sorted.filter(t=>t.type!=="marker"&&(daysLeft(parseDate(t.end))>=0||t.type==="prediction"))
 
-  if(!activeTasks.length){
+  /* Markers are dates, not rows, so a board with no rows can still have
+     something to show: the quiz next week is exactly what you want to see
+     when the task list is clear. Only a board with neither is empty. */
+  const upcomingMarkers = filterTasks([...tasks,...personalTasks].filter(t=>!isHiddenTask(t)))
+    .filter(t=>t.type==="marker" && daysLeft(parseDate((t.date||t.start||"").slice(0,10)))>=0)
+
+  if(!activeTasks.length && !upcomingMarkers.length){
     /* An empty board because of a filter is a different thing from an
        empty board because the work is done, and only one of them has a
        way out — so say which it is and put the way out on screen. */
@@ -5553,7 +5667,7 @@ function renderCalendar(){
       style="left:${p}%" data-pct="${p}" ${markerClick}>
       <div class="date-tick-line"></div>
       <div class="date-tick-label">${label}</div>
-      ${nameTag}
+      ${nameTag}${coincidentMarkers.length?'<div class="marker-stem"></div>':""}
     </div>`
   }).join("")
 
@@ -5571,18 +5685,21 @@ function renderCalendar(){
         style="left:${p}%" data-pct="${p}" onclick="showMarkersDetail(event,${idsStr2},'${dateStr2}')">
         <div class="date-tick-line"></div>
         <div class="date-tick-label">${shortDate(parseDate(dateStr2))}</div>
-        ${nameTag}
+        ${nameTag}<div class="marker-stem"></div>
       </div>`
     }).join("")
 
-  // Per-row grid: includes marker vlines
+  // Per-row grid. Marker and today lines are not in here — see linesHTML.
   function buildGridHTML(){
-    const regularGrid=tickPositions.map(({p,isToday,isHL})=>
+    return tickPositions.map(({p,isToday,isHL})=>
       `<div class="grid-col${isToday?" grid-col-today":""}" style="left:${p}%"></div>
        <div class="hl-vline${isHL?" active":""}" style="left:${p}%" data-pct="${p}"></div>`
     ).join("")
-    // Marker vlines (persistent, always visible) — carry all IDs for multi-marker popup
-    const markerVlines=Object.keys(markersByPct).map(pk=>{
+  }
+  // One line per marker date and one for today, laid over the whole track
+  // so they run unbroken from the header to the foot of the board.
+  const linesHTML=`<div class="today-vline" style="left:${todayPct}%"></div>`+
+    Object.keys(markersByPct).map(pk=>{
       const p=parseFloat(pk)
       const markers=markersByPct[pk]
       const idsStr=markers.map(m=>`'${m.id}'`).join(",")
@@ -5590,8 +5707,6 @@ function renderCalendar(){
       return `<div class="marker-vline" style="left:${p}%"
         onclick="showMarkersDetail(event,${idsStr},'${dateStr}')"></div>`
     }).join("")
-    return regularGrid+markerVlines
-  }
 
   let leftHTML="",trackHTML="",rightHTML=""
 
@@ -5627,7 +5742,6 @@ function renderCalendar(){
     trackHTML+=`<div class="cal-row" data-id="${t.id}" style="animation-delay:${delay}s">
       <div class="cal-track">
         ${buildGridHTML()}
-        <div class="today-vline" style="left:${todayPct}%"></div>
         ${outLeft}
         <div class="gantt-bar${isOverdue?" overdue-pulse":""}${isDone?" done":""}${isPersonal?" personal":""}${sq?" sidequest":""}${progressOf(t.id)?" has-pct":""}"
           style="left:${left}%;width:${width}%;background:${color};animation-delay:${delay}s" tabindex="0" role="button"
@@ -5672,6 +5786,8 @@ function renderCalendar(){
             </div>
           </div>
           ${trackHTML}
+          ${activeTasks.length?"":`<div class="cal-empty-note"><b>No active tasks</b>${upcomingMarkers.length} marked date${upcomingMarkers.length===1?"":"s"} ahead — tap a line to see it</div>`}
+          <div class="cal-lines">${linesHTML}</div>
         </div>
       </div>
       <div class="cal-right" id="calRight">${rightHTML}</div>
@@ -6498,13 +6614,54 @@ let detailTaskId=null, detailTaskIsPersonal=false
 /* Deleting a class task takes it from everyone, so it gets an Undo: the
    document goes back under the same id, and every tick and progress bar
    that pointed at it still does. */
+/* ── Change history ───────────────────────────────────────────
+   One line per change to a class task, for the moderators. Best effort on
+   purpose: the task is what matters, so a log entry that fails to save is
+   a warning in the console and never an error on screen. */
+function logHistory(action,t,detail=""){
+  if(!currentUser||!t) return
+  addDoc(collection(db,"taskHistory"),{
+    taskId:t.id||"", name:t.name||"", subject:t.subject||"", action, detail,
+    by:currentUser.displayName||currentUser.email||"", at:Date.now()
+  }).catch(e=>console.warn("Could not log the change:",e))
+}
+// "due 2026-10-05 → 2026-10-07" for each field an edit actually moved
+const HISTORY_FIELDS={name:"name",subject:"subject",type:"type",start:"start",end:"due",difficulty:"difficulty"}
+function describeEdit(before,after){
+  const out=[]
+  for(const [k,label] of Object.entries(HISTORY_FIELDS))
+    if(k in after && (before[k]??"")!==(after[k]??"")) out.push(`${label} ${before[k]??"—"} → ${after[k]??"—"}`)
+  if("note" in after && (before.note||"")!==(after.note||"")) out.push("note changed")
+  return out.join(", ")
+}
+window.openHistory=async function(){
+  const list=document.getElementById("historyList")
+  list.innerHTML=`<div class="hist-row"><small>Loading…</small></div>`
+  document.getElementById("historyModal").classList.add("open")
+  try{
+    const snap=await getDocs(query(collection(db,"taskHistory"),orderBy("at","desc"),limit(60)))
+    const when=ms=>{const d=new Date(ms);return `${shortDate(d)} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`}
+    list.innerHTML=snap.docs.map(d=>{
+      const h=d.data()
+      return `<div class="hist-row"><b>${esc(h.action)}</b> · ${esc(h.name)}${h.subject?` (${esc(h.subject)})`:""}
+        ${h.detail?`<div>${esc(h.detail)}</div>`:""}<small>${esc(h.by||"unknown")} · ${when(h.at)}</small></div>`
+    }).join("")||`<div class="hist-row"><small>Nothing yet — changes made from now on will show here.</small></div>`
+  }catch(e){
+    console.warn("Could not load the history:",e)
+    list.innerHTML=`<div class="hist-row"><small>Couldn't load the history — check your connection and try again.</small></div>`
+  }
+}
+window.closeHistory=function(){animCloseOverlay(document.getElementById("historyModal"))}
+document.getElementById("historyModal").addEventListener("click",e=>{if(e.target.id==="historyModal")closeHistory()})
+
 async function deleteSharedTask(id){
   const t=tasks.find(x=>x.id===id)
   await deleteDoc(doc(db,"tasks",id))
   if(!t){toast("Task deleted");return}
+  logHistory("deleted",t)
   const {id:_id,...data}=t
   toast("Task deleted",{action:"Undo",duration:7000,onAction:async()=>{
-    try{await setDoc(doc(db,"tasks",id),data)}
+    try{await setDoc(doc(db,"tasks",id),data);logHistory("restored",t)}
     catch(e){console.warn("Could not restore task:",e);saveFailToast()}
   }})
 }
@@ -6757,8 +6914,12 @@ function updateRoleUI(){
   if(fb) fb.style.display=isModerator?"flex":"none"
   const rescale=document.getElementById("rescaleRow")
   if(rescale) rescale.style.display=isModerator?"":"none"
+  const hist=document.getElementById("historyRow")
+  if(hist) hist.style.display=isModerator?"":"none"
   const at=document.getElementById("ddAddTask")
   if(at) at.style.display=isMod?"flex":"none"
+  const am=document.getElementById("ddAddMarker")
+  if(am) am.style.display=isMod?"flex":"none"
   const dd=document.getElementById("ddModMode")
   if(dd){
     dd.style.display=isWhitelisted?"":"none"
@@ -6809,42 +6970,49 @@ function syncModDiff(){
   if(hint) hint.textContent = modDiff===null ? "— left to the reader's own estimate" : ""
 }
 
-/* A marker is one date and no work, so its edit form is the same modal
-   with the type, the start date and the difficulty taken away. */
+/* A marker is one date and no work, so it is the same modal with the
+   start date and the difficulty taken away and a kind put in their place.
+   It is an option in the Type list, so posting a quiz date is the same
+   two taps as posting homework — no trip through the formatter. */
 let editingMarker=false
-function setModalMarker(on){
+window.setModalMarker=function(on){
   editingMarker=on
-  for(const id of ["t-type-field","t-start-field","t-diff-field"])
+  for(const id of ["t-start-field","t-diff-field"])
     document.getElementById(id).style.display=on?"none":""
+  document.getElementById("t-mkind-field").style.display=on?"":"none"
+  document.getElementById("t-end-label").textContent=on?"Date":"End / Due date"
+  document.getElementById("modal-title").textContent=(editingId?"Edit ":"Add ")+(on?"marker":"task")
+  // A hidden start date would otherwise still put a floor under the date
+  if(on){document.getElementById("t-start").value="";syncDateMins()}
+  else if(!document.getElementById("t-start").value){document.getElementById("t-start").value=localToday();syncDateMins()}
 }
 
-window.openAddModal=function(){
+window.openAddModal=function(kind){
   editingId=null
-  setModalMarker(false)
-  document.getElementById("modal-title").textContent="Add task"
   document.getElementById("t-name").value=""
   document.getElementById("t-subject").value=""
-  document.getElementById("t-type").value="normal"
+  document.getElementById("t-type").value=kind==="marker"?"marker":"normal"
+  document.getElementById("t-mkind").value="quiz"
   document.getElementById("t-start").value=localToday()
   document.getElementById("t-end").value=""
   document.getElementById("t-note").value=""
   modDiff=null
   syncModDiff()
   document.getElementById("modal-delete-btn").style.display="none"
+  setModalMarker(kind==="marker")
   syncDateMins()
   document.getElementById("taskModal").classList.add("open")
 }
 function openEditModal(t){
   editingId=t.id
   const marker=t.type==="marker"
-  setModalMarker(marker)
-  document.getElementById("modal-title").textContent=marker?"Edit marker":"Edit task"
   document.getElementById("t-name").value=t.name
   document.getElementById("t-subject").value=t.subject||""
   document.getElementById("t-type").value=t.type
-  // Emptied for a marker so the hidden start can't put a floor under its date
+  document.getElementById("t-mkind").value=MARKER_INFO[t.markerType]?t.markerType:"quiz"
   document.getElementById("t-start").value=marker?"":t.start
   document.getElementById("t-end").value=marker?(t.date||t.start||""):t.end
+  setModalMarker(marker)
   document.getElementById("t-note").value=t.note||""
   modDiff=Points.normPoints(t.difficulty)
   syncModDiff()
@@ -6868,14 +7036,20 @@ window.saveTask=async function(){
   // Left unset, it stays unset — the reader's own estimate is a better
   // answer than a number the author never thought about.
   const data=editingMarker
-    ? {name,subject,date:end,start:end,end,note}
+    ? {name,subject,type:"marker",markerType:document.getElementById("t-mkind").value,date:end,start:end,end,note}
     : {name,subject,type,start,end,note,difficulty:modDiff||null}
   const who=currentUser?(currentUser.displayName||currentUser.email||""):""
   taskSaving=true
   try{
     // updatedAt keeps the "Latest update" pill honest for edits, not just new tasks
-    if(editingId)await updateDoc(doc(db,"tasks",editingId),{...data,updatedAt:Date.now(),editedBy:who})
-    else await addDoc(collection(db,"tasks"),{...data,createdAt:Date.now(),by:who})
+    if(editingId){
+      const before=tasks.find(x=>x.id===editingId)||{}
+      await updateDoc(doc(db,"tasks",editingId),{...data,updatedAt:Date.now(),editedBy:who})
+      logHistory("edited",{...data,id:editingId},describeEdit(before,data))
+    }else{
+      const ref=await addDoc(collection(db,"tasks"),{...data,createdAt:Date.now(),by:who})
+      logHistory("added",{...data,id:ref.id})
+    }
     closeModal()
   }catch(e){
     console.warn("Could not save task:",e)
@@ -7589,6 +7763,7 @@ document.addEventListener("keydown",e=>{
   if(open("progressModal")) return closeProgressSheet()
   if(open("detailPopup")) return closeDetail()
   if(open("taskModal"))   return closeModal()
+  if(open("historyModal"))    return closeHistory()
   if(open("settingsOverlay")) return closeSettings()
   if(open("tourOverlay"))     return closeTour()
   if(open("userDropdown")) return closeMenus()

@@ -1267,7 +1267,16 @@ function initApp() {
     const by = auth.currentUser ? (auth.currentUser.displayName || auth.currentUser.email || "") : ""
     for (const task of tasks) {
       if (have.has(key(task))) { results.push({ ok: true, name: task.name, skipped: true }); continue }
-      try { await addDoc(collection(db, "tasks"), { ...task, createdAt: Date.now(), by }); have.add(key(task)); results.push({ ok: true, name: task.name }) }
+      try {
+        const ref = await addDoc(collection(db, "tasks"), { ...task, createdAt: Date.now(), by })
+        have.add(key(task)); results.push({ ok: true, name: task.name })
+        // The moderators' change history (calendar → Settings). Best effort:
+        // a log entry that fails must not turn a saved task into an error.
+        addDoc(collection(db, "taskHistory"), {
+          taskId: ref.id, name: task.name, subject: task.subject || "",
+          action: "added", detail: "from the formatter", by, at: Date.now()
+        }).catch(e => console.warn("Could not log the change:", e))
+      }
       catch(e) { results.push({ ok: false, name: task.name, error: e.message }) }
     }
     return results

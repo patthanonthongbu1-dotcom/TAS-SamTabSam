@@ -90,9 +90,9 @@
     .tool-card.ext:hover .tc-go .ico{transform:translate(2px,-2px)}
     .tc-go .ico{transition:transform 0.18s}
 
-    html[data-theme="light"] .tool-card{box-shadow:0 6px 20px -12px rgba(0,0,0,0.22)}
-    html[data-theme="light"] .tool-card:hover{box-shadow:0 16px 30px -16px rgba(0,0,0,0.28)}
-    html[data-theme="light"] .tc-icon{box-shadow:0 6px 16px -9px rgba(0,0,0,0.45)}
+    html:is([data-theme="light"],[data-theme="paper"]) .tool-card{box-shadow:0 6px 20px -12px rgba(0,0,0,0.22)}
+    html:is([data-theme="light"],[data-theme="paper"]) .tool-card:hover{box-shadow:0 16px 30px -16px rgba(0,0,0,0.28)}
+    html:is([data-theme="light"],[data-theme="paper"]) .tc-icon{box-shadow:0 6px 16px -9px rgba(0,0,0,0.45)}
   </style>
 </head>
 <body>

@@ -195,7 +195,7 @@ function topbarHTML(title,active){
   ).join("")
   // Same swap the calendar's setTheme() does — the LIGHT file is the logo
   // *for* dark backgrounds, so the light theme needs the other one.
-  const logo = document.documentElement.dataset.theme === "light" ? "TASLogo.png" : "TASLogoLIGHT.png"
+  const logo = document.documentElement.dataset.theme === "dark" ? "TASLogoLIGHT.png" : "TASLogo.png"
   return `<div class="topbar">
     <div class="topbar-row1">
       <a class="topbar-brand" href="tools.html">

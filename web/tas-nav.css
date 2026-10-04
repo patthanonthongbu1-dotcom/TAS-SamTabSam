@@ -163,12 +163,12 @@
 /* ── Light theme ──
    The tokens flip on their own; what does not is the line, which
    has to darken to stay visible on a white page. */
-html[data-theme="light"] .tasnav{
+html:is([data-theme="light"],[data-theme="paper"]) .tasnav{
   --tasnav-line:rgba(20,40,15,0.32);
   --tasnav-line-hover:rgba(20,40,15,0.55);
 }
-html[data-theme="light"] .tasnav[data-open="true"] .tasnav-surface{
+html:is([data-theme="light"],[data-theme="paper"]) .tasnav[data-open="true"] .tasnav-surface{
   box-shadow:0 18px 44px -14px rgba(20,40,15,0.28);
 }
-html[data-theme="light"] .tasnav-cap{stroke:#dde3dd}
-html[data-theme="light"] .tasnav-item:hover{background:rgba(0,0,0,0.05);color:#1a1a1a}
+html:is([data-theme="light"],[data-theme="paper"]) .tasnav-cap{stroke:var(--border)}
+html:is([data-theme="light"],[data-theme="paper"]) .tasnav-item:hover{background:rgba(0,0,0,0.05);color:#1a1a1a}

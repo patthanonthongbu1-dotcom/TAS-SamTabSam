@@ -75,7 +75,7 @@
       background:rgba(0,0,0,0.2);display:block;
     }
     .fthumb.bad{display:grid;place-items:center;color:#e0a92a}
-    html[data-theme="light"] .fthumb.bad{color:#9a6a10}
+    html:is([data-theme="light"],[data-theme="paper"]) .fthumb.bad{color:#9a6a10}
     .finfo{flex:1;min-width:0}
     .fname{font-size:14.5px;font-weight:500;color:var(--text);
       display:flex;align-items:center;gap:6px;min-width:0}
@@ -94,7 +94,7 @@
        this" is advice rather than a failure — so it gets its own, dark
        enough on white to stay readable. */
     .fwarn{color:#e0a92a}
-    html[data-theme="light"] .fwarn{color:#9a6a10}
+    html:is([data-theme="light"],[data-theme="paper"]) .fwarn{color:#9a6a10}
     .fbusy{color:var(--label)}
     .facts{display:flex;gap:5px;flex-shrink:0}
     .fmove{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
@@ -135,10 +135,10 @@
       .frow{gap:10px;padding:10px}
       .fthumb{width:40px;height:40px}
     }
-    html[data-theme="light"] .drop{background:#f7faf7;border-color:#dde3dd}
-    html[data-theme="light"] .drop:hover,html[data-theme="light"] .drop.over{background:var(--accent-soft);border-color:var(--pink)}
-    html[data-theme="light"] .frow{background:#f7faf7;border-color:#dde3dd}
-    html[data-theme="light"] .icon-btn{background:#ffffff;border-color:#dde3dd}
+    html:is([data-theme="light"],[data-theme="paper"]) .drop{background:#f7faf7;border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .drop:hover,html:is([data-theme="light"],[data-theme="paper"]) .drop.over{background:var(--accent-soft);border-color:var(--pink)}
+    html:is([data-theme="light"],[data-theme="paper"]) .frow{background:#f7faf7;border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .icon-btn{background:var(--card);border-color:var(--border)}
 
     /* ── In on the left, out on the right ──
        Three columns on a desk: what you dropped, the direction, what

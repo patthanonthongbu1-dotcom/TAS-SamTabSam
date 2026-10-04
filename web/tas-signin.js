@@ -38,7 +38,7 @@ const CSS = `
   transform:translateY(10px) scale(.98); transition:transform .2s ease;
 }
 .signin-ovl.open .signin-card{transform:none}
-html[data-theme="light"] .signin-card{background:#fff; color:#16233d; border-color:rgba(0,0,0,0.1)}
+html:is([data-theme="light"],[data-theme="paper"]) .signin-card{background:#fff; color:#16233d; border-color:rgba(0,0,0,0.1)}
 .signin-logo{width:46px;height:46px;object-fit:contain;margin:0 auto 12px;display:block}
 .signin-title{font-size:19px; font-weight:600; margin-bottom:6px}
 .signin-why{font-size:14px; font-weight:300; line-height:1.6; opacity:.72; margin-bottom:20px}
@@ -48,9 +48,9 @@ html[data-theme="light"] .signin-card{background:#fff; color:#16233d; border-col
   background:#fff; color:#3c4043; font-size:15px; font-weight:600; font-family:inherit;
 }
 .signin-go:disabled{opacity:.6; cursor:default}
-html[data-theme="light"] .signin-go{background:#1D9E75; color:#fff}
+html:is([data-theme="light"],[data-theme="paper"]) .signin-go{background:#1D9E75; color:#fff}
 .signin-go svg{width:18px;height:18px;flex-shrink:0}
-html[data-theme="light"] .signin-go svg{display:none}
+html:is([data-theme="light"],[data-theme="paper"]) .signin-go svg{display:none}
 .signin-cancel{
   margin-top:12px; width:100%; padding:9px; border-radius:10px; cursor:pointer;
   background:none; border:0; color:inherit; opacity:.6;

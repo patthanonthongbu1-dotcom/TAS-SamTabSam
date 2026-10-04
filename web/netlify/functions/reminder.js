@@ -272,11 +272,13 @@ exports.handler = async () => {
         api(token, `/userDone/${uid}`),
       ])
       const done = (doneDoc && plain(doneDoc.fields).done) || {}
+      // Subjects this person has asked not to be reminded about
+      const muted = Array.isArray(pref.muted) ? pref.muted : []
 
       // Markers are events rather than work, and a prediction is a guess.
       const due = [...shared, ...mine].filter(t => {
         if (!t || !t.end || t.type === "marker" || t.type === "prediction") return false
-        if (done[t.id]) return false
+        if (done[t.id] || muted.includes(t.subject)) return false
         const dl = daysUntil(t.end, tz, now)
         return dl >= 0 && dl <= 1
       })

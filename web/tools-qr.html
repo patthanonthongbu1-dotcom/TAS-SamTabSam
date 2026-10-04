@@ -42,7 +42,7 @@
       background-size:18px 18px;background-position:0 0,9px 9px;
       border:1px dashed var(--glass-brd);
     }
-    html[data-theme="light"] .qr-stage{
+    html:is([data-theme="light"],[data-theme="paper"]) .qr-stage{
       background:
         linear-gradient(45deg,rgba(0,0,0,0.05) 25%,transparent 25%,transparent 75%,rgba(0,0,0,0.05) 75%),
         linear-gradient(45deg,rgba(0,0,0,0.05) 25%,transparent 25%,transparent 75%,rgba(0,0,0,0.05) 75%);
@@ -111,8 +111,8 @@
     .switch::before{content:'';position:absolute;left:2px;top:2px;width:14px;height:14px;background:white;border-radius:50%;transition:transform 0.2s}
     .toggle-row.active .switch{background:var(--pink)}
     .toggle-row.active .switch::before{transform:translateX(16px)}
-    html[data-theme="light"] .toggle-row:hover{background:#f0f3f0}
-    html[data-theme="light"] .switch{background:#cdd5cd}
+    html:is([data-theme="light"],[data-theme="paper"]) .toggle-row:hover{background:#f0f3f0}
+    html:is([data-theme="light"],[data-theme="paper"]) .switch{background:#cdd5cd}
   </style>
 </head>
 <body>

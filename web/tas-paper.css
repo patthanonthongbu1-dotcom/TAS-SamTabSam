@@ -1,0 +1,130 @@
+/* ───────────────────────────────────────
+   TAS — the Papercraft theme.
+
+   A third choice beside dark and light: the page is a cutting mat, and
+   everything on it is a piece of card cut out and laid on top. Three
+   things carry that and nothing else is decorated:
+
+     · the mat — sage green with a ruled grid, the table papercraft
+       actually happens on
+     · hard, offset shadows with no blur — a sheet of card casts an edge,
+       not a glow — and corners that are slightly uneven, as if cut by hand
+     · flat colour. No gradients, no glass, no blur.
+
+   It is built on the light theme: every `html[data-theme="light"]` rule in
+   the app also matches "paper" (they are written with :is()), so this file
+   only has to say what is different. Its selectors start `:root[data-theme]`
+   so they outrank those rules wherever this file is loaded from.
+
+   Loaded by calendar.html directly and by the Tools pages through
+   tools-shell.css. Both name their tokens the same way.
+   ─────────────────────────────────────── */
+
+@import url("https://fonts.googleapis.com/css2?family=Mali:wght@500;600&display=swap");
+
+:root[data-theme="paper"]{
+  --mat:#c5dccf;--mat-line:rgba(255,255,255,0.46);--mat-line-fine:rgba(255,255,255,0.26);
+  --ink:#24313a;
+  /* The edge a sheet casts on the mat, and the smaller one a tab casts */
+  --cut:3px 4px 0 rgba(47,84,72,0.34);
+  --cut-sm:2px 2px 0 rgba(47,84,72,0.34);
+  /* Corners cut by hand: no two quite the same */
+  --snip:14px 10px 15px 11px / 11px 15px 10px 14px;
+  --snip-sm:9px 7px 10px 7px / 7px 10px 7px 9px;
+
+  --navy:#b6d1c3;--navy-dark:var(--mat);
+  /* Coral card for anything you press; yellow sticky-note for anything lit */
+  --pink:#e4572e;--pink-soft:#ffd9cc;
+  --accent-grad:linear-gradient(#e4572e,#e4572e);
+  --accent-shadow:rgba(120,40,18,0.5);
+  --accent-soft:#ffe38a;
+  --accent-soft-text:#8a3a1c;
+  --accent-ring:rgba(228,87,46,0.28);
+  --accent-brd:#e4572e;
+  --on-accent:#ffffff;
+
+  --glass:#fffaf0;--glass-2:#f6eedb;--glass-brd:rgba(36,49,58,0.14);
+  --field-bg:#fffdf7;--field-brd:rgba(36,49,58,0.26);
+  --panel:#fffaf0;--sheet:#fffaf0;--col:#fffaf0;
+  --group-bg:#fffaf0;--divider:rgba(36,49,58,0.10);
+  --card:#fffaf0;--border:rgba(36,49,58,0.16);
+  --text:var(--ink);--muted:#55636b;--label:#7b888e;--surface:#f6eedb;
+}
+
+/* ── The mat ───────────────────────────────────────────────── */
+:root[data-theme="paper"] body{
+  background:
+    linear-gradient(var(--mat-line) 1.5px,transparent 1.5px) 0 0/110px 110px,
+    linear-gradient(90deg,var(--mat-line) 1.5px,transparent 1.5px) 0 0/110px 110px,
+    linear-gradient(var(--mat-line-fine) 1px,transparent 1px) 0 0/22px 22px,
+    linear-gradient(90deg,var(--mat-line-fine) 1px,transparent 1px) 0 0/22px 22px,
+    var(--mat);
+  background-attachment:fixed;
+  animation:none;
+}
+:root[data-theme="paper"] #authGate{background:var(--mat)}
+
+/* ── Headings are lettered by hand ─────────────────────────── */
+:root[data-theme="paper"] :is(h1,h2,h3,.set-page-title){font-family:'Mali','Kanit',sans-serif;font-weight:600;letter-spacing:0}
+
+/* ── Sheets of card ────────────────────────────────────────── */
+:root[data-theme="paper"] :is(
+  .topnav,.modal,.set-sheet,.cfg-sheet,.detail-popup,.toast,.cal-left,.cal-right,
+  .mt-pane,.user-dropdown,.tool-card,.card,.signin-card,.archive-list,.todo-col,.pt-list-card,
+  .tasnav[data-open="true"] .tasnav-surface
+){
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  border-color:transparent;
+  box-shadow:var(--cut);
+}
+:root[data-theme="paper"] :is(.modal,.mt-pane,.tool-card,.signin-card,.card){
+  border-radius:var(--snip);
+}
+/* The bar across the top is one solid strip, not frosted glass */
+:root[data-theme="paper"] .topnav{background:var(--card)}
+:root[data-theme="paper"] :is(.toast,.pt-list-card,.brand-chip){border-radius:var(--snip-sm)}
+:root[data-theme="paper"] .brand-chip{box-shadow:var(--cut-sm);border-color:transparent;transform:rotate(-2deg)}
+
+/* ── Tabs and chips: small offcuts ─────────────────────────── */
+:root[data-theme="paper"] :is(.filter-chip,.theme-opt,.mt-tab,.archive-fchip,.link-chip){
+  border-radius:var(--snip-sm);
+}
+:root[data-theme="paper"] :is(.filter-chip.active,.theme-opt.active,.archive-fchip.active){
+  background:var(--accent-soft);border-color:transparent;color:var(--ink);
+  box-shadow:var(--cut-sm);
+}
+:root[data-theme="paper"] .nav-pill.active{box-shadow:var(--cut-sm)}
+
+/* ── Things you press sit proud of the page, and go flat when pushed ── */
+:root[data-theme="paper"] :is(.modal-save,.detail-mark-done,.mt-btn:not(.ghost),.signin-go){
+  border-radius:var(--snip-sm);
+  box-shadow:2px 3px 0 #a93a1c;
+  transition:transform 0.08s,box-shadow 0.08s;
+}
+:root[data-theme="paper"] :is(.modal-save,.detail-mark-done,.mt-btn:not(.ghost),.signin-go):active{
+  transform:translate(2px,3px);
+  box-shadow:0 0 0 #a93a1c;
+}
+:root[data-theme="paper"] :is(.signin-go,.detail-mark-done){background:var(--pink);color:#fff;border-color:transparent;text-decoration:none}
+:root[data-theme="paper"] .detail-mark-done{width:100%;padding:11px 14px}
+/* The view button is card, not coral — it casts the same edge a sheet does */
+:root[data-theme="paper"] :is(.cfg-toggle,.fab){border-radius:var(--snip-sm);box-shadow:var(--cut-sm);border-color:transparent}
+
+/* ── The timeline: strips of coloured paper laid on the mat ── */
+:root[data-theme="paper"] .gantt-bar{
+  border-radius:7px 10px 8px 9px / 9px 7px 10px 8px;
+  box-shadow:2px 3px 0 rgba(36,49,58,0.28);
+}
+:root[data-theme="paper"] .gantt-bar.done{box-shadow:1px 1px 0 rgba(36,49,58,0.2)}
+:root[data-theme="paper"] .check-row input{border-color:rgba(36,49,58,0.4);border-radius:6px 5px 7px 5px}
+
+/* ── Fields are pencilled boxes on the card ────────────────── */
+:root[data-theme="paper"] :is(input,select,textarea):focus{box-shadow:0 0 0 3px var(--accent-ring)}
+
+/* ── The page navigator ────────────────────────────────────── */
+:root[data-theme="paper"] .tasnav{--tasnav-bg:#fffaf0}
+:root[data-theme="paper"] .tasnav-cap{stroke:transparent}
+
+@media (prefers-reduced-motion:reduce){
+  :root[data-theme="paper"] *{transition:none!important}
+}
