@@ -90,6 +90,19 @@ export async function loadTodoOnce() {
   loadFailed = false
 }
 
+/* One read is enough for a single device, but the list is written whole —
+   a tab that has been in the background while a phone edited it would save
+   its stale copy over the top. The page calls this when it comes back into
+   view. Resolves true only if the list was replaced. */
+export async function reloadTodo() {
+  if (!loaded || Store.hasPendingSave()) return false
+  const got = await Store.loadTodo(uid)
+  if (got === null || Store.hasPendingSave()) return false
+  items = got
+  lastSaved = got
+  return true
+}
+
 // How many items are on the list — drives the nav pill's count badge.
 export const todoCount = () => items.length
 

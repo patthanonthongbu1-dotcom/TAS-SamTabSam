@@ -4,20 +4,31 @@ service cloud.firestore {
 
     // ── Roles / config lookups ────────────────────────────────
     // e.g. config/modWhitelist  →  { emails: ["a@b.com", ...] }
-    // Publicly readable so the app can resolve a user's role right
-    // after sign-in. Writes locked — edit from the Firebase console.
+    // Readable by anyone signed in, so the app can resolve a user's role
+    // right after sign-in. Writes locked — edit from the Firebase console.
     match /config/{docId} {
-      allow read:  if true;
+      allow read:  if request.auth != null;
       allow write: if false;
+    }
+
+    // A moderator is an email on that list — the only check that counts,
+    // since anything the page decides can be skipped by not using the page.
+    // Emails must be stored lowercase: `in` is an exact match.
+    function isMod() {
+      return request.auth != null
+          && request.auth.token.email_verified == true
+          && request.auth.token.email in
+             get(/databases/$(database)/documents/config/modWhitelist).data.emails;
     }
 
     // ── Shared tasks / announcements ──────────────────────────
     match /tasks/{taskId} {
       allow read: if true;
-      allow create: if request.resource.data.keys().hasAll(['name', 'end'])
+      allow create: if isMod()
+                    && request.resource.data.keys().hasAll(['name', 'end'])
                     && request.resource.data.name is string
                     && request.resource.data.name.size() > 0;
-      allow update, delete: if true;
+      allow update, delete: if isMod();
     }
 
     // ── Per-user private task lists ───────────────────────────
@@ -59,7 +70,10 @@ service cloud.firestore {
     // Doc id = the short code. Publicly readable because the /r/<code>
     // Netlify Function resolves links for signed-out visitors.
     match /links/{code} {
-      allow read: if true;
+      // One link at a time for anyone; the whole list only for its owner,
+      // so nobody can page through every link everyone has made.
+      allow get:  if true;
+      allow list: if request.auth != null && resource.data.createdBy == request.auth.uid;
 
       // Only signed-in students, only under their own uid, and the code
       // in the document must match the doc id the client wrote to.
@@ -97,7 +111,10 @@ service cloud.firestore {
     // Opt-in: nothing exists here until the student turns the widget on,
     // and turning it off deletes the doc. Notes are never published.
     match /widgetFeed/{uid} {
-      allow read:  if true;
+      // get, not read: the uid in the address is the only thing keeping a
+      // feed private, and `list` would hand every one of them out at once.
+      allow get:   if true;
+      allow list:  if false;
       allow write: if request.auth != null && request.auth.uid == uid;
     }
 
@@ -107,7 +124,10 @@ service cloud.firestore {
     // (admin SDK, bypasses rules) ever needs to read the list.
     match /fcmTokens/{token} {
       allow read: if false;
-      allow create, update, delete: if request.auth != null;
+      // Only ever under your own uid — the reminder is sent to whichever
+      // tokens carry a uid, so a borrowed one would deliver someone else's.
+      allow create, update: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
   }
 }

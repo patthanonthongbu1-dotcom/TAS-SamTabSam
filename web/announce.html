@@ -594,7 +594,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js"
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
-import { getFirestore, collection, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
+import { getFirestore, collection, addDoc, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 import { mountCard, embeddedFontCSS } from "./tas-card.js"
 // The page navigator — the glass dot bottom-right, shared with the
 // calendar and the Tools pages.
@@ -623,7 +623,6 @@ const firebaseConfig = {
   appId: "1:645483732924:web:5a1ec2b9f7c58a18c655b9"
 }
 
-const MOD_PASSWORD_HASH = "4710ce735963a78ed12d2348a6ddd4e45a0f75cce94d78b3d81d077274e8c8fa"
 const LOGIN_URL = "index.html"
 
 // Base URL of the Discord bot server (server/discord.js). Its POST /send takes
@@ -650,11 +649,6 @@ function setFbStatus(ok) {
   txt.textContent = ok ? "Calendar connected" : "Connection error"
 }
 
-async function sha256(str) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str))
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("")
-}
-
 async function fetchWhitelist() {
   if (!db) return []
   try {
@@ -664,63 +658,36 @@ async function fetchWhitelist() {
   } catch(e) { return [] }
 }
 
-let pendingUser = null
-
-function showPasswordPrompt(user) {
-  document.getElementById("authGate").innerHTML = `
+/* The whitelist is the only way in. This page used to take a password as
+   well, but firestore.rules checks the same list before it lets anything
+   be written — a password could open the form and never save a task. */
+function showNotModerator(user) {
+  const gate = document.getElementById("authGate")
+  gate.innerHTML = `
     <div style="margin:auto;width:100%;max-width:320px;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;z-index:1;">
       <div style="font-size:36.5px;margin-bottom:2px">🔐</div>
-      <div style="font-size:19.5px;font-weight:600;color:#fff;">Password required</div>
+      <div style="font-size:19.5px;font-weight:600;color:#fff;">Moderators only</div>
       <div style="font-size:15px;color:rgba(255,255,255,0.6);font-weight:300;margin-bottom:18px;text-align:center;max-width:270px;line-height:1.5">
-        Your account isn't on the whitelist.<br>Enter the panel password to continue.
+        <span id="gateEmail"></span> isn't on the moderator list.<br>Ask a moderator to add it.
       </div>
-      <div style="width:100%;display:flex;flex-direction:column;gap:10px;">
-        <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:12px;padding:9px 12px;">
-          <img src="${user.photoURL || ''}" onerror="this.style.display='none'" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;" />
-          <div style="min-width:0;">
-            <div style="font-size:14px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${user.displayName || user.email}</div>
-            <div style="font-size:11.5px;color:rgba(255,255,255,0.55);font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${user.email}</div>
-          </div>
-        </div>
-        <input type="password" id="gatePasswordInput" placeholder="Panel password"
-          style="width:100%;padding:12px 14px;border:1.5px solid rgba(255,255,255,0.16);border-radius:11px;font-family:'Kanit',sans-serif;font-size:16px;outline:none;letter-spacing:2px;background:rgba(255,255,255,0.07);color:#fff;transition:border-color 0.15s;"
-          onkeydown="if(event.key==='Enter')window._submitGatePassword()"
-          onfocus="this.style.borderColor='#ff4fa3'" onblur="this.style.borderColor='rgba(255,255,255,0.16)'" />
-        <div id="gatePasswordError" style="display:none;font-size:14px;color:#ff9b8a;text-align:center;padding:7px 10px;background:rgba(192,57,43,0.2);border-radius:9px;">❌ Incorrect password</div>
-        <button id="gatePasswordBtn" onclick="window._submitGatePassword()"
-          style="width:100%;padding:13px;background:linear-gradient(180deg,#ff5fac,#c02e7e);color:white;border:none;border-radius:11px;font-family:'Kanit',sans-serif;font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 12px 26px -10px rgba(255,79,163,0.55);">
-          Enter Panel
-        </button>
-        <button onclick="window._cancelGatePassword()"
-          style="background:none;border:none;font-family:'Kanit',sans-serif;font-size:14px;color:rgba(255,255,255,0.5);cursor:pointer;padding:5px;">
-          ← Use a different account
-        </button>
-      </div>
+      <button onclick="window.location.href='calendar.html'"
+        style="width:100%;padding:13px;background:linear-gradient(180deg,#ff5fac,#c02e7e);color:white;border:none;border-radius:11px;font-family:'Kanit',sans-serif;font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 12px 26px -10px rgba(255,79,163,0.55);">
+        Back to the calendar
+      </button>
+      <button onclick="window._cancelGatePassword()"
+        style="background:none;border:none;font-family:'Kanit',sans-serif;font-size:14px;color:rgba(255,255,255,0.5);cursor:pointer;padding:5px;">
+        ← Use a different account
+      </button>
     </div>`
-  setTimeout(() => document.getElementById("gatePasswordInput")?.focus(), 80)
-}
-
-window._submitGatePassword = async function() {
-  const input = document.getElementById("gatePasswordInput")
-  const btn   = document.getElementById("gatePasswordBtn")
-  const err   = document.getElementById("gatePasswordError")
-  if (!input || !pendingUser) return
-  btn.textContent = "Checking..."; btn.disabled = true; err.style.display = "none"
-  const hash = await sha256(input.value)
-  if (hash === MOD_PASSWORD_HASH) {
-    revealApp(pendingUser)
-  } else {
-    err.style.display = "block"; input.value = ""; input.focus()
-    btn.textContent = "Enter Panel"; btn.disabled = false
-  }
+  document.getElementById("gateEmail").textContent = user.email
 }
 window._cancelGatePassword = async function() { await signOut(auth); window.location.href = "calendar.html" }
 
 function revealApp(user) {
   document.getElementById("authGate").style.display = "none"
   document.getElementById("mainContent").style.display = "block"
-  // Anyone who is through this page's gate has formatter access, whether
-  // by whitelist or by the panel password — so the navigator shows it.
+  // Anyone who is through this page's gate is on the whitelist — so the
+  // navigator shows the formatter.
   mountNav({ active:"announce", admin:true })
   // Counts into the same total as every other page — see tas-time.js.
   if (db) startTimeTracking(db, user.uid)
@@ -745,7 +712,7 @@ onAuthStateChanged(auth, async user => {
   if (whitelist.includes(user.email.toLowerCase())) {
     revealApp(user)
   } else {
-    pendingUser = user; showPasswordPrompt(user)
+    showNotModerator(user)
   }
 })
 
@@ -1290,8 +1257,17 @@ function initApp() {
   async function syncToFirestore(tasks) {
     if (!fbReady || !db) throw new Error("Firebase not initialized")
     const results = []
+    /* Publishing twice — a retry after Discord failed, say — used to put
+       every task on the calendar twice. The same name, subject and date is
+       the same task; if the read fails the set is empty and nothing is
+       skipped, which is the old behaviour rather than a blocked publish. */
+    const key = t => [t.name, t.subject, t.end].join("\u0000")
+    const have = new Set()
+    try { (await getDocs(collection(db, "tasks"))).forEach(d => have.add(key(d.data()))) } catch(e) {}
+    const by = auth.currentUser ? (auth.currentUser.displayName || auth.currentUser.email || "") : ""
     for (const task of tasks) {
-      try { await addDoc(collection(db, "tasks"), { ...task, createdAt: Date.now() }); results.push({ ok: true, name: task.name }) }
+      if (have.has(key(task))) { results.push({ ok: true, name: task.name, skipped: true }); continue }
+      try { await addDoc(collection(db, "tasks"), { ...task, createdAt: Date.now(), by }); have.add(key(task)); results.push({ ok: true, name: task.name }) }
       catch(e) { results.push({ ok: false, name: task.name, error: e.message }) }
     }
     return results
@@ -1407,17 +1383,24 @@ function initApp() {
     return embed
   }
 
+  // What the channel was last sent, so publishing again to retry some
+  // other step doesn't post the same announcement a second time.
+  let lastDiscordSent = null
   async function sendToDiscord() {
     const embed = buildDiscordEmbed()
     if (!embed) return false
+    if (embed.description === lastDiscordSent) return true
     try {
+      // The server checks this token against the moderator whitelist.
+      const idToken = await auth.currentUser.getIdToken()
       const res  = await fetch(`${DISCORD_SERVER_URL}/send`, {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + idToken },
         body:    JSON.stringify({ embed }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok || data.ok === false) throw new Error(data.error || `Server responded ${res.status}`)
+      lastDiscordSent = embed.description
       return true
     } catch(e) {
       console.warn("Discord send failed:", e)
@@ -1522,7 +1505,9 @@ function initApp() {
       try {
         const results = await syncToFirestore(tasks)
         const okN = results.filter(r => r.ok).length
-        if (okN === tasks.length) record("calendar", true)
+        const dupN = results.filter(r => r.skipped).length
+        if (okN === tasks.length && dupN) { markChip("calendar", "done"); done.push(`save the tasks to the calendar (${dupN} already there, skipped)`) }
+        else if (okN === tasks.length) record("calendar", true)
         else { markChip("calendar", "failed"); failed.push(`save all tasks (${okN}/${tasks.length} saved)`) }
       } catch(e) {
         record("calendar", false)

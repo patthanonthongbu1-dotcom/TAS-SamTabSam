@@ -331,6 +331,8 @@ function renderList(links){
 }
 
 async function removeLink(code){
+  // Anyone holding the short link loses it the moment this goes through.
+  if(!window.confirm(`Delete ${shortBase()}${code}? It will stop working straight away.`)) return
   try{
     await deleteDoc(doc(db,"links",code))
     toast("Link deleted — it will stop working straight away")

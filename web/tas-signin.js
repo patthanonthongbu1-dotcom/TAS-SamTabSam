@@ -121,7 +121,19 @@ function close(result){
  * The caller does not have to do anything with a `true`: every page is
  * already listening on onAuthStateChanged, and that fires on its own.
  */
+/* Google refuses to sign anyone in from inside another app's built-in
+   browser, and most people arrive here from a link in LINE. LINE will hand
+   the page to the real browser if asked; the others can only be told. */
+const IN_LINE = /\bLine\//i.test(navigator.userAgent)
+const IN_APP  = IN_LINE || /FBAN|FBAV|Instagram/i.test(navigator.userAgent)
+
 export function promptSignIn(auth, { reason, cancelLabel, onCancel } = {}){
+  if (IN_LINE && !location.search.includes("openExternalBrowser")) {
+    const u = new URL(location.href)
+    u.searchParams.set("openExternalBrowser", "1")
+    location.replace(u)
+    return Promise.resolve(false)
+  }
   build()
   // A second ask while one is open just returns the first one's answer.
   if (openResolve) return new Promise(res => { const p = openResolve; openResolve = v => { p(v); res(v) } })
@@ -145,7 +157,9 @@ export function promptSignIn(auth, { reason, cancelLabel, onCancel } = {}){
       go.disabled = false
       // Closing the Google window is a decision, not a failure.
       if (e && e.code === "auth/popup-closed-by-user") return
-      if (e && e.code === "auth/popup-blocked"){
+      if (IN_APP){
+        err.textContent = "Sign-in doesn't work inside this app — open this page in Chrome or Safari."
+      } else if (e && e.code === "auth/popup-blocked"){
         err.textContent = "Your browser blocked the popup — allow popups for this site and try again."
       } else {
         err.textContent = "Couldn't sign in: " + ((e && e.message) || "unknown error")

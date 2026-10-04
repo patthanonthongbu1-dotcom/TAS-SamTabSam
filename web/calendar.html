@@ -1173,6 +1173,10 @@
     html[data-theme="light"] .cd-wrap.overdue .cd-box{background:var(--red-light);border-color:var(--red-mid)}
     html[data-theme="light"] .cd-wrap.marker .cd-box{background:var(--marker-light);border-color:var(--marker-border)}
     .detail-dates{font-size:14px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+    .detail-dates a,.detail-note a{color:var(--pink);text-decoration:none;word-break:break-word}
+    .detail-dates a:hover,.detail-note a:hover{text-decoration:underline}
+    .filter-search{width:100%;padding:9px 12px;margin-bottom:10px;border:1px solid var(--field-brd);border-radius:10px;font-size:16px;font-family:'Kanit',sans-serif;color:var(--text);background:var(--field-bg);outline:none}
+    .filter-search:focus{border-color:var(--pink);box-shadow:0 0 0 3px var(--accent-ring)}
     .detail-edit-btn{margin-top:6px;width:100%;padding:9px;background:var(--accent-grad);color:white;border:none;border-radius:10px;font-family:'Kanit',sans-serif;font-size:15px;font-weight:500;cursor:pointer;display:none;transition:filter 0.15s;box-shadow:0 10px 24px -10px var(--accent-shadow)}
     .detail-edit-btn:hover{filter:brightness(1.07)}
     .detail-edit-btn.visible{display:block}
@@ -2533,6 +2537,7 @@
     <div class="filter-group" id="sortOptions"></div>
 
     <span class="filter-scope">Show on this calendar</span>
+    <input type="search" class="filter-search" id="calSearch" placeholder="Search name or subject" aria-label="Search tasks" oninput="setCalSearch(this.value)" />
     <div class="filter-group" id="filterTypes"></div>
     <button class="filter-switch-row" onclick="toggleFilterDone()">
       <span class="filter-switch-lab"><svg class="ic" aria-hidden="true"><use href="#ic-check-circle"/></svg> Hide finished</span>
@@ -2624,7 +2629,7 @@
     <h2 id="modal-title">Add task</h2>
     <div class="modal-field"><label>Task name</label><input type="text" id="t-name" placeholder="e.g. MindMap งานการงาน" /></div>
     <div class="modal-field"><label>Subject</label><input type="text" id="t-subject" placeholder="e.g. การงาน, ภาษาไทย" /></div>
-    <div class="modal-field"><label>Type</label>
+    <div class="modal-field" id="t-type-field"><label>Type</label>
       <select id="t-type">
         <option value="normal">Send On (fixed send date)</option>
         <option value="deadline">Send Before (hard deadline)</option>
@@ -2632,12 +2637,12 @@
       </select>
     </div>
     <div class="modal-row">
-      <div class="modal-field"><label>Start date</label><input type="date" id="t-start" /></div>
+      <div class="modal-field" id="t-start-field"><label>Start date</label><input type="date" id="t-start" /></div>
       <div class="modal-field"><label>End / Due date</label><input type="date" id="t-end" /></div>
     </div>
     <!-- The class's starting point for how heavy this is. Each student can
          set their own weight over the top from the task's detail sheet. -->
-    <div class="modal-field"><label>Difficulty <span class="mod-diff-hint" id="modDiffHint"></span></label>
+    <div class="modal-field" id="t-diff-field"><label>Difficulty <span class="mod-diff-hint" id="modDiffHint"></span></label>
       <div class="pts-grid" id="modDiffGrid"></div>
     </div>
     <div class="modal-field"><label>Note (optional)</label><textarea id="t-note" placeholder="Extra info, link, etc."></textarea></div>
@@ -2646,20 +2651,6 @@
       <button class="modal-delete" id="modal-delete-btn" style="display:none" onclick="deleteTask()"><svg class="ic" aria-hidden="true"><use href="#ic-trash"/></svg> Delete</button>
       <button class="modal-save" onclick="saveTask()"><svg class="ic" aria-hidden="true"><use href="#ic-save"/></svg> Save task</button>
     </div>
-  </div>
-</div>
-
-<!-- PASSWORD -->
-<div class="pw-overlay" id="pwOverlay">
-  <div class="pw-box">
-    <h2><svg class="ic" aria-hidden="true"><use href="#ic-lock"/></svg> Mod mode</h2>
-    <p>Enter the mod password to enable editing</p>
-    <form onsubmit="event.preventDefault();checkPw()">
-      <input type="password" id="pwInput" placeholder="Password" autocomplete="off" />
-    </form>
-    <div class="pw-error" id="pwError">Incorrect password</div>
-    <button class="pw-submit" onclick="checkPw()">Unlock</button>
-    <button class="pw-cancel" onclick="closePw()">Cancel</button>
   </div>
 </div>
 
@@ -3104,13 +3095,7 @@ const LOGIN_URL = "index.html"
 // Project settings → Cloud Messaging → Web Push certificates.
 // Leave empty to run without cloud push (in-page notifications still work).
 const VAPID_KEY = "BNx_eIfYD9DPw-RNyIgwucdBjkoNQ5AodZzBG-TtGNobOScx7a8uTEG3XHJw6nnWv0D1omVzr7wwmkHe3f2jvkY"
-const MOD_PASSWORD_HASH = "4710ce735963a78ed12d2348a6ddd4e45a0f75cce94d78b3d81d077274e8c8fa"
 const RANGE_STORAGE_KEY = "tas_calendar_range"
-
-async function hashInput(str){
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str))
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("")
-}
 
 const TODAY = new Date(); TODAY.setHours(0,0,0,0)
 // A tab left open overnight must roll to the new day — otherwise urgency
@@ -3145,6 +3130,30 @@ function localToday() {
 // a task name like <img onerror=…> or a stray " must never break the page
 function esc(s){
   return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))
+}
+
+// A note is plain text, but a pasted link should still be one. Escaped
+// first, so the only markup that can come out of this is the <a> itself.
+function linkify(s){
+  return esc(s).replace(/https?:\/\/[^\s<]+/g,u=>`<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`)
+}
+
+// An all-day Google Calendar event on the due date, pre-filled.
+function gcalUrl(t){
+  const d=parseDate((t.end||t.date||t.start||"").slice(0,10)), n=new Date(d)
+  n.setDate(n.getDate()+1)
+  const f=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,"0")+String(x.getDate()).padStart(2,"0")
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE&"+new URLSearchParams({
+    text:t.subject?`${t.name} (${t.subject})`:t.name, dates:f(d)+"/"+f(n), details:t.note||""
+  })
+}
+
+// The small print under a task's dates: who posted it, who last changed it,
+// and a way to put it on your own calendar.
+function detailExtrasHTML(t){
+  return (t.by?`<span>${ico("user")} Posted by ${esc(t.by)}</span>`:"")+
+    (t.editedBy?`<span>${ico("pencil")} Edited by ${esc(t.editedBy)}</span>`:"")+
+    `<a href="${esc(gcalUrl(t))}" target="_blank" rel="noopener noreferrer">${ico("calendar-grid")} Add to Google Calendar</a>`
 }
 
 // Icon markup for the templates below — mirrors the <symbol> sprite at the
@@ -3490,6 +3499,24 @@ async function loadUserDone(uid) {
   }
 }
 
+/* Keeps the caches in step with the account rather than with this tab.
+   persistUserState() writes the whole document from them, so a tab that
+   only read once at login would overwrite whatever a phone ticked since. */
+function startUserStateListener(uid){
+  onSnapshot(doc(db, "userDone", uid), snap => {
+    // Our own write on its way out — the caches are already ahead of it.
+    if(snap.metadata.hasPendingWrites || savingIds.size || !snap.exists()) return
+    const d = snap.data()
+    userDoneCache     = d.done || {}
+    userHiddenCache   = d.archiveHidden || {}
+    userProgressCache = sanitizeProgressMap(d.progress)
+    userPointsCache   = sanitizePointsMap(d.difficulty)
+    userStateLoaded   = true
+    renderCurrentView()
+    renderPtList()
+  }, err => console.warn("User state listener error:", err))
+}
+
 // Write the whole doc (no merge): with {merge:true} Firestore keeps map keys
 // that were deleted locally, so un-ticking a task would come back on reload.
 // Both maps live in this one doc and are fully cached, so overwriting is safe.
@@ -3680,6 +3707,7 @@ onAuthStateChanged(auth, async user => {
   // Before anything renders a weight, so nothing is ever drawn on the old
   // ladder and then redrawn on the new one.
   await migratePointScale(user.uid)
+  startUserStateListener(user.uid)   // after the rescale, so it never sees a half-migrated doc
 
   gate.style.display = "none"
   wrap.style.display  = "block"
@@ -3963,12 +3991,29 @@ function queueWidgetFeed(){
 
 // ── Tasks listener ────────────────────────────────────────────
 let unsubTasks = null
+/* Ids are dropped straight into inline onclick="…('id')" handlers all over
+   this page. Firestore's own ids are always this shape; anything else was
+   made by hand, and is not a task worth breaking the page for. */
+const SAFE_ID = /^[A-Za-z0-9_-]+$/
+const TASKS_CACHE_KEY = "tas_tasks_cache"
+window.addEventListener("offline", () =>
+  toast("You're offline — showing the last tasks this device saw",{error:true,duration:6000}))
 function startTasksListener() {
   if (unsubTasks) return
+  // The last list this device saw, shown until the live one arrives — which
+  // with no connection is never, and a blank calendar helps nobody.
+  try{
+    const cached = JSON.parse(localStorage.getItem(TASKS_CACHE_KEY) || "null")
+    if(Array.isArray(cached) && cached.length){
+      tasks = cached.filter(t => t && SAFE_ID.test(t.id))
+      tasksLoaded = true
+      renderCurrentView()
+    }
+  }catch(e){}
   unsubTasks = onSnapshot(collection(db,"tasks"), snap => {
     tasksLoaded = true
-    tasks = snap.docs.map(d=>({id:d.id,...d.data()}))
-    notifyNewTasks(tasks)
+    tasks = snap.docs.filter(d=>SAFE_ID.test(d.id)).map(d=>({id:d.id,...d.data()}))
+    try{ localStorage.setItem(TASKS_CACHE_KEY, JSON.stringify(tasks)) }catch(e){}
     queueDueReminders()
     updateLatestPill()
     if (savingIds.size === 0) {
@@ -4146,8 +4191,8 @@ function offerInstall(){
 }
 
 // ── Cloud push (FCM) — notifications even with the site closed ─
-// Registers this device's push token in Firestore; the notifyNewTask Cloud
-// Function fans new-task pushes out to every registered token.
+// Registers this device's push token in Firestore; the scheduled reminder
+// (netlify/functions/reminder.js) sends the daily due-soon push to it.
 async function enableCloudPush(){
   if(!VAPID_KEY || !currentUser) return
   try{
@@ -4201,7 +4246,7 @@ window.toggleNotify = async function(){
     updateNotifyUI()   // permission state may have changed even on dismiss
     if(perm!=="granted") return
     notifyPref = true
-    sendNotification("🔔 Notifications are on","You'll hear about new tasks and due-soon reminders.","tas-hello")
+    sendNotification("🔔 Notifications are on","You'll get a reminder when work is due today or tomorrow.","tas-hello")
     enableCloudPush()
     offerInstall()   // phones get notifications most reliably from the installed app
   }
@@ -4378,24 +4423,6 @@ function sendNotification(title, body, tag){
   }catch(e){ console.warn("Could not show notification:", e) }
 }
 
-// New shared tasks: the first snapshot is catch-up, not news — only diffs
-// against it (tasks added while we're listening) get announced.
-let knownTaskIds = null
-function notifyNewTasks(list){
-  const ids = new Set(list.map(t=>t.id))
-  const fresh = knownTaskIds===null ? [] : list.filter(t=>!knownTaskIds.has(t.id))
-  knownTaskIds = ids
-  if(!fresh.length || !notifyReady()) return
-  if(fresh.length===1){
-    const t=fresh[0]
-    const body=[t.subject, t.end?`due ${shortDate(parseDate(t.end))}`:""].filter(Boolean).join(" · ")
-    sendNotification(`🆕 New task: ${t.name}`, body, "tas-new-"+t.id)
-  } else {
-    sendNotification(`🆕 ${fresh.length} new tasks posted`,
-      fresh.slice(0,4).map(t=>t.name).join(", ")+(fresh.length>4?", …":""), "tas-new-multi")
-  }
-}
-
 // Once a day: everything not done that's due today or tomorrow.
 // The key is only written when a reminder actually fires, so a due-soon task
 // that appears later in the day still gets announced.
@@ -4520,6 +4547,12 @@ async function openTodoView(){
   updateTodoCount()
 }
 
+document.addEventListener("visibilitychange", async () => {
+  if(document.visibilityState !== "visible" || !(await TodoUI.reloadTodo())) return
+  if(currentView === "todo") TodoUI.render()
+  updateTodoCount()
+})
+
 function updateTodoCount(){
   const badge = document.getElementById("todoCount")
   if(!badge) return
@@ -4622,7 +4655,7 @@ function renderArchive() {
     const end = parseDate(t.end), dl = daysLeft(end)
     const checked = archiveSelected.has(t.id)
     const isDone = !!userDoneCache[t.id]
-    return `<div class="archive-row${checked?" selected":""}" style="animation-delay:${(0.03+idx*0.025).toFixed(3)}s" onclick="showDetail(event,'${t.id}')">
+    return `<div class="archive-row${checked?" selected":""}" tabindex="0" role="button" style="animation-delay:${(0.03+idx*0.025).toFixed(3)}s" onclick="showDetail(event,'${t.id}')">
       <span class="archive-strip ${t.type==="deadline"?"deadline":"normal"}"></span>
       <input type="checkbox" class="archive-cb" ${checked?"checked":""} onclick="event.stopPropagation()" onchange="toggleArchiveSelect('${t.id}',this.checked)">
       <div class="archive-main">
@@ -4856,12 +4889,21 @@ function saveCalFilters(){
 // Sorting doesn't take anything away, so it isn't counted here — it has its
 // own pill on the bar, and this badge stays a count of what is being hidden.
 const filtersActive = () =>
-  calFilters.types.length + (calFilters.hideDone ? 1 : 0) + (calFilters.hideMarkers ? 1 : 0)
+  calFilters.types.length + (calFilters.hideDone ? 1 : 0) + (calFilters.hideMarkers ? 1 : 0) + (calSearch ? 1 : 0)
+
+// What the search box holds, lowercased. Not remembered: a search you
+// forgot about would look exactly like tasks going missing.
+let calSearch = ""
+window.setCalSearch = function(v){
+  calSearch = String(v || "").trim().toLowerCase()
+  applyFilterUI(); renderCurrentView()
+}
 
 /* The one question the calendar asks of every task. Markers come through
    here too — they are a type you can switch off like any other. */
 function passesFilter(t){
   if(!t) return false
+  if(calSearch && !`${t.name||""} ${t.subject||""}`.toLowerCase().includes(calSearch)) return false
   // Markers answer to their own switch and nothing else — see FILTER_TYPES
   if(taskType(t) === "marker") return !calFilters.hideMarkers
   if(calFilters.types.length && !calFilters.types.includes(taskType(t))) return false
@@ -4912,6 +4954,8 @@ window.clearCalFilters = function(){
   // Sort has its own control on the bar now, so Reset leaves the order alone
   // and only puts back what the sheet took away.
   calFilters = { types: [], hideDone: false, hideMarkers: false, sort: calFilters.sort }
+  calSearch = ""
+  document.getElementById("calSearch").value = ""
   saveCalFilters()
   // The moon is in this panel, so Reset means all of it.
   if(sideQuestsHidden){
@@ -5572,7 +5616,7 @@ function renderCalendar(){
 
     const sq=isSideQuest(t)
 
-    leftHTML+=`<div class="label-row" style="animation-delay:${delay}s" onclick="showDetail(event,'${t.id}')">
+    leftHTML+=`<div class="label-row" tabindex="0" role="button" style="animation-delay:${delay}s" onclick="showDetail(event,'${t.id}')">
       <div style="overflow:hidden;width:100%">
         <div class="row-name" title="${esc(t.name)}">${sq?`<span class="row-sq">${ico("moon")}</span>`:""}${esc(t.name)}</div>
         <div class="row-subject" title="${esc(t.subject)}">${esc(t.subject)}${pointsPillHTML(t)}</div>
@@ -5586,7 +5630,7 @@ function renderCalendar(){
         <div class="today-vline" style="left:${todayPct}%"></div>
         ${outLeft}
         <div class="gantt-bar${isOverdue?" overdue-pulse":""}${isDone?" done":""}${isPersonal?" personal":""}${sq?" sidequest":""}${progressOf(t.id)?" has-pct":""}"
-          style="left:${left}%;width:${width}%;background:${color};animation-delay:${delay}s"
+          style="left:${left}%;width:${width}%;background:${color};animation-delay:${delay}s" tabindex="0" role="button"
           onclick="showDetail(event,'${t.id}')">
           <span class="gantt-cap" style="background:${urgencyColor(taskType(t),dl)}"></span>
           ${barProgressHTML(t.id)}
@@ -6451,10 +6495,33 @@ function repaintBarProgress(id){
 }
 
 let detailTaskId=null, detailTaskIsPersonal=false
+/* Deleting a class task takes it from everyone, so it gets an Undo: the
+   document goes back under the same id, and every tick and progress bar
+   that pointed at it still does. */
+async function deleteSharedTask(id){
+  const t=tasks.find(x=>x.id===id)
+  await deleteDoc(doc(db,"tasks",id))
+  if(!t){toast("Task deleted");return}
+  const {id:_id,...data}=t
+  toast("Task deleted",{action:"Undo",duration:7000,onAction:async()=>{
+    try{await setDoc(doc(db,"tasks",id),data)}
+    catch(e){console.warn("Could not restore task:",e);saveFailToast()}
+  }})
+}
+
 window.deleteFromDetail=async function(){
   if(!detailTaskId)return
   if(!currentUser)return requireSignIn("change tasks")
   const id=detailTaskId, isPersonal=detailTaskIsPersonal
+  // A class task isn't a student's to delete — clearing an overdue one
+  // only takes it off their own list, the same as removing it in the archive.
+  if(!isPersonal&&!isMod){
+    closeDetail()
+    const hidden=await archiveRemoveIds([id])
+    renderCurrentView()
+    offerArchiveUndo(hidden)
+    return
+  }
   const t=tasks.find(x=>x.id===id)||personalTasks.find(x=>x.id===id)
   const ok=await confirmDialog({
     message:`"${t?t.name:"This task"}" will be ${isPersonal?"deleted permanently.":"removed for the whole class."}`
@@ -6463,11 +6530,11 @@ window.deleteFromDetail=async function(){
   try{
     if(isPersonal){
       await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",id))
+      toast("Task deleted")
     } else {
-      await deleteDoc(doc(db,"tasks",id))
+      await deleteSharedTask(id)
     }
     closeDetail()
-    toast("Task deleted")
   }catch(e){
     console.warn("Could not delete task:",e)
     toast("Couldn't delete the task — try again",{error:true})
@@ -6557,10 +6624,10 @@ window.showDetail=function(e,id){
       days.innerHTML=`<div class="cd-wrap marker"><div class="cd-caption"></div><div class="cd-boxes">${cdBoxesHTML()}</div></div>`
       cdUpdate(days.querySelector(".cd-wrap"),dpCountdown)
     }
-    document.getElementById("dp-dates").innerHTML=""
+    document.getElementById("dp-dates").innerHTML=detailExtrasHTML(t)
 
     const ns=document.getElementById("dp-note-section")
-    if(t.note){document.getElementById("dp-note").textContent=t.note;ns.style.display="block"}else ns.style.display="none"
+    if(t.note){document.getElementById("dp-note").innerHTML=linkify(t.note);ns.style.display="block"}else ns.style.display="none"
 
     document.getElementById("dp-mark-done").style.display="none"
     document.getElementById("dp-sq-row").style.display="none"   // an event is never a side quest
@@ -6568,10 +6635,13 @@ window.showDetail=function(e,id){
     renderDetailProgress(id)   // markers get nothing — it hides itself
     const delBtn=document.getElementById("dp-delete-btn")
     delBtn.className="detail-delete-btn"+(isMod?" visible":"")
+    delBtn.innerHTML=ico("trash")+" Delete task"
 
+    // The modal writes to the class board, so only a class marker opens it
     const eb=document.getElementById("dp-edit-btn")
-    eb.className="detail-edit-btn"  // Markers not editable via modal for now
-    eb.style.display="none"
+    eb.className="detail-edit-btn"+(isMod&&!detailTaskIsPersonal?" visible":"")
+    eb.style.display=""
+    eb.onclick=()=>{closeDetail();openEditModal(t)}
 
     _positionAndShowDetail(e)
     return
@@ -6595,10 +6665,10 @@ window.showDetail=function(e,id){
   const days=document.getElementById("dp-days")
   days.innerHTML=`<div class="cd-wrap"><div class="cd-caption"></div><div class="cd-boxes">${cdBoxesHTML()}</div></div>`
   cdUpdate(days.querySelector(".cd-wrap"),dpCountdown)
-  document.getElementById("dp-dates").innerHTML=`<span>${ico("calendar-grid")} Start: ${shortDate(parseDate(t.start))}</span>`
+  document.getElementById("dp-dates").innerHTML=`<span>${ico("calendar-grid")} Start: ${shortDate(parseDate(t.start))}</span>`+detailExtrasHTML(t)
 
   const ns=document.getElementById("dp-note-section")
-  if(t.note){document.getElementById("dp-note").textContent=t.note;ns.style.display="block"}else ns.style.display="none"
+  if(t.note){document.getElementById("dp-note").innerHTML=linkify(t.note);ns.style.display="block"}else ns.style.display="none"
 
   const isOverdue=dl<0
   const isDone=!!userDoneCache[id]
@@ -6613,10 +6683,13 @@ window.showDetail=function(e,id){
   document.getElementById("dp-mark-done").style.display=isDone?"none":"block"
   document.getElementById("dp-mark-done").textContent=isOverdue?"Mark as done (overdue)":"Mark as Done"
   // Show delete button in mod mode, when overdue, or always for personal tasks
-  document.getElementById("dp-delete-btn").className="detail-delete-btn"+((isOverdue||isMod||detailTaskIsPersonal)?" visible":"")
+  const delBtn=document.getElementById("dp-delete-btn")
+  delBtn.className="detail-delete-btn"+((isOverdue||isMod||detailTaskIsPersonal)?" visible":"")
+  delBtn.innerHTML=ico("trash")+(isMod||detailTaskIsPersonal?" Delete task":" Remove from my list")
 
+  // The modal writes to the class board — a personal task has its own form
   const eb=document.getElementById("dp-edit-btn")
-  eb.className="detail-edit-btn"+(isMod?" visible":"")
+  eb.className="detail-edit-btn"+(isMod&&!detailTaskIsPersonal?" visible":"")
   eb.style.display=""
   eb.onclick=()=>{closeDetail();openEditModal(t)}
 
@@ -6668,21 +6741,9 @@ window.closeDetail=function(){
 
 window.toggleModMode=function(){
   if(isMod){isMod=false;updateModUI();return}
-  // Whitelisted moderators unlock instantly — everyone else needs the password
-  if(isWhitelisted){isMod=true;updateModUI();return}
-  document.getElementById("pwOverlay").classList.add("active")
-  setTimeout(()=>document.getElementById("pwInput").focus(),100)
-}
-window.checkPw=async function(){
-  const input=document.getElementById("pwInput").value
-  const h=await hashInput(input)
-  if(h===MOD_PASSWORD_HASH){isMod=true;closePw();updateModUI()}
-  else{document.getElementById("pwError").style.display="block";document.getElementById("pwInput").value="";document.getElementById("pwInput").focus()}
-}
-window.closePw=function(){
-  animCloseOverlay(document.getElementById("pwOverlay"),"active")
-  document.getElementById("pwInput").value=""
-  document.getElementById("pwError").style.display="none"
+  // The whitelist is the only way in — firestore.rules checks the same list,
+  // so a mode the page granted on its own could not save anything anyway.
+  if(isWhitelisted){isMod=true;updateModUI()}
 }
 // Dropdown-only refresh — safe to call before the first calendar render
 function updateRoleUI(){
@@ -6699,7 +6760,10 @@ function updateRoleUI(){
   const at=document.getElementById("ddAddTask")
   if(at) at.style.display=isMod?"flex":"none"
   const dd=document.getElementById("ddModMode")
-  if(dd) dd.innerHTML=isMod?ico("unlock")+" Mod mode on — tap to lock":(isWhitelisted?ico("unlock")+" Enable mod mode":ico("lock")+" Mod mode")
+  if(dd){
+    dd.style.display=isWhitelisted?"":"none"
+    dd.innerHTML=ico("unlock")+(isMod?" Mod mode on — tap to lock":" Enable mod mode")
+  }
 }
 function updateModUI(){
   updateRoleUI()
@@ -6718,9 +6782,8 @@ window.quickDeleteTask=async function(e,id){
   })
   if(!ok)return
   try{
-    if(isPersonal)await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",id))
-    else await deleteDoc(doc(db,"tasks",id))
-    toast("Task deleted")
+    if(isPersonal){await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",id));toast("Task deleted")}
+    else await deleteSharedTask(id)
   }catch(err){
     console.warn("Could not delete task:",err)
     toast("Couldn't delete the task — try again",{error:true})
@@ -6746,8 +6809,18 @@ function syncModDiff(){
   if(hint) hint.textContent = modDiff===null ? "— left to the reader's own estimate" : ""
 }
 
+/* A marker is one date and no work, so its edit form is the same modal
+   with the type, the start date and the difficulty taken away. */
+let editingMarker=false
+function setModalMarker(on){
+  editingMarker=on
+  for(const id of ["t-type-field","t-start-field","t-diff-field"])
+    document.getElementById(id).style.display=on?"none":""
+}
+
 window.openAddModal=function(){
   editingId=null
+  setModalMarker(false)
   document.getElementById("modal-title").textContent="Add task"
   document.getElementById("t-name").value=""
   document.getElementById("t-subject").value=""
@@ -6763,12 +6836,15 @@ window.openAddModal=function(){
 }
 function openEditModal(t){
   editingId=t.id
-  document.getElementById("modal-title").textContent="Edit task"
+  const marker=t.type==="marker"
+  setModalMarker(marker)
+  document.getElementById("modal-title").textContent=marker?"Edit marker":"Edit task"
   document.getElementById("t-name").value=t.name
-  document.getElementById("t-subject").value=t.subject
+  document.getElementById("t-subject").value=t.subject||""
   document.getElementById("t-type").value=t.type
-  document.getElementById("t-start").value=t.start
-  document.getElementById("t-end").value=t.end
+  // Emptied for a marker so the hidden start can't put a floor under its date
+  document.getElementById("t-start").value=marker?"":t.start
+  document.getElementById("t-end").value=marker?(t.date||t.start||""):t.end
   document.getElementById("t-note").value=t.note||""
   modDiff=Points.normPoints(t.difficulty)
   syncModDiff()
@@ -6787,16 +6863,19 @@ window.saveTask=async function(){
   const start=document.getElementById("t-start").value
   const end=document.getElementById("t-end").value
   const note=document.getElementById("t-note").value.trim()
-  if(!name||!subject||!start||!end){alert("Please fill in name, subject, and dates.");return}
-  if(new Date(start)>new Date(end)){alert("Start date must be before end date.");return}
+  if(!name||!subject||!end||(!editingMarker&&!start)){toast("Fill in the name, subject and dates first",{error:true});return}
+  if(!editingMarker&&new Date(start)>new Date(end)){toast("The start date has to be before the due date",{error:true});return}
   // Left unset, it stays unset — the reader's own estimate is a better
   // answer than a number the author never thought about.
-  const data={name,subject,type,start,end,note,difficulty:modDiff||null}
+  const data=editingMarker
+    ? {name,subject,date:end,start:end,end,note}
+    : {name,subject,type,start,end,note,difficulty:modDiff||null}
+  const who=currentUser?(currentUser.displayName||currentUser.email||""):""
   taskSaving=true
   try{
     // updatedAt keeps the "Latest update" pill honest for edits, not just new tasks
-    if(editingId)await updateDoc(doc(db,"tasks",editingId),{...data,updatedAt:Date.now()})
-    else await addDoc(collection(db,"tasks"),{...data,createdAt:Date.now()})
+    if(editingId)await updateDoc(doc(db,"tasks",editingId),{...data,updatedAt:Date.now(),editedBy:who})
+    else await addDoc(collection(db,"tasks"),{...data,createdAt:Date.now(),by:who})
     closeModal()
   }catch(e){
     console.warn("Could not save task:",e)
@@ -6808,7 +6887,7 @@ window.deleteTask=async function(){
   const t=tasks.find(x=>x.id===editingId)
   const ok=await confirmDialog({message:`"${t?t.name:"This task"}" will be removed for the whole class.`})
   if(!ok)return
-  try{await deleteDoc(doc(db,"tasks",editingId));closeModal();toast("Task deleted")}
+  try{await deleteSharedTask(editingId);closeModal()}
   catch(e){console.warn("Could not delete task:",e);toast("Couldn't delete the task — try again",{error:true})}
 }
 
@@ -7433,7 +7512,7 @@ function renderPtList(){
        ticking here, on the timeline and in To Do are one action, and the
        page's delegated hold-to-set-progress gesture works on these rows
        without any wiring of its own. */
-    return `<div class="pt-list-card${sq?" sidequest":""}" onclick="ptRowOpen(event,'${t.id}')">
+    return `<div class="pt-list-card${sq?" sidequest":""}" tabindex="0" role="button" onclick="ptRowOpen(event,'${t.id}')">
       <span class="pt-list-strip" style="background:${color}"></span>
       ${isMarker ? "" : `<div class="check-row pt-check" id="cr-${t.id}" title="Hold to set up progress">
         <input type="checkbox" title="Mark as done — hold to set up progress"
@@ -7493,12 +7572,19 @@ window.addEventListener("resize",()=>{
   },150)
 })
 
+// Rows and bars are divs, so Enter and Space have to be taught to press them.
+// Only when the row itself has focus — not for a key typed into something inside it.
+document.addEventListener("keydown",e=>{
+  if((e.key==="Enter"||e.key===" ")&&e.target.matches&&e.target.matches('[role="button"][tabindex][onclick]')){
+    e.preventDefault(); e.target.click()
+  }
+})
+
 // ── Escape closes whatever is open (marker modal & My Tasks handle their own) ──
 document.addEventListener("keydown",e=>{
   if(e.key!=="Escape")return
   const open=id=>document.getElementById(id).classList.contains("open")
   if(open("confirmOverlay")) return resolveConfirm(false)
-  if(document.getElementById("pwOverlay").classList.contains("active")) return closePw()
   if(open("pointsModal"))   return closePointsSheet()
   if(open("progressModal")) return closeProgressSheet()
   if(open("detailPopup")) return closeDetail()

@@ -33,9 +33,11 @@ const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "tas-samtabsam"
 const DB = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`
 const FCM = `https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messages:send`
 
-// Must match the cron in netlify.toml: a reminder fires when its chosen
-// time falls inside the window this run covers.
-const TICK_MINUTES = 15
+// How long after the chosen time a run will still send. The cron in
+// netlify.toml ticks every 15 minutes; four ticks of slack means one late
+// or dropped run no longer costs somebody their reminder for the day —
+// lastSent is what stops the later ticks sending it again.
+const CATCHUP_MINUTES = 60
 const DEFAULT_TZ = "Asia/Bangkok"
 
 /* ── Auth ─────────────────────────────────────────────────────
@@ -185,13 +187,19 @@ function daysUntil(iso, timeZone, now) {
   return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(ty, tm - 1, td)) / 86400000)
 }
 
+/* The calendar day, in the reader's zone, that the reminder time `past`
+   minutes ago belonged to. */
+function reminderDay(now, past, timeZone) {
+  return dateInZone(new Date(now.getTime() - past * 60000), timeZone)
+}
+
 const THAI_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
   "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
 
 /* ── Sending ──────────────────────────────────────────────────
    FCM's v1 REST API takes one token per request — the SDK's
    "multicast" is a loop like this one. A token the server reports as
-   dead is deleted, the same pruning notifyNewTask does. */
+   dead is deleted, so the list stays clean. */
 
 async function pushTo(token, fcmToken, title, body, tag) {
   const res = await fetch(FCM, {
@@ -250,10 +258,14 @@ exports.handler = async () => {
          so anyone picking a time in the last quarter hour of the day
          would simply never have been reminded. */
       const past = (nowMin - want + 1440) % 1440
-      if (past >= TICK_MINUTES) { skipped++; continue }
+      if (past >= CATCHUP_MINUTES) { skipped++; continue }
 
       const today = dateInZone(now, tz)
-      if (pref.lastSent === today) { skipped++; continue }   // already told them today
+      // Stamped with the day the chosen time fell on, not the day this run
+      // happens to land in: a 23:10 reminder is inside the window at both
+      // 23:15 and 00:00, and stamping "now" would send it at each.
+      const sentFor = reminderDay(now, past, tz)
+      if (pref.lastSent === sentFor) { skipped++; continue }   // already told them
 
       const [mine, doneDoc] = await Promise.all([
         listAll(token, `userTasks/${uid}/tasks`),
@@ -273,7 +285,7 @@ exports.handler = async () => {
       // would otherwise look at the same empty list all over again.
       const stamp = () => api(token,
         `/notifyPrefs/${uid}?updateMask.fieldPaths=lastSent`,
-        { method: "PATCH", body: JSON.stringify({ fields: { lastSent: { stringValue: today } } }) })
+        { method: "PATCH", body: JSON.stringify({ fields: { lastSent: { stringValue: sentFor } } }) })
 
       if (!due.length) { await stamp(); continue }
 
@@ -309,4 +321,4 @@ exports.handler = async () => {
 }
 
 // Exported for the offline test of the date/window helpers.
-exports._internals = { minutesInZone, dateInZone, daysUntil, plain, value, THAI_MONTHS }
+exports._internals = { minutesInZone, dateInZone, daysUntil, reminderDay, plain, value, THAI_MONTHS }

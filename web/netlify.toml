@@ -18,15 +18,38 @@
   status = 200
   force = true
 
+# web/ is published whole, so anything that lives in it for the repo's sake
+# rather than the site's has to be turned away here.
+[[redirects]]
+  from = "/mcp/*"
+  to = "/404.html"
+  status = 404
+  force = true
+[[redirects]]
+  from = "/manifest-guide.md"
+  to = "/404.html"
+  status = 404
+  force = true
+[[redirects]]
+  from = "/image.png"
+  to = "/404.html"
+  status = 404
+  force = true
+[[redirects]]
+  from = "/claude!!/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
 # The daily "due today / tomorrow" reminder. It lives here rather than in
 # Cloud Functions because scheduled functions come with the free plan and
 # Firebase's don't — see the header of reminder.js.
 #
 # Every quarter hour, not once a day: everyone picks their own reminder
 # time in Settings, so the function wakes up regularly and sends to
-# whoever's minute has just passed. TICK_MINUTES in reminder.js has to
-# match this interval, or a chosen time falls between two runs and is
-# never reached.
+# whoever's minute has just passed. CATCHUP_MINUTES in reminder.js has to
+# stay longer than this interval, or a chosen time falls between two runs
+# and is never reached.
 #
 # Scheduled functions are not reachable over HTTP in production; to try
 # one, use `netlify functions:invoke reminder` locally.

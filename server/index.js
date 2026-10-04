@@ -6,7 +6,8 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-const TOKEN = "zooSrMsoUz4bTWZNMGqqO2IaGguT0rPFpHnQEvCucVGgL6SSJDt8gVtUcGLEbpBKcAPEyIvg6AGDq4M1OKvBE4HNGVFNiGiZmbq40NhmXXuBV8ulyybl7352vaHU0GC4DqvauajEtCRWoVqVzm0jxAdB04t89/1O/w1cDnyilFU="
+// Never in source: the last one committed here has to be treated as leaked.
+const TOKEN = process.env.LINE_TOKEN
 
 app.post("/send", async (req, res) => {
   const { groupId, message, flexMessage } = req.body

@@ -70,7 +70,10 @@ exports.handler = async (event) => {
   // Path is /r/<code> before the rewrite and /.netlify/functions/redirect/<code>
   // after it, so take the last non-empty segment either way.
   const segments = (event.path || "").split("/").filter(Boolean)
-  const code = decodeURIComponent(segments[segments.length - 1] || "").toLowerCase()
+  // A malformed %-escape makes decodeURIComponent throw; an empty code
+  // falls through to the "no link code" page instead of a crash.
+  let code = ""
+  try { code = decodeURIComponent(segments[segments.length - 1] || "").toLowerCase() } catch (e) {}
 
   if (!code || code === "redirect" || code === "r") {
     return {

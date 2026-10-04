@@ -58,6 +58,11 @@ const FLUSH_MS = 120000
    paused on a breakpoint. The gap is dropped rather than banked. */
 const MAX_TICK_MS = 5 * 60 * 1000
 
+/* Visible is not the same as in use: a tab left on screen while you are
+   doing something else would count all of it. With no tap, key or scroll
+   for this long the clock keeps running but stops banking. */
+const IDLE_MS = 5 * 60 * 1000
+
 // Local date, not UTC — "today" has to mean the day the reader had.
 export function dayKey(d = new Date()) {
   const p = n => String(n).padStart(2, "0")
@@ -98,6 +103,7 @@ let visibleSince = 0        // 0 when the clock is not running
 let lastFlush = 0
 let timer = null
 let started = false
+let lastInput = 0
 
 function clockOn() {
   if (!visibleSince) visibleSince = Date.now()
@@ -193,6 +199,10 @@ export function startTimeTracking(firestore, userId) {
 
   bank(0, 1)            // one more visit, whatever it turns out to be worth
   lastFlush = Date.now()
+  lastInput = Date.now()
+  // capture, because scroll doesn't bubble out of the element it happens in
+  for (const ev of ["pointerdown", "keydown", "scroll"])
+    window.addEventListener(ev, () => { lastInput = Date.now() }, { capture: true, passive: true })
   if (document.visibilityState !== "hidden") clockOn()
 
   document.addEventListener("visibilitychange", () => {
@@ -211,7 +221,7 @@ export function startTimeTracking(firestore, userId) {
   timer = setInterval(() => {
     if (!visibleSince) return
     const ms = Date.now() - visibleSince
-    if (ms > MAX_TICK_MS) { visibleSince = Date.now(); return }
+    if (ms > MAX_TICK_MS || Date.now() - lastInput > IDLE_MS) { visibleSince = Date.now(); return }
     visibleSince = Date.now()
     bank(ms, 0)
     if (Date.now() - lastFlush >= FLUSH_MS) flushTime()
