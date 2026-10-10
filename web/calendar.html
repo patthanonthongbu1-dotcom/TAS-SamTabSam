@@ -1964,6 +1964,142 @@
       html:is([data-theme="light"],[data-theme="paper"]) .detail-popup::before{background:var(--border)}
     }
 
+    /* ── Blocks — the day planner layout ──────────────────────────
+       The month frame is the grid layout's own (.tl-wrap/.tl-grid), so the
+       two read as the same calendar; only the cells differ. Category
+       colours are tokens so the light themes can deepen them. */
+    :root{--bk-study:#6aa9ff;--bk-project:#ff4fa3;--bk-rest:#4ac97e;--bk-other:#a3aec2}
+    .bk-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:14px;color:var(--muted)}
+    .bk-leg{display:inline-flex;align-items:center;gap:6px}
+    .bk-leg.muted{color:var(--label);font-weight:300;font-size:13px}
+    .bk-leg-sw{width:12px;height:12px;border-radius:4px;flex-shrink:0;display:inline-block}
+    .bk-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+    .bk-cell{
+      all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:5px;min-width:0;min-height:118px;
+      padding:6px 6px 8px;border-top:1px solid var(--glass-brd);cursor:pointer;
+      font-family:'Kanit',sans-serif;transition:background 0.14s;
+    }
+    .bk-cell:not(:nth-child(7n+1)){border-left:1px solid var(--glass-brd)}
+    .bk-days .bk-cell:nth-child(-n+7){border-top:none}
+    .bk-cell.weekend{background:rgba(255,255,255,0.035)}
+    .bk-cell:hover{background:var(--accent-soft)}
+    .bk-cell:focus-visible{outline:2px solid var(--pink);outline-offset:-2px}
+    .bk-cell.out .tl-daynum,.bk-cell.out .bk-chips{opacity:0.4}
+    .bk-cell.today{background:rgba(229,62,62,0.14);box-shadow:inset 0 0 0 2px var(--red)}
+    .bk-cell.today .tl-daynum{background:var(--red);color:#fff;font-weight:700;border-radius:20px;padding:0 7px;box-shadow:0 2px 10px -2px rgba(229,62,62,0.8)}
+    .bk-cell-top{display:flex;align-items:center;justify-content:space-between;gap:4px}
+    .bk-prog{font-size:12px;font-weight:500;color:var(--label);white-space:nowrap}
+    .bk-cell.all-done .bk-prog{color:var(--green-text)}
+    .bk-chips{display:flex;flex-direction:column;gap:3px;min-width:0}
+    .bk-chip{
+      display:block;font-size:12.5px;line-height:1.35;color:var(--text);padding:2px 6px 2px 7px;border-radius:6px;
+      background:color-mix(in srgb,var(--c) 26%,transparent);border-left:3px solid var(--c);
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .bk-chip.done{opacity:0.5;text-decoration:line-through}
+    .bk-more{font-size:12px;color:var(--label);padding-left:4px}
+    .bk-guest{text-align:center;padding:3rem 1.5rem;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:8px}
+    .bk-guest .big .ic{width:34px;height:34px;color:var(--pink)}
+    .bk-guest p{font-size:17px;color:var(--text)}
+    .bk-guest .modal-save{flex:none;padding:10px 28px;margin-top:8px}
+
+    /* The Day Designer — a .modal, wider, with its own scrolling middle */
+    .bk-overlay{z-index:640}
+    .bk-modal{max-width:620px;display:flex;flex-direction:column;padding:1.1rem 1.1rem 1rem;overflow:hidden}
+    .bk-top{display:flex;align-items:center;gap:6px}
+    .bk-title{flex:1;min-width:0;text-align:center}
+    .bk-title h2{margin:0;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .bk-sub{font-size:13.5px;color:var(--muted);font-weight:300}
+    .bk-icon-btn{
+      width:44px;height:44px;flex-shrink:0;border-radius:12px;border:1px solid var(--glass-brd);background:var(--glass-2);
+      color:var(--text);font-size:22px;line-height:1;cursor:pointer;font-family:'Kanit',sans-serif;
+    }
+    .bk-icon-btn.close{font-size:16px}
+    .bk-icon-btn:active{transform:scale(0.94)}
+    .bk-meter{height:6px;border-radius:6px;background:var(--glass);margin:10px 0 4px;overflow:hidden}
+    .bk-meter span{display:block;height:100%;background:var(--accent-grad);border-radius:6px;transition:width 0.3s ease}
+    .bk-body{flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;gap:10px;padding:8px 2px 4px;margin:0 -2px}
+    .bk-sec{background:var(--glass-2);border:1px solid var(--glass-brd);border-radius:14px;padding:10px}
+    .bk-sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+    .bk-sec-name{font-size:15px;font-weight:600;letter-spacing:0.02em;color:var(--text)}
+    .bk-sec-count{font-size:12.5px;color:var(--label)}
+    .bk-list{display:flex;flex-direction:column;gap:6px;min-height:8px;border-radius:10px;transition:background 0.12s}
+    .bk-list.drag-over{background:var(--accent-soft)}
+    .bk-empty{font-size:13.5px;color:var(--label);font-weight:300;padding:4px 2px}
+    .bk-row{background:var(--glass);border:1px solid var(--glass-brd);border-left:4px solid var(--c);border-radius:11px;position:relative}
+    .bk-row.done .bk-text-line{text-decoration:line-through;opacity:0.55}
+    .bk-row.dragging{opacity:0.3}
+    .bk-row.drop-before::before,.bk-row.drop-after::after{
+      content:"";position:absolute;left:6px;right:6px;height:3px;border-radius:3px;background:var(--pink)}
+    .bk-row.drop-before::before{top:-5px}.bk-row.drop-after::after{bottom:-5px}
+    .bk-row-main{display:flex;align-items:center;min-height:52px}
+    .bk-grip{
+      width:36px;align-self:stretch;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+      color:var(--label);cursor:grab;touch-action:none;
+    }
+    .bk-grip .ic{width:18px;height:18px}
+    .bk-check{
+      width:44px;height:44px;flex-shrink:0;border:none;background:none;cursor:pointer;color:var(--label);
+      display:flex;align-items:center;justify-content:center;
+    }
+    .bk-check .ic{width:24px;height:24px}
+    .bk-row.done .bk-check{color:var(--green-text)}
+    .bk-text{
+      flex:1;min-width:0;border:none;background:none;text-align:left;cursor:pointer;color:var(--text);
+      font-family:'Kanit',sans-serif;padding:8px 10px 8px 2px;display:flex;flex-direction:column;gap:1px;
+    }
+    .bk-text-line{font-size:15.5px;line-height:1.3;overflow-wrap:anywhere}
+    .bk-meta{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--label)}
+    .bk-cat{color:var(--c);font-weight:500}
+    .bk-link{display:inline-flex;align-items:center;gap:4px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .bk-link .ic{width:12px;height:12px}
+    .bk-ghost{
+      position:fixed;left:0;top:0;z-index:2000;pointer-events:none;
+      background:var(--sheet);box-shadow:0 18px 40px -12px rgba(0,0,0,0.7);transform-origin:center;
+    }
+    body.bk-open{overflow:hidden}
+    .bk-edit{display:flex;flex-direction:column;gap:9px;padding:0 10px 10px}
+    .bk-edit-text,.bk-link-sel{
+      width:100%;padding:10px 12px;border:1px solid var(--field-brd);border-radius:10px;font-size:16px;
+      font-family:'Kanit',sans-serif;color:var(--text);background:var(--field-bg);outline:none;
+    }
+    .bk-edit-text:focus,.bk-link-sel:focus{border-color:var(--pink);box-shadow:0 0 0 3px var(--accent-ring)}
+    .bk-cats{display:flex;flex-wrap:wrap;gap:6px}
+    .bk-cats .filter-chip{min-height:38px;display:inline-flex;align-items:center;gap:6px}
+    .bk-link-field{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+    .bk-edit-actions{display:flex;gap:8px}
+    .bk-edit-actions .modal-delete{display:inline-flex;align-items:center;gap:6px}
+    .bk-add{
+      width:100%;margin-top:8px;padding:11px 12px;border:1px dashed var(--field-brd);border-radius:10px;
+      font-size:16px;font-family:'Kanit',sans-serif;color:var(--text);background:transparent;outline:none;
+    }
+    .bk-add::placeholder{color:var(--label)}
+    .bk-add:focus{border-style:solid;border-color:var(--pink);background:var(--field-bg);box-shadow:0 0 0 3px var(--accent-ring)}
+    .bk-actions{margin-top:10px}
+    .bk-actions .modal-cancel{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+    .bk-actions .modal-cancel:disabled{opacity:0.45;cursor:default}
+    /* iPad portrait and up: the three parts side by side, like a day */
+    @media(min-width:760px){
+      .bk-modal{max-width:980px}
+      .bk-body{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}
+    }
+    @media(max-width:600px){
+      .bk-cell{min-height:84px;padding:4px 3px 6px;gap:3px}
+      .bk-chip{font-size:11px;padding:1px 4px 1px 4px;border-left-width:2px}
+      .bk-more{font-size:10.5px;padding-left:2px}
+      .bk-prog{font-size:10.5px}
+      .bk-cell .tl-daynum{font-size:14.5px}
+      .bk-modal{max-height:92vh;border-radius:16px 16px 0 0}
+      .bk-legend{font-size:12.5px;gap:4px 10px}
+      .bk-title h2{white-space:normal;font-size:16.5px;line-height:1.25}
+    }
+    html:is([data-theme="light"],[data-theme="paper"]){--bk-study:#1e6fd9;--bk-project:#d0287a;--bk-rest:#1f9d5c;--bk-other:#6b7a90}
+    html:is([data-theme="light"],[data-theme="paper"]) .bk-cell.weekend{background:#f8faf8}
+    html:is([data-theme="light"],[data-theme="paper"]) .bk-cell.today{background:#fff1f1}
+    html:is([data-theme="light"],[data-theme="paper"]) .bk-sec,html:is([data-theme="light"],[data-theme="paper"]) .bk-row{background:var(--card);border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .bk-row{border-left-color:var(--c)}
+    html:is([data-theme="light"],[data-theme="paper"]) .bk-chip{color:#1f2937}
+
     /* ── To Do view ─────────────────────────────────────────────
        Two lanes: the tasks you can pull from, and the list you order.
        Renders into #calWrap like the other views. */
@@ -2555,6 +2691,7 @@
     <div class="filter-group" id="cfgModes"></div>
     <div class="filter-group" id="cfgRanges"></div>
 
+    <div id="filterBoardOnly">
     <span class="filter-scope">Order</span>
     <div class="filter-group" id="sortOptions"></div>
 
@@ -2569,6 +2706,7 @@
       <span class="filter-switch-lab"><svg class="ic" aria-hidden="true"><use href="#ic-pin"/></svg> Hide markers</span>
       <span class="pt-switch" id="filterMarkersSwitch"></span>
     </button>
+    </div>
   </div>
   <p class="filter-note" id="filterCalHint" style="display:none">Layout, order and the kind filters belong to the calendar — open it to use them.</p>
 
@@ -3131,6 +3269,7 @@ import { startTimeTracking, stopTimeTracking } from "./tas-time.js"
 // the store owns Firestore, and the UI owns the DOM. This page supplies the
 // live task lists it renders against, so nothing is fetched twice.
 import * as TodoUI from "./tas-todo-ui.js"
+import * as BlocksUI from "./tas-blocks-ui.js"
 // How heavy each task is. Pure arithmetic, tested, and shared with the To Do
 // module so the pills and the meter can never disagree about a weight.
 import * as Points from "./tas-points.js"
@@ -3467,7 +3606,7 @@ if(!VALID_RANGES.includes(storedRange)) storedRange = "month"
 
 // ── View mode: the Gantt "timeline", or the month "grid" (also remembered) ──
 const CAL_MODE_KEY = "tas_calendar_mode"
-const VALID_MODES = ["timeline","grid"]
+const VALID_MODES = ["timeline","grid","blocks"]
 let calMode = localStorage.getItem(CAL_MODE_KEY)
 if(!VALID_MODES.includes(calMode)) calMode = "timeline"
 // First day of the month the grid is showing — starts on the current month
@@ -3800,6 +3939,7 @@ onAuthStateChanged(auth, async user => {
   startTasksListener()
   startPersonalTasksListener(user.uid)
   initTodoView(user.uid)
+  initBlocksView(user.uid)
   // The feed doc's existence is the on/off switch, so ask once per session
   // rather than keeping a per-device preference that could disagree.
   widgetFeedExists(db, user.uid).then(on => { widgetFeedOn = on; if(on) queueWidgetFeed() })
@@ -3838,6 +3978,7 @@ function enterGuestMode(){
   // Shared tasks only. Every other listener here is keyed to a uid, and
   // startTimeTracking would have nowhere to write.
   startTasksListener()
+  initBlocksView(null)   // draws the sign-in card if Blocks is the layout
 }
 
 function renderGuestPill(){
@@ -4611,6 +4752,32 @@ window.switchView = function(view) {
   else renderArchive()
 }
 
+/* ── Blocks — the third calendar layout ──────────────────────
+   Like To Do, the module borrows the page's helpers and live task lists
+   rather than keeping copies, so a block linked to a task is drawn in the
+   colour that task has everywhere else. */
+function initBlocksView(uid){
+  BlocksUI.initBlocks({
+    uid, db,
+    mount: document.getElementById("calWrap"),
+    helpers: {
+      esc, ico, toast, shortDate, longDate, EN_DAYS, EN_MONTHS,
+      today: () => TODAY,
+      isActive: () => currentView==="calendar" && calMode==="blocks",
+      requireSignIn,
+      findTask: id => tasks.find(t=>t.id===id) || personalTasks.find(t=>t.id===id) || null,
+      taskColor: t => barColor(t, daysLeft(parseDate(t.end||t.date||t.start))),
+      // What a block can be linked to: work still to hand in, soonest
+      // first. Markers are dates rather than work, and finished tasks
+      // have nothing left to plan time for.
+      linkableTasks: () => [...tasks, ...personalTasks]
+        .filter(t => t.end && taskType(t)!=="marker" && !userDoneCache[t.id] && daysLeft(parseDate(t.end))>=0)
+        .sort((a,b) => parseDate(a.end)-parseDate(b.end))
+        .map(t => ({ id:t.id, name:t.name, subject:t.subject, due:shortDate(parseDate(t.end)) }))
+    }
+  })
+}
+
 /* ── To Do view ──────────────────────────────────────────────
    The module gets the page's live task arrays through getters rather than
    copies, so it always renders against the two snapshots already running
@@ -5240,7 +5407,8 @@ window.setRange=function(key){
    rather than sitting there doing nothing. */
 const CAL_MODES = [
   { id:"timeline", label:"Timeline",   icon:"chart" },
-  { id:"grid",     label:"Month grid", icon:"calendar-grid" }
+  { id:"grid",     label:"Month grid", icon:"calendar-grid" },
+  { id:"blocks",   label:"Blocks",     icon:"grip" }
 ]
 function applyModeToUI(){
   const modes=document.getElementById("cfgModes")
@@ -5250,11 +5418,15 @@ function applyModeToUI(){
 
   const ranges=document.getElementById("cfgRanges")
   if(ranges){
-    ranges.style.display = calMode==="grid" ? "none" : ""
+    ranges.style.display = calMode==="timeline" ? "" : "none"
     ranges.innerHTML = Object.keys(RANGE_NAMES).map(k =>
       `<button class="filter-chip${currentRange===k?" active":""}"
         onclick="setRange('${esc(k)}')">${esc(RANGE_NAMES[k])}</button>`).join("")
   }
+  // Order and the task filters thin down task rows; a day plan has none,
+  // so that half steps aside in Blocks the way the range does in the grid.
+  const board=document.getElementById("filterBoardOnly")
+  if(board) board.style.display = calMode==="blocks" ? "none" : ""
   applyCfgLabel()
 }
 
@@ -5264,7 +5436,8 @@ function applyModeToUI(){
 function applyCfgLabel(){
   const lab=document.getElementById("cfgLabel")
   if(lab) lab.textContent = currentView !== "calendar" ? "View"
-    : calMode==="grid" ? "Month grid" : (RANGE_NAMES[currentRange] || "Month")
+    : calMode==="grid" ? "Month grid" : calMode==="blocks" ? "Blocks"
+    : (RANGE_NAMES[currentRange] || "Month")
 }
 window.setCalMode=function(mode){
   if(!VALID_MODES.includes(mode)||mode===calMode) return
@@ -5535,6 +5708,13 @@ document.getElementById("calWrap").innerHTML = calMode==="grid" ? gridSkeletonHT
 
 function renderCalendar(){
   const wrap=document.getElementById("calWrap")
+  // Blocks are the account's own plans, read by their own module — the
+  // shared task list only colours the linked ones, so it never waits on it.
+  if(calMode==="blocks"){
+    wrap.classList.remove("no-anim"); animateRows=false
+    ensureSubjectColors()   // a linked block wears its task's subject colour
+    BlocksUI.render(); return
+  }
   if(!tasksLoaded){
     // Keep the skeleton (and don't consume animateRows) until real data lands —
     // rebuild it if the view, mode or range changed so the ghost still matches

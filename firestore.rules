@@ -112,6 +112,18 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
+    // ── Blocks: one day's plan per document ───────────────────
+    // Doc id = the date (YYYY-MM-DD), holding one `blocks` array written
+    // whole. Private like To Do, and never published to widgetFeed. The
+    // cap matches MAX_BLOCKS in tas-blocks-state.js.
+    match /dayPlans/{uid}/days/{day} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+                            && day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+                            && request.resource.data.blocks is list
+                            && request.resource.data.blocks.size() <= 60;
+    }
+
     // ── Home-screen widget feed ───────────────────────────────
     // Doc id = the owner's uid. A home-screen widget has nowhere to sign
     // in, so the calendar publishes the one thing the widget can't work
