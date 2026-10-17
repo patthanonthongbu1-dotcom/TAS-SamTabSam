@@ -1998,10 +1998,6 @@
     }
     .bk-chip.done{opacity:0.5;text-decoration:line-through}
     .bk-more{font-size:12px;color:var(--label);padding-left:4px}
-    .bk-guest{text-align:center;padding:3rem 1.5rem;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:8px}
-    .bk-guest .big .ic{width:34px;height:34px;color:var(--pink)}
-    .bk-guest p{font-size:17px;color:var(--text)}
-    .bk-guest .modal-save{flex:none;padding:10px 28px;margin-top:8px}
 
     /* The Day Designer — a .modal, wider, with its own scrolling middle */
     .bk-overlay{z-index:640}
@@ -3978,7 +3974,7 @@ function enterGuestMode(){
   // Shared tasks only. Every other listener here is keyed to a uid, and
   // startTimeTracking would have nowhere to write.
   startTasksListener()
-  initBlocksView(null)   // draws the sign-in card if Blocks is the layout
+  initBlocksView(null)   // signed out, day plans live on this device
 }
 
 function renderGuestPill(){
@@ -4764,7 +4760,6 @@ function initBlocksView(uid){
       esc, ico, toast, shortDate, longDate, EN_DAYS, EN_MONTHS,
       today: () => TODAY,
       isActive: () => currentView==="calendar" && calMode==="blocks",
-      requireSignIn,
       findTask: id => tasks.find(t=>t.id===id) || personalTasks.find(t=>t.id===id) || null,
       taskColor: t => barColor(t, daysLeft(parseDate(t.end||t.date||t.start))),
       // What a block can be linked to: work still to hand in, soonest

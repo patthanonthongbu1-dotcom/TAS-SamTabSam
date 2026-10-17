@@ -43,6 +43,15 @@ export function initBlocks(opts) {
   data = {}; lastSaved = {}; loadedRange = null
   if (!month) month = firstOf(H.today())
   buildSheet()
+  // Signed in: days planned as a guest, then any write the last visit
+  // never confirmed, go up before the month is read — so the read sees them.
+  if (uid) {
+    const me = uid
+    Store.adoptGuest(me).then(n => {
+      if (n) H.toast(`Kept the ${n} day${n === 1 ? "" : "s"} you planned before signing in`)
+      return Store.replayPending(me)
+    }).then(() => { if (uid === me) { loadedRange = null; if (H.isActive()) render() } })
+  }
   if (wired) return
   wired = true   // a guest who signs in is initialised a second time
   window.addEventListener("beforeunload", () => { if (Store.hasPendingSave()) Store.flushAll() })
@@ -108,15 +117,6 @@ function blockColor(b) {
 export function render() {
   if (!mount) return
   const { esc, ico } = H
-  if (!uid) {
-    mount.innerHTML = `<div class="tl-wrap"><div class="bk-guest">
-      <span class="big">${ico("grip")}</span>
-      <p>Blocks plan your day — morning, afternoon, evening.</p>
-      <small>They're saved to your account, so sign in to start one.</small>
-      <button class="modal-save" onclick="requireSignIn('plan your days with Blocks')">Sign in</button>
-    </div></div>`
-    return
-  }
   ensureLoaded()
 
   const today = H.today()
@@ -193,7 +193,6 @@ function buildSheet() {
 }
 
 export function openDay(k) {
-  if (!uid) { H.requireSignIn("plan your days with Blocks"); return }
   openKey = k
   editingId = null
   renderSheet()
