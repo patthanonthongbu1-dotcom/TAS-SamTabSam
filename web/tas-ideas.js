@@ -59,6 +59,9 @@ let ideas = []            // as drawn
 let lastSaved = []        // what the store confirmed — the rollback target
 let loaded = false, loading = false, loadFailed = false
 let editingId = null
+// Motion: the rows stagger in when you arrive, and a new one springs in alone.
+// Both are one-shot, so a redraw after a save never replays them.
+let arrivePending = false, freshId = null
 
 export function initIdeas(opts) {
   uid = opts.uid || null
@@ -75,6 +78,7 @@ export const ideaCount = () => ideas.length
    render runs after every failure, so retrying there would loop. */
 export function open() {
   editingId = null
+  arrivePending = true
   if (loadFailed) loadFailed = false
   render()
 }
@@ -117,11 +121,13 @@ export function render() {
   ensureLoaded()
   const { esc, ico } = H
   const now = Date.now()
-  const rows = ideas.map(i => i.id === editingId
+  const arrive = arrivePending && ideas.length > 0
+  if (arrive) arrivePending = false
+  const rows = ideas.map((i, n) => i.id === editingId
     ? `<div class="idea-row editing" data-id="${esc(i.id)}">
         <input class="idea-edit" value="${esc(i.text)}" maxlength="${MAX_IDEA_TEXT}" aria-label="Edit idea">
       </div>`
-    : `<div class="idea-row" data-id="${esc(i.id)}">
+    : `<div class="idea-row${i.id === freshId ? " fresh" : ""}" data-id="${esc(i.id)}" style="--i:${Math.min(n, 10)}">
         <button class="idea-text" data-act="edit">${esc(i.text)}<span class="idea-age">${esc(ageLabel(i.at, now))}</span></button>
         <label class="idea-plan" title="Plan it on a day">${ico("calendar")}<span>Plan it</span>
           <input type="date" data-act="plan" aria-label="Plan “${esc(i.text)}” on a day">
@@ -135,11 +141,11 @@ export function render() {
     : uid ? "Saved to your account" : "Saved on this device — sign in to keep them everywhere"
 
   mount.innerHTML = `
-    <div class="tl-wrap idea-wrap">
+    <div class="tl-wrap idea-wrap${arrive ? " arrive" : ""}">
       <div class="tl-head"><div class="tl-title">Ideas${ideas.length ? `<span class="tl-yr">${ideas.length}</span>` : ""}</div></div>
       <input class="idea-add" id="ideaAdd" placeholder="Spit it out — Enter to keep it" maxlength="${MAX_IDEA_TEXT}"
         enterkeyhint="done" aria-label="New idea" ${ideas.length >= MAX_IDEAS ? "disabled" : ""}>
-      <div class="idea-list">${rows || (loaded ? `<div class="bk-empty">Nothing yet. The first one's the hardest.</div>` : "")}</div>
+      <div class="idea-list">${rows || (loaded ? `<div class="idea-empty">${ico("inbox")}<p>Nothing here yet</p><small>Type anything above. You can turn it into a plan later.</small></div>` : "")}</div>
       <div class="tl-foot">${foot}</div>
     </div>`
   wire()
@@ -153,7 +159,11 @@ function wire() {
     e.preventDefault()
     const idea = makeIdea(add.value)
     if (!idea.text || !loaded) return
+    // commit draws before it awaits, so "fresh" marks this one draw only
+    freshId = idea.id
     commit(addIdea(ideas, idea))
+    freshId = null
+    navigator.vibrate?.(6)
   })
 
   mount.querySelectorAll(".idea-row").forEach(row => {
@@ -188,6 +198,7 @@ async function remove(id) {
   const at = ideas.findIndex(i => i.id === id)
   if (at === -1) return
   const gone = ideas[at]
+  navigator.vibrate?.(6)
   if (!(await commit(ideas.filter(i => i.id !== id)))) return
   H.toast("Idea deleted", { action: "Undo", onAction: () => restore(gone, at) })
 }
@@ -207,6 +218,7 @@ async function plan(id, dayKey) {
   const blockId = await io.addToDay(dayKey, idea.text)
   if (!blockId) { H.toast("Couldn't add it to that day — it may be full", { error: true }); render(); return }
   const at = ideas.findIndex(i => i.id === id)
+  navigator.vibrate?.(6)
   if (!(await commit(ideas.filter(i => i.id !== id)))) return
   H.toast(`Planned for ${H.shortDate(new Date(dayKey + "T00:00:00"))}`, {
     action: "Undo", onAction: () => { io.removeFromDay(dayKey, blockId); restore(idea, at) }

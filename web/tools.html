@@ -19,11 +19,8 @@
   <meta name="theme-color" content="#0b1c3d">
   <link rel="apple-touch-icon" href="TASLogo.png">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script>
-    // Apply the saved theme before first paint (dark is the default)
-    try{document.documentElement.dataset.theme=localStorage.getItem("tas_theme")||"dark"}
-    catch(e){document.documentElement.dataset.theme="dark"}
-  </script>
+  <!-- The saved theme, applied before first paint (sky is the default) -->
+  <script src="tas-theme-boot.js"></script>
   <link rel="stylesheet" href="tools-shell.css">
   <link rel="stylesheet" href="tas-nav.css">
   <style>
@@ -90,9 +87,9 @@
     .tool-card.ext:hover .tc-go .ico{transform:translate(2px,-2px)}
     .tc-go .ico{transition:transform 0.18s}
 
-    html:is([data-theme="light"],[data-theme="paper"]) .tool-card{box-shadow:0 6px 20px -12px rgba(0,0,0,0.22)}
-    html:is([data-theme="light"],[data-theme="paper"]) .tool-card:hover{box-shadow:0 16px 30px -16px rgba(0,0,0,0.28)}
-    html:is([data-theme="light"],[data-theme="paper"]) .tc-icon{box-shadow:0 6px 16px -9px rgba(0,0,0,0.45)}
+    html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) .tool-card{box-shadow:0 6px 20px -12px rgba(0,0,0,0.22)}
+    html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) .tool-card:hover{box-shadow:0 16px 30px -16px rgba(0,0,0,0.28)}
+    html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) .tc-icon{box-shadow:0 6px 16px -9px rgba(0,0,0,0.45)}
   </style>
 </head>
 <body>

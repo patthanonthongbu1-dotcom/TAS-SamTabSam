@@ -19,10 +19,8 @@
   <meta name="theme-color" content="#0b1c3d">
   <link rel="apple-touch-icon" href="TASLogo.png">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script>
-    try{document.documentElement.dataset.theme=localStorage.getItem("tas_theme")||"dark"}
-    catch(e){document.documentElement.dataset.theme="dark"}
-  </script>
+  <!-- The saved theme, applied before first paint (sky is the default) -->
+  <script src="tas-theme-boot.js"></script>
   <link rel="stylesheet" href="tools-shell.css">
   <link rel="stylesheet" href="tas-nav.css">
   <style>
@@ -86,9 +84,9 @@
       animation:sweep 1.3s linear infinite}
     @keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 
-    html:is([data-theme="light"],[data-theme="paper"]) .skel::after{background:linear-gradient(90deg,transparent,rgba(0,0,0,0.05),transparent)}
-    html:is([data-theme="light"],[data-theme="paper"]) .link-card{background:#f8faf8}
-    html:is([data-theme="light"],[data-theme="paper"]) .link-card:hover{background:var(--card)}
+    html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) .skel::after{background:linear-gradient(90deg,transparent,rgba(0,0,0,0.05),transparent)}
+    html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) .link-card{background:#f8faf8}
+    html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) .link-card:hover{background:var(--card)}
   </style>
 </head>
 <body>

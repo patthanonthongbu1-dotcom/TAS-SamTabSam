@@ -19,10 +19,8 @@
   <meta name="theme-color" content="#0b1c3d">
   <link rel="apple-touch-icon" href="TASLogo.png">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script>
-    try{document.documentElement.dataset.theme=localStorage.getItem("tas_theme")||"dark"}
-    catch(e){document.documentElement.dataset.theme="dark"}
-  </script>
+  <!-- The saved theme, applied before first paint (sky is the default) -->
+  <script src="tas-theme-boot.js"></script>
   <link rel="stylesheet" href="tools-shell.css">
   <link rel="stylesheet" href="tas-nav.css">
   <style>
@@ -42,7 +40,7 @@
       background-size:18px 18px;background-position:0 0,9px 9px;
       border:1px dashed var(--glass-brd);
     }
-    html:is([data-theme="light"],[data-theme="paper"]) .qr-stage{
+    html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) .qr-stage{
       background:
         linear-gradient(45deg,rgba(0,0,0,0.05) 25%,transparent 25%,transparent 75%,rgba(0,0,0,0.05) 75%),
         linear-gradient(45deg,rgba(0,0,0,0.05) 25%,transparent 25%,transparent 75%,rgba(0,0,0,0.05) 75%);
@@ -111,8 +109,8 @@
     .switch::before{content:'';position:absolute;left:2px;top:2px;width:14px;height:14px;background:white;border-radius:50%;transition:transform 0.2s}
     .toggle-row.active .switch{background:var(--pink)}
     .toggle-row.active .switch::before{transform:translateX(16px)}
-    html:is([data-theme="light"],[data-theme="paper"]) .toggle-row:hover{background:#f0f3f0}
-    html:is([data-theme="light"],[data-theme="paper"]) .switch{background:#cdd5cd}
+    html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) .toggle-row:hover{background:#f0f3f0}
+    html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) .switch{background:#cdd5cd}
   </style>
 </head>
 <body>

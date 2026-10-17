@@ -187,15 +187,22 @@ function orbsHTML(){
   </div>`
 }
 
+// Sky follows the device, so the logo can need swapping mid-visit.
+document.addEventListener("tas-theme", () => {
+  const logo = document.querySelector(".brand-mini")
+  if (logo) logo.src = window.tasIsDark() ? "TASLogoLIGHT.png" : "TASLogo.png"
+})
+
 function topbarHTML(title,active){
   const tabs = TOOL_TABS.map(t=>
     `<a class="tool-tab${t.key===active?" active":""}${t.ext?" ext":""}" href="${t.href}"` +
     `${t.ext?` target="_blank" rel="noopener noreferrer"`:""}>${icon(t.icon,14)} ${esc(t.label)}` +
     `${t.ext?icon("external",11):""}</a>`
   ).join("")
-  // Same swap the calendar's setTheme() does — the LIGHT file is the logo
-  // *for* dark backgrounds, so the light theme needs the other one.
-  const logo = document.documentElement.dataset.theme === "dark" ? "TASLogoLIGHT.png" : "TASLogo.png"
+  // Same swap the calendar does — the LIGHT file is the logo *for* dark
+  // backgrounds (Legacy, and sky in dark mode), so light themes need the
+  // other one. tasIsDark comes from tas-theme-boot.js.
+  const logo = window.tasIsDark?.() ? "TASLogoLIGHT.png" : "TASLogo.png"
   return `<div class="topbar">
     <div class="topbar-row1">
       <a class="topbar-brand" href="tools.html">

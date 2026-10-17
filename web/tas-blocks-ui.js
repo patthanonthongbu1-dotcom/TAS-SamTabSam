@@ -31,6 +31,7 @@ let loadFailed = false
 let openKey = null         // the day in the designer, or null
 let editingId = null       // the block whose editor is open
 let refocusPart = null     // the add field to put the caret back in after a redraw
+let justTicked = null      // the one row whose check pops on this redraw, never on later ones
 
 const CHIPS_PER_DAY = 3
 let wired = false
@@ -268,7 +269,7 @@ function rowHTML(b) {
   const link = t ? `<span class="bk-link">${ico(t._personal && t.sideQuest ? "moon" : "tack")} ${esc(t.name)}</span>` : ""
   const cat = S.CATS.find(c => c.id === b.cat)
   const editing = editingId === b.id
-  return `<div class="bk-row${b.done ? " done" : ""}${editing ? " editing" : ""}" data-id="${b.id}" style="--c:${blockColor(b)}">
+  return `<div class="bk-row${b.done ? " done" : ""}${b.id === justTicked ? " pop" : ""}${editing ? " editing" : ""}" data-id="${b.id}" style="--c:${blockColor(b)}">
     <div class="bk-row-main">
       <span class="bk-grip" aria-label="Drag to move">${ico("grip")}</span>
       <button class="bk-check" data-act="tick" aria-label="${b.done ? "Mark not done" : "Mark done"}" aria-pressed="${b.done}">
@@ -334,7 +335,10 @@ function wireSheet(modal) {
       const b = blocksOf(openKey).find(x => x.id === id)
       if (!b) return
       if (act === "tick") {
+        // setDay redraws synchronously, so the pop lands on this draw only
+        justTicked = b.done ? null : id
         setDay(openKey, S.updateBlock(blocksOf(openKey), id, { done: !b.done }))
+        justTicked = null
         if (!b.done) navigator.vibrate?.(6)
       } else if (act === "edit") {
         editingId = editingId === id ? null : id
