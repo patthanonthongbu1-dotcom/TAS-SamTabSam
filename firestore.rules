@@ -123,6 +123,15 @@ service cloud.firestore {
                             && request.resource.data.blocks is list
                             && request.resource.data.blocks.size() <= 60;
     }
+    // Ideas: one inbox doc, the whole list written whole. The cap matches
+    // MAX_IDEAS in tas-ideas.js.
+    match /dayPlans/{uid}/ideas/{doc} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+                            && doc == 'inbox'
+                            && request.resource.data.ideas is list
+                            && request.resource.data.ideas.size() <= 300;
+    }
 
     // ── Home-screen widget feed ───────────────────────────────
     // Doc id = the owner's uid. A home-screen widget has nowhere to sign

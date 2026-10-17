@@ -405,6 +405,30 @@ function persist(k) {
   })
 }
 
+/* For the Ideas tab: drop one line into a day that may never have been
+   on screen, so read that day first if it isn't held. "evening: …" lands
+   in the evening, the same parsing as the designer's add field. Returns
+   the new block's id (for Undo), or null if it couldn't be placed. */
+export async function addToDay(k, raw) {
+  if (!(k in data)) {
+    const got = await Store.loadRange(uid, k, k)
+    if (got === null) return null
+    if (!(k in data)) { data[k] = got[k] || []; lastSaved[k] = data[k] }
+  }
+  const { text, part } = S.parseEntry(raw, "morning")
+  if (!text || blocksOf(k).length >= S.MAX_BLOCKS) return null
+  const b = S.makeBlock({ text, part, cat: guessCat(text) })
+  data[k] = S.addBlock(blocksOf(k), b)
+  persist(k)
+  if (H.isActive()) render()
+  return b.id
+}
+export function removeFromDay(k, id) {
+  data[k] = S.removeBlock(blocksOf(k), id)
+  persist(k)
+  if (H.isActive()) render()
+}
+
 export function copyToTomorrow() {
   if (!openKey) return
   const from = blocksOf(openKey)

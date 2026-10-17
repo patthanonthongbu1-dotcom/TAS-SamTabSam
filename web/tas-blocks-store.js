@@ -12,10 +12,11 @@
    left behind as a doc with an empty array.
    ───────────────────────────────────────────────────────────── */
 
-import { collection, doc, getDocs, setDoc, deleteDoc, query, where, documentId, limit }
+import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where, documentId, limit }
   from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 import { sanitizeBlocks } from "./tas-blocks-state.js"
 import * as Local from "./tas-blocks-local.js"
+import { sanitizeIdeas } from "./tas-ideas.js"
 
 // Signed out (uid null) every read and write goes to the device instead.
 const store = () => globalThis.localStorage
@@ -133,3 +134,48 @@ export async function adoptGuest(uid) {
    closed — a debounce that never fires loses the last edit. */
 export function flushAll() { return Promise.all([...pending.keys()].map(flushDay)) }
 export const hasPendingSave = () => pending.size > 0
+
+/* ── Ideas: one doc, dayPlans/{uid}/ideas/inbox ──────────────
+   The whole list in one array, written whole like a day. Signed out it
+   lives on the device under tas_ideas_guest instead. */
+const inbox = uid => doc(_db, "dayPlans", uid, "ideas", "inbox")
+
+// null when the read failed, so "no ideas yet" and "offline" differ.
+export async function loadIdeas(uid) {
+  if (!uid) return sanitizeIdeas(Local.readList(store(), Local.IDEAS_GUEST_KEY))
+  if (!_db) return null
+  try {
+    const snap = await getDoc(inbox(uid))
+    return snap.exists() ? sanitizeIdeas(snap.data().ideas) : []
+  } catch (e) {
+    console.warn("Could not load ideas:", e)
+    return null
+  }
+}
+
+export async function saveIdeas(uid, ideas) {
+  if (!uid) return Local.writeList(store(), Local.IDEAS_GUEST_KEY, ideas)
+  if (!_db) return false
+  try {
+    if (!ideas.length) await deleteDoc(inbox(uid))
+    else await setDoc(inbox(uid), { v: 1, updatedAt: Date.now(), ideas })
+    return true
+  } catch (e) {
+    console.warn("Could not save ideas:", e)
+    return false
+  }
+}
+
+/* Same rule as adoptGuest: only into an account with no ideas of its
+   own, and the device copy goes only once the write has landed. */
+export async function adoptGuestIdeas(uid) {
+  if (!uid || !_db) return 0
+  const guest = sanitizeIdeas(Local.readList(store(), Local.IDEAS_GUEST_KEY))
+  if (!guest.length) return 0
+  const mine = await loadIdeas(uid)
+  if (mine === null) return 0   // offline: try again next sign-in
+  if (mine.length) { Local.clearKey(store(), Local.IDEAS_GUEST_KEY); return 0 }
+  if (!(await saveIdeas(uid, guest))) return 0
+  Local.clearKey(store(), Local.IDEAS_GUEST_KEY)
+  return guest.length
+}

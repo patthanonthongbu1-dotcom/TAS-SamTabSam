@@ -15,6 +15,7 @@ import { sanitizeBlocks } from "./tas-blocks-state.js"
 
 export const GUEST_KEY = "tas_blocks_guest"
 export const PENDING_KEY = "tas_blocks_pending"
+export const IDEAS_GUEST_KEY = "tas_ideas_guest"
 
 /* { "YYYY-MM-DD": blocks } under `key`, or {} when absent or unreadable —
    a private window can throw on access, and that must read as "nothing". */
@@ -56,6 +57,22 @@ export function putDay(storage, key, dayKey, blocks) {
   if (blocks.length) map[dayKey] = blocks
   else delete map[dayKey]
   return writeMap(storage, key, map)
+}
+
+/* A plain array under `key` (the Ideas list), unsanitised — the caller
+   knows the shape. [] when absent or unreadable. */
+export function readList(storage, key) {
+  try {
+    const raw = JSON.parse(storage.getItem(key) || "null")
+    return Array.isArray(raw) ? raw : []
+  } catch (e) { return [] }
+}
+export function writeList(storage, key, list) {
+  try {
+    if (list.length) storage.setItem(key, JSON.stringify(list))
+    else storage.removeItem(key)
+    return true
+  } catch (e) { return false }
 }
 
 export function clearKey(storage, key) {

@@ -2096,6 +2096,45 @@
     html:is([data-theme="light"],[data-theme="paper"]) .bk-row{border-left-color:var(--c)}
     html:is([data-theme="light"],[data-theme="paper"]) .bk-chip{color:#1f2937}
 
+    /* ── Ideas — the dump box tab. Blocks' tokens, so it reads as kin. */
+    .idea-wrap{display:flex;flex-direction:column;gap:12px}
+    .idea-add{
+      width:100%;box-sizing:border-box;padding:14px 16px;border:1px solid var(--field-brd);border-radius:14px;
+      font-size:17px;font-family:'Kanit',sans-serif;color:var(--text);background:var(--field-bg);outline:none;
+    }
+    .idea-add::placeholder{color:var(--label)}
+    .idea-add:focus{border-color:var(--pink);box-shadow:0 0 0 3px var(--accent-ring)}
+    .idea-list{display:flex;flex-direction:column;gap:8px}
+    .idea-row{display:flex;align-items:center;gap:4px;background:var(--glass);border:1px solid var(--glass-brd);border-radius:12px;padding:4px 4px 4px 0}
+    .idea-row.editing{padding:6px}
+    .idea-text{
+      flex:1;min-width:0;border:none;background:none;text-align:left;cursor:pointer;color:var(--text);
+      font-family:'Kanit',sans-serif;font-size:15.5px;line-height:1.35;padding:10px 12px;overflow-wrap:anywhere;
+      display:flex;flex-direction:column;gap:2px;
+    }
+    .idea-age{font-size:12px;color:var(--label);font-weight:300}
+    .idea-edit{
+      width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--pink);border-radius:10px;font-size:16px;
+      font-family:'Kanit',sans-serif;color:var(--text);background:var(--field-bg);outline:none;box-shadow:0 0 0 3px var(--accent-ring);
+    }
+    /* The date input sits invisibly over the label, so the whole pill opens the native picker */
+    .idea-plan{
+      position:relative;display:inline-flex;align-items:center;gap:6px;flex-shrink:0;min-height:44px;padding:0 12px;
+      border-radius:10px;border:1px solid var(--glass-brd);background:var(--glass-2);color:var(--text);font-size:13.5px;cursor:pointer;
+    }
+    .idea-plan .ic{width:16px;height:16px}
+    .idea-plan input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+    .idea-plan:focus-within{outline:2px solid var(--pink);outline-offset:1px}
+    .idea-del{
+      width:44px;height:44px;flex-shrink:0;border:none;background:none;cursor:pointer;color:var(--label);
+      display:flex;align-items:center;justify-content:center;border-radius:10px;
+    }
+    .idea-del .ic{width:18px;height:18px}
+    .idea-del:hover{color:var(--red)}
+    @media(max-width:600px){ .idea-plan span{display:none} .idea-plan{padding:0 11px} }
+    html:is([data-theme="light"],[data-theme="paper"]) .idea-row{background:var(--card);border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"]) .idea-plan{background:var(--card);border-color:var(--border)}
+
     /* ── To Do view ─────────────────────────────────────────────
        Two lanes: the tasks you can pull from, and the list you order.
        Renders into #calWrap like the other views. */
@@ -2611,6 +2650,11 @@
         <svg class="nav-ic"><use href="#ic-check-square"/></svg>
         <span class="nav-lab">To Do</span>
         <span class="tab-count" id="todoCount" style="display:none"></span>
+      </button>
+      <button class="nav-pill" id="tabIdeas" onclick="switchView('ideas')">
+        <svg class="nav-ic"><use href="#ic-inbox"/></svg>
+        <span class="nav-lab">Ideas</span>
+        <span class="tab-count" id="ideasCount" style="display:none"></span>
       </button>
       <button class="nav-pill" id="tabTasks" onclick="switchView('tasks')">
         <svg class="nav-ic"><use href="#ic-mine"/></svg>
@@ -3266,6 +3310,11 @@ import { startTimeTracking, stopTimeTracking } from "./tas-time.js"
 // live task lists it renders against, so nothing is fetched twice.
 import * as TodoUI from "./tas-todo-ui.js"
 import * as BlocksUI from "./tas-blocks-ui.js"
+// Ideas: a dump box of its own. Loading and saving come from the Blocks
+// store (device when signed out, Firestore when not), passed in so the
+// module itself stays importable under node for its test.
+import * as IdeasUI from "./tas-ideas.js"
+import { loadIdeas, saveIdeas, adoptGuestIdeas } from "./tas-blocks-store.js"
 // How heavy each task is. Pure arithmetic, tested, and shared with the To Do
 // module so the pills and the meter can never disagree about a weight.
 import * as Points from "./tas-points.js"
@@ -3936,6 +3985,7 @@ onAuthStateChanged(auth, async user => {
   startPersonalTasksListener(user.uid)
   initTodoView(user.uid)
   initBlocksView(user.uid)
+  initIdeasView(user.uid)
   // The feed doc's existence is the on/off switch, so ask once per session
   // rather than keeping a per-device preference that could disagree.
   widgetFeedExists(db, user.uid).then(on => { widgetFeedOn = on; if(on) queueWidgetFeed() })
@@ -3975,6 +4025,7 @@ function enterGuestMode(){
   // startTimeTracking would have nowhere to write.
   startTasksListener()
   initBlocksView(null)   // signed out, day plans live on this device
+  initIdeasView(null)
 }
 
 function renderGuestPill(){
@@ -4721,7 +4772,7 @@ function applyStoredRangeToUI(){
 // Which nav pill is lit. Four are real views; "settings" is the last sheet
 // left, and borrows the highlight while it's open, handing it back on close.
 function setActivePill(which){
-  const map = { calendar:"tabCalendar", archive:"tabArchive", todo:"tabTodo", tasks:"tabTasks", settings:"tabSettings" }
+  const map = { calendar:"tabCalendar", archive:"tabArchive", todo:"tabTodo", ideas:"tabIdeas", tasks:"tabTasks", settings:"tabSettings" }
   for(const [key, id] of Object.entries(map)){
     const el = document.getElementById(id)
     if(el) el.classList.toggle("active", key === which)
@@ -4745,7 +4796,26 @@ window.switchView = function(view) {
   // Arriving is the one time the form is rebuilt and reset — every later
   // repaint leaves what's half-typed alone.
   else if (view==="tasks") renderMyTasks(true)
+  else if (view==="ideas") IdeasUI.open()
   else renderArchive()
+}
+
+/* ── Ideas — its own tab ───────────────────────────────────── */
+function initIdeasView(uid){
+  IdeasUI.initIdeas({
+    uid, mount: document.getElementById("calWrap"),
+    load: loadIdeas, save: saveIdeas, adopt: adoptGuestIdeas,
+    addToDay: BlocksUI.addToDay, removeFromDay: BlocksUI.removeFromDay,
+    helpers: {
+      esc, ico, toast, shortDate,
+      isActive: () => currentView==="ideas",
+      onCount: n => {
+        const b = document.getElementById("ideasCount")
+        if(!b) return
+        if(n){ b.textContent = n; b.style.display = "inline-block" } else b.style.display = "none"
+      }
+    }
+  })
 }
 
 /* ── Blocks — the third calendar layout ──────────────────────
