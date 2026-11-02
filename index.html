@@ -21,6 +21,11 @@
     .status { margin-top: 1rem; padding: 12px; border-radius: 8px; font-size: 14px; text-align: center; display: none; }
     .success { background: #e6f7f1; color: #0F6E56; display: block; }
     .error { background: #fdecea; color: #c0392b; display: block; }
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: #eaeaea; padding: 4px; border-radius: 10px; margin-bottom: 1rem; }
+    .tabs button { background: transparent; color: #666; padding: 8px; font-size: 14px; }
+    .tabs button:hover { background: #ddd; }
+    .tabs button.active { background: white; color: #1D9E75; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
@@ -28,7 +33,24 @@
   <h1>3/3 Academic System</h1>
   <p class="sub">Mod panel — daily report sender</p>
 
-  <div class="card">
+  <div class="tabs">
+    <button id="tab-daily" class="active" onclick="setMode('daily')">📋 Daily report</button>
+    <button id="tab-quick" onclick="setMode('quick')">⚡ Quick task</button>
+  </div>
+
+  <div class="card hidden" id="quickCard">
+    <div class="section-label">Quick task</div>
+    <div class="field">
+      <label>Task</label>
+      <input type="text" id="quickTask" placeholder="e.g. Bring math worksheet p.12" />
+    </div>
+    <div class="field">
+      <label>Due (optional)</label>
+      <input type="date" id="quickDue" />
+    </div>
+  </div>
+
+  <div class="card" id="dailyCard">
     <div class="section-label">Report details</div>
     <div class="row">
       <div class="field">
@@ -62,12 +84,34 @@
     </div>
   </div>
 
-  <button onclick="sendReport()">Send report to LINE</button>
+  <button id="sendBtn" onclick="sendReport()">Send report to LINE</button>
   <div class="status" id="status"></div>
 </div>
 
 <script>
   document.getElementById('date').value = new Date().toISOString().split('T')[0]
+
+  let mode = 'daily'
+  function setMode(m) {
+    mode = m
+    document.getElementById('tab-daily').classList.toggle('active', m === 'daily')
+    document.getElementById('tab-quick').classList.toggle('active', m === 'quick')
+    document.getElementById('dailyCard').classList.toggle('hidden', m !== 'daily')
+    document.getElementById('quickCard').classList.toggle('hidden', m !== 'quick')
+    document.getElementById('sendBtn').textContent = m === 'quick' ? 'Send quick task to LINE' : 'Send report to LINE'
+    document.getElementById('status').className = 'status'
+  }
+
+  function buildQuickMessage(status) {
+    const task = document.getElementById('quickTask').value.trim()
+    const due = document.getElementById('quickDue').value
+    if (!task) {
+      status.className = 'status error'
+      status.textContent = 'Please enter a task.'
+      return null
+    }
+    return `⚡ Quick Task\n📝 ${task}${due ? '\n⏰ Due: ' + due : ''}`
+  }
 
   async function sendReport() {
     const date = document.getElementById('date').value
@@ -78,13 +122,24 @@
     const groupId = document.getElementById('groupId').value.trim()
     const status = document.getElementById('status')
 
-    if (!reporter || !work || !groupId) {
+    if (!groupId) {
       status.className = 'status error'
-      status.textContent = 'Please fill in reporter, work, and group ID.'
+      status.textContent = 'Please fill in the group ID.'
       return
     }
 
-    const message = `📋 Daily Report — ${date}\n👤 ${reporter}\n\n📝 ${work}${notes ? '\n\n📌 ' + notes : ''}`
+    let message
+    if (mode === 'quick') {
+      message = buildQuickMessage(status)
+      if (!message) return
+    } else {
+      if (!reporter || !work) {
+        status.className = 'status error'
+        status.textContent = 'Please fill in reporter and work.'
+        return
+      }
+      message = `📋 Daily Report — ${date}\n👤 ${reporter}\n\n📝 ${work}${notes ? '\n\n📌 ' + notes : ''}`
+    }
 
     status.className = 'status'
     status.style.display = 'block'
@@ -98,7 +153,7 @@
       })
       const data = await res.json()
       status.className = 'status success'
-      status.textContent = 'Report sent to LINE!'
+      status.textContent = mode === 'quick' ? 'Quick task sent to LINE!' : 'Report sent to LINE!'
     } catch (e) {
       status.className = 'status error'
       status.textContent = 'Failed. Is the server running?'
