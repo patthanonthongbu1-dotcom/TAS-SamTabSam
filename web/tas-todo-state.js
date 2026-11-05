@@ -196,3 +196,23 @@ export function moveItem(items, dragId, targetId, before = true) {
   else ordered.splice(before ? to : to + 1, 0, moved)
   return ordered.map((it, i) => (it.order === i ? it : { ...it, order: i }))
 }
+
+/* ── Daily tasks ─────────────────────────────────────────────
+   A daily task (`daily: true`, a personal task with just a name) is
+   stored with no due date, so nothing that reads the database on its
+   own — the reminder, stats, MCP — can ever call it late. On the page it
+   is pinned to today until ticked, then to the day it was ticked, which
+   lets it fall into the archive the normal way the day after. Mutates in
+   place: the page owns these arrays and re-pins before every paint. */
+const dayOf = ms => {
+  const d = new Date(ms)
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0")
+}
+export function pinDailies(list, done, today) {
+  for (const t of list) {
+    if (!t || !t.daily) continue
+    const at = done && done[t.id]
+    t.start = t.end = typeof at === "number" ? dayOf(at) : today
+  }
+  return list
+}

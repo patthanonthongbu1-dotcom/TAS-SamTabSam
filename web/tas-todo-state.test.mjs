@@ -7,7 +7,7 @@ import assert from "node:assert/strict"
 import {
   makeItem, sanitizeItems, toStored, normalizeOrder, orderedItems,
   buildTaskIndex, resolveItem, resolveItems,
-  refIds, addItem, removeItem, updateItem, moveItem
+  refIds, addItem, removeItem, updateItem, moveItem, pinDailies
 } from "./tas-todo-state.js"
 
 // Build a list with predictable ids so assertions can name them.
@@ -212,4 +212,17 @@ test("long text and notes are clamped before they can reach Firestore", () => {
   const item = makeItem({ source: "note", text: "x".repeat(500), notes: "y".repeat(5000) })
   assert.equal(item.text.length, 200)
   assert.equal(item.notes.length, 2000)
+})
+
+test("pinDailies: undone stays on today, ticked sits on the tick day, others untouched", () => {
+  const tick = new Date(2026, 10, 3, 15).getTime()
+  const list = [
+    { id: "a", daily: true, start: "2026-10-01", end: "" },
+    { id: "b", daily: true, start: "2026-10-01", end: "" },
+    { id: "c", start: "2026-10-01", end: "2026-10-09" },
+  ]
+  pinDailies(list, { b: tick }, "2026-11-05")
+  assert.equal(list[0].end, "2026-11-05"); assert.equal(list[0].start, "2026-11-05")
+  assert.equal(list[1].end, "2026-11-03")
+  assert.equal(list[2].end, "2026-10-09")
 })

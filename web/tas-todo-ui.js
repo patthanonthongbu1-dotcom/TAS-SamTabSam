@@ -39,6 +39,7 @@ let loadFailed = false
 let poolQuery = ""
 let openNotes = new Set()  // item ids whose notes box is expanded
 let onChange = () => {}    // lets the page keep its nav-pill count in step
+let addDaily = null        // the page saves a daily task and hands back its id
 
 /* Entrance animations play when you arrive at the view and never again.
    Every drop, keystroke and snapshot rebuilds the markup, so without this
@@ -68,6 +69,7 @@ export function initTodo(opts) {
   getTasks = opts.getTasks
   getPersonal = opts.getPersonal
   if (opts.onChange) onChange = opts.onChange
+  addDaily = opts.addDaily || null
   Store.initTodoStore(opts.db)
 
   /* A debounced reorder that never fired because the tab closed would
@@ -388,6 +390,8 @@ function viewHTML() {
         <span class="todo-count">${rows.length}</span>
         <button class="todo-addnote" id="todoAddNote">${H.ico("plus")} Note</button>
       </div>
+      ${addDaily ? `<input class="todo-search" id="todoDaily" type="text" maxlength="200" autocomplete="off"
+             placeholder="+ Daily task — type a name, press Enter" />` : ""}
       ${meterHTML(rows)}
       <div class="todo-scroll todo-drop" data-lane="list">${listBody}</div>
       <p class="todo-foot">Tap a row to open it — the tick and the progress are the timeline's own.</p>
@@ -412,17 +416,17 @@ export function render() {
   // notes field triggers renders, and a naive innerHTML swap would eject the
   // cursor on every keystroke.
   const active = document.activeElement
-  const focusKey = active && (active.id === "todoSearch"
-    ? "search"
+  const focusKey = active && (active.id === "todoSearch" ? "search"
+    : active.id === "todoDaily" ? "daily"
     : active.dataset && active.dataset.notesfor ? "notes:" + active.dataset.notesfor : null)
   const caret = focusKey && active.selectionStart
 
   mount.innerHTML = viewHTML()
   wire()
 
-  if (focusKey === "search") {
-    const el = document.getElementById("todoSearch")
-    if (el) { el.focus(); el.setSelectionRange(caret, caret) }
+  if (focusKey === "search" || focusKey === "daily") {
+    const el = document.getElementById(focusKey === "search" ? "todoSearch" : "todoDaily")
+    if (el) { if (focusKey === "daily") el.value = active.value; el.focus(); el.setSelectionRange(caret, caret) }
   } else if (focusKey && focusKey.startsWith("notes:")) {
     const el = mount.querySelector(`[data-notesfor="${CSS.escape(focusKey.slice(6))}"]`)
     if (el) { el.focus(); el.setSelectionRange(caret, caret) }
@@ -438,6 +442,15 @@ function wire() {
 
   const addNote = document.getElementById("todoAddNote")
   if (addNote) addNote.onclick = onAddNote
+
+  // Enter saves it, puts it on the list, and leaves the box ready for the next.
+  const daily = document.getElementById("todoDaily")
+  if (daily) daily.onkeydown = e => {
+    if (e.key !== "Enter" || !daily.value.trim()) return
+    const id = addDaily(daily.value.trim())
+    daily.value = ""
+    if (id) commitNow(Store.addItem, S.addItem(items, S.makeItem({ source: "personal", ref: id })), "Couldn't add that — put back")
+  }
 
   // The target is the other half of the reading, so the reading is the way
   // to it — otherwise it lives only in a settings screen nothing points at.

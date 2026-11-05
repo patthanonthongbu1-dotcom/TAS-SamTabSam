@@ -1825,6 +1825,16 @@
     .set-hint{font-size:12.5px;color:var(--muted);font-weight:300;line-height:1.5}
     .pg-task{font-size:15px;font-weight:500;color:var(--text);background:var(--field-bg);border:1px solid var(--glass-brd);border-radius:10px;padding:9px 12px;margin:-0.5rem 0 1.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .pg-stepper{display:flex;align-items:center;gap:10px}
+    .pg-names{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;margin-top:6px}
+    .pg-name{width:100%;box-sizing:border-box;padding:8px 11px;border-radius:10px;border:1px solid var(--field-brd);background:var(--field-bg);color:var(--text);font-family:'Kanit',sans-serif;font-size:14px}
+    .pg-name:focus{outline:none;border-color:var(--pink)}
+    .dp-steps{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+    .dp-step{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:9px;font-size:13.5px;color:var(--text);cursor:pointer;transition:background .15s}
+    .dp-step:hover{background:var(--accent-soft)}
+    .dp-step.done{opacity:.55;text-decoration:line-through}
+    .dp-step.now{background:var(--accent-soft);font-weight:600}
+    .dp-step-box{width:22px;height:22px;flex-shrink:0;border-radius:7px;border:1.5px solid var(--field-brd);display:grid;place-items:center;font-size:12px}
+    .dp-step.done .dp-step-box{background:var(--pink);border-color:var(--pink);color:#fff}
     .pg-step-btn{width:40px;height:40px;border-radius:12px;border:1.5px solid var(--field-brd);background:var(--field-bg);color:var(--text);font-family:'Kanit',sans-serif;font-size:21.5px;line-height:1;cursor:pointer;display:grid;place-items:center;transition:border-color 0.15s,background 0.15s,transform 0.12s}
     .pg-step-btn:hover{border-color:var(--pink);background:var(--accent-soft)}
     .pg-step-btn:active{transform:scale(0.9)}
@@ -3233,6 +3243,8 @@
         <button class="pg-step-btn" onclick="nudgeProgTotal(1)" aria-label="More parts">+</button>
       </div>
       <div class="set-hint" style="margin:9px 0 0">Tap the bar below to say how many you've finished.</div>
+      <div class="set-label" style="margin-top:14px">Name the steps <span style="opacity:.6;font-weight:400">— optional</span></div>
+      <div class="pg-names" id="pgNames"></div>
     </div>
 
     <div class="set-section" id="pgPercentFields">
@@ -3331,6 +3343,7 @@ import { startTimeTracking, stopTimeTracking } from "./tas-time.js"
 // the store owns Firestore, and the UI owns the DOM. This page supplies the
 // live task lists it renders against, so nothing is fetched twice.
 import * as TodoUI from "./tas-todo-ui.js"
+import { pinDailies } from "./tas-todo-state.js"
 import * as BlocksUI from "./tas-blocks-ui.js"
 // Ideas: a dump box of its own. Loading and saving come from the Blocks
 // store (device when signed out, Firestore when not), passed in so the
@@ -3467,6 +3480,7 @@ const PROGRESS_MODES = ["steps", "percent"]
 const PROGRESS_DEFAULT_KEY = "tas_progress_default"
 const PROGRESS_FALLBACK = { mode: "steps", total: 5 }
 const MAX_STEPS = 20
+const STEP_NAME_MAX = 40
 
 // Anything read back from Firestore is untrusted — an old client, a manual
 // console edit or a half-written doc must not be able to render NaN bars.
@@ -3476,7 +3490,11 @@ function normProgress(p){
   const total = mode === "percent" ? 100
               : Math.min(MAX_STEPS, Math.max(2, Math.round(Number(p.total) || PROGRESS_FALLBACK.total)))
   const value = Math.min(total, Math.max(0, Math.round(Number(p.value) || 0)))
-  return { mode, value, total }
+  // Steps may be named ("Research", "Draft", …). Kept only when at least one
+  // is, so an unnamed task stores exactly what it always did.
+  const names = mode === "steps" && Array.isArray(p.names)
+    ? Array.from({length: total}, (_, i) => String(p.names[i] || "").trim().slice(0, STEP_NAME_MAX)) : []
+  return names.some(Boolean) ? { mode, value, total, names } : { mode, value, total }
 }
 function sanitizeProgressMap(m){
   const out = {}
@@ -3490,7 +3508,9 @@ const progressPct  = (p) => !p || !p.total ? 0 : Math.round(p.value / p.total * 
 const progressDone = (p) => !!p && p.value >= p.total
 function progressText(p){
   if(!p) return ""
-  return p.mode === "percent" ? progressPct(p) + "%" : p.value + " of " + p.total
+  if(p.mode === "percent") return progressPct(p) + "%"
+  const now = p.names && p.value < p.total && p.names[p.value]   // the step being worked on
+  return (now ? now + " · " : "") + p.value + " of " + p.total
 }
 
 // The mode/size the hold sheet opens with for a task that has no progress yet
@@ -3513,7 +3533,7 @@ function progressBarHTML(p, {color = "var(--pink)", cls = "", interactive = fals
   const extra = (cls ? " " + cls : "") + (interactive ? " live" : "")
   if(p.mode === "steps" && p.total <= 12){
     const segs = Array.from({length: p.total}, (_, i) =>
-      `<span class="prog-seg${i < p.value ? " on" : ""}" data-step="${i + 1}"${interactive ? ' role="button" tabindex="0"' : ""}></span>`).join("")
+      `<span class="prog-seg${i < p.value ? " on" : ""}" data-step="${i + 1}"${p.names && p.names[i] ? ` title="${esc(p.names[i])}"` : ""}${interactive ? ' role="button" tabindex="0"' : ""}></span>`).join("")
     return `<div class="prog-bar steps${extra}" style="--pc:${color}">${segs}</div>`
   }
   return `<div class="prog-bar${extra}" style="--pc:${color}"><div class="prog-track"><div class="prog-fill" style="width:${progressPct(p)}%"></div></div></div>`
@@ -4319,6 +4339,7 @@ function startPersonalTasksListener(uid) {
   const col = collection(db, "userTasks", uid, "tasks")
   unsubPersonal = onSnapshot(col, snap => {
     personalTasks = snap.docs.map(d=>({id:d.id, _personal:true, ...d.data()}))
+    pinDailies(personalTasks, userDoneCache, localToday())
     queueDueReminders()
     queueWidgetFeed()
     renderPtList()
@@ -4898,6 +4919,17 @@ function initTodoView(uid){
     getTasks: () => tasks,
     getPersonal: () => personalTasks,
     onChange: updateTodoCount,
+    // A daily task is just a name. No due date is stored (see pinDailies),
+    // so nothing reading the database on its own can call it late. The id
+    // comes back straight away; the write may still be in flight.
+    addDaily: name => {
+      if(!currentUser){ requireSignIn("keep daily tasks"); return null }
+      const ref = doc(collection(db,"userTasks",currentUser.uid,"tasks"))
+      setDoc(ref, { name: name.slice(0,200), subject:"Daily", type:"normal", daily:true,
+                    start: localToday(), end:"", note:"", createdAt: Date.now() })
+        .catch(e => { console.warn("Could not save daily task:", e); saveFailToast() })
+      return ref.id
+    },
     helpers: {
       esc, ico, toast, urgencyColor, taskType, parseDate, daysLeft, shortDate,
       TYPE_LABEL,
@@ -4949,6 +4981,9 @@ window.updateTodoCount = updateTodoCount
    that pattern would quietly repaint the calendar over the top of the To
    Do list, so the choice lives in one place now. */
 function renderCurrentView(){
+  // A tick moves a daily task to the day it was ticked; midnight moves an
+  // unticked one to the new today.
+  pinDailies(personalTasks, userDoneCache, localToday())
   if(currentView==="archive") renderArchive()
   else if(currentView==="todo"){ TodoUI.render(); updateTodoCount() }
   else if(currentView==="tasks") renderMyTasks(false)   // list only — never the form
@@ -5814,6 +5849,7 @@ function archiveSkeletonHTML(){
 document.getElementById("calWrap").innerHTML = calMode==="grid" ? gridSkeletonHTML() : skeletonHTML()
 
 function renderCalendar(){
+  pinDailies(personalTasks, userDoneCache, localToday())
   const wrap=document.getElementById("calWrap")
   // Blocks are the account's own plans, read by their own module — the
   // shared task list only colours the linked ones, so it never waits on it.
@@ -6462,7 +6498,7 @@ document.addEventListener("click", e => {
 }, true)
 
 // ══ PROGRESS: the setup sheet ══════════════════════════════════
-let pgTaskId = null, pgDraft = null
+let pgTaskId = null, pgDraft = null, pgNamesKept = undefined
 
 function pgTaskById(id){
   return tasks.find(t => t.id === id) || personalTasks.find(t => t.id === id) || null
@@ -6485,7 +6521,8 @@ window.openProgressSheet = function(id){
 // the stacking order (confirm → progress → popup → …)
 window.closeProgressSheet = function(){
   animCloseOverlay(document.getElementById("progressModal"))
-  pgTaskId = null; pgDraft = null
+  pgTaskId = null; pgDraft = null; pgNamesKept = undefined
+  document.getElementById("pgNames").innerHTML = ""
 }
 
 window.setProgSheetMode = function(mode){
@@ -6494,10 +6531,10 @@ window.setProgSheetMode = function(mode){
   // Carry how far along they are across the switch, so flipping mode to
   // compare the two doesn't silently reset their progress to zero.
   const pct = progressPct(pgDraft)
-  if(mode === "percent"){ pgDraft = { mode, total: 100, value: Math.round(pct / 5) * 5 } }
+  if(mode === "percent"){ pgNamesKept = pgDraft.names; pgDraft = { mode, total: 100, value: Math.round(pct / 5) * 5 } }
   else {
     const total = progressDefaults().total
-    pgDraft = { mode, total, value: Math.round(pct / 100 * total) }
+    pgDraft = { mode, total, value: Math.round(pct / 100 * total), names: pgNamesKept }
   }
   syncProgSheet()
 }
@@ -6517,12 +6554,34 @@ function syncProgSheet(){
   document.getElementById("pgStepsFields").classList.toggle("hide", !steps)
   document.getElementById("pgPercentFields").classList.toggle("hide", steps)
   document.getElementById("pgTotal").textContent = steps ? pgDraft.total : 100
+  const box = document.getElementById("pgNames")
+  if(steps && box.children.length !== pgDraft.total){
+    const names = pgDraft.names || []
+    box.innerHTML = Array.from({length: pgDraft.total}, (_, i) =>
+      `<input type="text" class="pg-name" data-i="${i}" maxlength="${STEP_NAME_MAX}" autocomplete="off"
+         placeholder="Step ${i + 1}" value="${esc(names[i] || "")}" />`).join("")
+  }
   const range = document.getElementById("pgRange")
   if(!steps){ range.value = pgDraft.value; range.style.setProperty("--fill", pgDraft.value + "%") }
   document.getElementById("pgPreview").innerHTML =
     progressBarHTML(pgDraft, { cls: "big", interactive: steps })
   document.getElementById("pgRead").textContent = progressText(pgDraft)
 }
+
+// Typing a step name — the preview's tooltips and reading follow along
+document.addEventListener("input", e => {
+  if(!e.target.classList.contains("pg-name") || !pgDraft) return
+  pgDraft.names = Array.from({length: pgDraft.total}, (_, i) => (pgDraft.names || [])[i] || "")
+  pgDraft.names[Number(e.target.dataset.i)] = e.target.value
+  document.getElementById("pgRead").textContent = progressText(pgDraft)
+})
+// Enter jumps to the next name, so a plan can be typed straight through
+document.addEventListener("keydown", e => {
+  if(e.key !== "Enter" || !e.target.classList.contains("pg-name")) return
+  e.preventDefault()
+  const next = e.target.nextElementSibling
+  if(next) next.focus(); else saveProgressSheet()
+})
 
 // Tapping a segment in the sheet's preview sets how many parts are done
 document.addEventListener("click", e => {
@@ -6825,12 +6884,15 @@ function renderDetailProgress(id){
     ${p.mode === "percent"
       ? `<input type="range" class="pg-range" id="dpProgRange" min="0" max="100" step="5" value="${p.value}" style="--fill:${p.value}%" />`
       : progressBarHTML(p, { color, cls: "live", interactive: true })}
+    ${p.names ? `<ol class="dp-steps">${p.names.map((n, i) =>
+        `<li class="dp-step${i < p.value ? " done" : i === p.value ? " now" : ""}" data-step="${i + 1}" role="button" tabindex="0">
+           <span class="dp-step-box">${i < p.value ? "✓" : i + 1}</span><span>${esc(n || "Step " + (i + 1))}</span></li>`).join("")}</ol>` : ""}
   </div>`
 }
 
 // Tap a segment in the popup → save that many parts done
 document.addEventListener("click", e => {
-  const seg = e.target.closest("#dp-progress-section .prog-seg")
+  const seg = e.target.closest("#dp-progress-section .prog-seg, #dp-progress-section .dp-step")
   if(!seg || !detailTaskId) return
   const p = progressOf(detailTaskId)
   if(!p) return
