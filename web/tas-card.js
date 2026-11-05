@@ -28,6 +28,13 @@ export function thaiDate(dateStr){
   return `${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`
 }
 
+// A subject's photos, [{ src, size }]. Drafts from before multiple photos
+// carried one `photo` string; it reads as a single full-width photo.
+function photosOf(su){
+  if(Array.isArray(su.photos)) return su.photos.filter(p => p && typeof p.src === "string")
+  return su.photo ? [{ src: su.photo, size: 100 }] : []
+}
+
 function esc(s){
   return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))
 }
@@ -45,7 +52,7 @@ export function hasContent(data){
   if(!data || !Array.isArray(data.sections)) return false
   return data.sections.some(sec =>
     (sec.subjects || []).some(su =>
-      (su.title || "").trim() || su.photo || (su.bullets || []).some(b => (b.text || "").trim())))
+      (su.title || "").trim() || photosOf(su).length || (su.bullets || []).some(b => (b.text || "").trim())))
 }
 
 const CSS = `
@@ -116,7 +123,8 @@ const CSS = `
   background:#fff8e6;border:1px solid #ffe2a8;border-radius:8px;
   padding:6px 9px;line-height:1.55;display:flex;gap:6px;
 }
-.tc-photo{display:block;width:100%;margin-top:6px;border-radius:8px;border:1px solid #e2e8f0}
+.tc-photos{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.tc-photo{display:block;border-radius:8px;border:1px solid #e2e8f0;min-width:0}
 .tc-empty{font-size:12px;font-weight:300;color:#94a3b8;font-style:italic;padding:6px 0}
 `
 
@@ -140,7 +148,7 @@ export function cardHTML(data){
 
   const sections = (data.sections || []).map(sec => {
     const subjects = (sec.subjects || []).filter(su =>
-      (su.title || "").trim() || su.photo || (su.bullets || []).some(b => (b.text || "").trim()))
+      (su.title || "").trim() || photosOf(su).length || (su.bullets || []).some(b => (b.text || "").trim()))
 
     if(!subjects.length) return ""
 
@@ -149,6 +157,7 @@ export function cardHTML(data){
         .filter(b => (b.text || "").trim())
         .map(b => `<div class="tc-bullet"><span class="tc-dash">-</span><span>${esc(b.text.trim())}</span></div>`)
         .join("")
+      const photos = photosOf(su)
       const note = (su.note || "").trim()
         ? `<div class="tc-note">${ICO.pin}<span>${esc(su.note.trim())}</span></div>` : ""
       return `<div class="tc-subject">
@@ -158,7 +167,8 @@ export function cardHTML(data){
         </div>
         ${bullets ? `<div class="tc-bullets">${bullets}</div>` : ""}
         ${note}
-        ${su.photo ? `<img class="tc-photo" src="${esc(su.photo)}" alt="">` : ""}
+        ${photos.length ? `<div class="tc-photos">${photos.map(ph =>
+            `<img class="tc-photo" src="${esc(ph.src)}" alt="" style="width:calc(${Math.min(100, Math.max(10, Number(ph.size) || 100))}% - 4px)">`).join("")}</div>` : ""}
       </div>`
     }).join("")
 

@@ -277,9 +277,13 @@
     /* ── Note (amber accent) ────────────────────────────────────── */
     .note-field { display: none; }
     .note-field.visible { display: block; }
-    .photo-field { position: relative; display: inline-block; margin-top: 8px; }
-    .photo-field img { display: block; max-height: 140px; max-width: 100%; border-radius: 10px; }
+    .photo-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+    .photo-field { position: relative; display: flex; flex-direction: column; gap: 5px; }
+    .photo-field img { display: block; height: 96px; max-width: 160px; object-fit: cover; border-radius: 10px; }
     .photo-field .rm-photo { position: absolute; top: 4px; right: 4px; }
+    .photo-sizes { display: flex; gap: 3px; }
+    .photo-size { flex: 1; padding: 2px 0; border-radius: 7px; border: 1px solid var(--field-brd, rgba(255,255,255,.15)); background: transparent; color: inherit; font: inherit; font-size: 11.5px; cursor: pointer; opacity: .65; }
+    .photo-size.active { opacity: 1; background: rgba(255,79,163,0.18); border-color: #ff4fa3; }
     .note-input { font-size: 15px !important; padding: 8px 11px !important; border-color: rgba(234,179,8,0.32) !important; background: rgba(234,179,8,0.1) !important; color: var(--amber) !important; }
     .subject-actions { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
 
@@ -803,6 +807,9 @@ function initApp() {
     { key: "date",  label: "📌 Important" },
   ]
   const STORAGE_KEY = "tas_fmt_draft_v4"
+  // How wide a photo is drawn on the card, as a share of the card's width.
+  // Two Smalls or a Small and a Medium sit side by side.
+  const PHOTO_SIZES = [{ k: "S", w: 33 }, { k: "M", w: 50 }, { k: "L", w: 100 }]
   const ICON_X    = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`
   const ICON_PLUS = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`
   const ICON_BULLET = `<svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>`
@@ -862,8 +869,9 @@ function initApp() {
     if (draft.sections && draft.sections.length > 0) {
       sections = draft.sections.map(sec => ({
         ...sec,
-        subjects: (sec.subjects || []).map(subj => ({
+        subjects: (sec.subjects || []).map(({ photo, ...subj }) => ({
           ...subj,
+          photos: subj.photos || (photo ? [{ src: photo, size: PHOTO_SIZES[2].w }] : []),
           bullets: (subj.bullets || [""]).map(normalizeBullet)
         }))
       }))
@@ -916,7 +924,7 @@ function initApp() {
     const today = localToday()
     sections[si].subjects.push({
       icon: "📝", title: "", bullets: [makeBullet()], note: "", showNote: false,
-      syncToCalendar: false, taskStart: today, taskEnd: "", taskType: "send_on", photo: "",
+      syncToCalendar: false, taskStart: today, taskEnd: "", taskType: "send_on", photos: [],
     })
     if (doRender) { pendingEnter = { sel: `.subject-block[data-si="${si}"][data-sj="${sections[si].subjects.length - 1}"]`, cls: "box-enter" }; renderSections() }
   }
@@ -998,13 +1006,16 @@ function initApp() {
   }
   function pickPhoto(si, sj) {
     const input = document.createElement("input")
-    input.type = "file"; input.accept = "image/*"
+    input.type = "file"; input.accept = "image/*"; input.multiple = true
     input.onchange = async () => {
-      if (!input.files[0]) return
-      try {
-        sections[si].subjects[sj].photo = await readPhoto(input.files[0])
-        renderSections(); scheduleSave()
-      } catch (e) { setStatus("s-error", "❌ That file couldn't be read as a photo.") }
+      const subj = sections[si].subjects[sj]
+      subj.photos = subj.photos || []
+      let bad = 0
+      for (const f of input.files) {
+        try { subj.photos.push({ src: await readPhoto(f), size: PHOTO_SIZES[2].w }) } catch (e) { bad++ }
+      }
+      if (bad) setStatus("s-error", `❌ ${bad} file${bad > 1 ? "s" : ""} couldn't be read as a photo.`)
+      renderSections(); scheduleSave()
     }
     input.click()
   }
@@ -1097,7 +1108,7 @@ function initApp() {
                       <button class="add-dd-item bullet add-bullet" data-si="${si}" data-sj="${sj}"><span class="dd-ico">${ICON_BULLET}</span> Bullet point</button>
                       <button class="add-dd-item note toggle-note" data-si="${si}" data-sj="${sj}"><span class="dd-ico">${ICON_NOTE}</span> ${subj.showNote ? "Hide note" : "Note"}</button>
                       <button class="add-dd-item cal toggle-sync${syncActive?" active":""}" data-si="${si}" data-sj="${sj}"><span class="dd-ico">${ICON_CAL}</span> ${syncActive ? "Remove from calendar" : "Add to calendar"}${syncActive ? '<span class="dd-check">✓</span>' : ''}</button>
-                      <button class="add-dd-item note add-photo" data-si="${si}" data-sj="${sj}"><span class="dd-ico">📷</span> ${subj.photo ? "Replace photo" : "Photo"}</button>
+                      <button class="add-dd-item note add-photo" data-si="${si}" data-sj="${sj}"><span class="dd-ico">📷</span> ${subj.photos && subj.photos.length ? "More photos" : "Photos"}</button>
                     </div>
                   </div>
                 </div>
@@ -1105,8 +1116,12 @@ function initApp() {
                   <input class="note-input subj-note" type="text" placeholder="Write note here..." value="${esc(subj.note)}"
                     data-si="${si}" data-sj="${sj}" style="margin-top:6px;" />
                 </div>
-                ${subj.photo ? `<div class="photo-field"><img src="${esc(subj.photo)}" alt="Attached photo" />
-                  <button class="action-btn btn-delete icon-only rm-photo" data-si="${si}" data-sj="${sj}" title="Remove photo" aria-label="Remove photo">${ICON_X}</button></div>` : ""}
+                ${subj.photos && subj.photos.length ? `<div class="photo-row">${subj.photos.map((ph, pk) => `
+                  <div class="photo-field"><img src="${esc(ph.src)}" alt="Attached photo ${pk + 1}" />
+                    <button class="action-btn btn-delete icon-only rm-photo" data-si="${si}" data-sj="${sj}" data-pk="${pk}" title="Remove photo" aria-label="Remove photo">${ICON_X}</button>
+                    <div class="photo-sizes" role="group" aria-label="Size on the card">${PHOTO_SIZES.map(z =>
+                      `<button type="button" class="photo-size${ph.size === z.w ? " active" : ""}" data-si="${si}" data-sj="${sj}" data-pk="${pk}" data-w="${z.w}" title="${z.w}% of the card's width">${z.k}</button>`).join("")}</div>
+                  </div>`).join("")}</div>` : ""}
                 ${calPanel}
               </div>
             </div>
@@ -1168,7 +1183,8 @@ function initApp() {
       el.onclick = () => setBulletMarkerType(+el.dataset.si, +el.dataset.sj, +el.dataset.bk, el.dataset.mtype)
     })
     list.querySelectorAll(".add-photo").forEach(el => { el.onclick = () => pickPhoto(+el.dataset.si, +el.dataset.sj) })
-    list.querySelectorAll(".rm-photo").forEach(el => { el.onclick = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].photo = ""; renderSections(); scheduleSave() } })
+    list.querySelectorAll(".rm-photo").forEach(el => { el.onclick = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].photos.splice(+el.dataset.pk, 1); renderSections(); scheduleSave() } })
+    list.querySelectorAll(".photo-size").forEach(el => { el.onclick = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].photos[+el.dataset.pk].size = +el.dataset.w; renderSections(); scheduleSave() } })
     list.querySelectorAll(".add-subj").forEach(el => { el.onclick = () => addSubject(+el.dataset.si) })
     list.querySelectorAll(".cal-start").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskStart = el.value; updatePreview(); scheduleSave() } })
     list.querySelectorAll(".cal-end").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskEnd = el.value; updatePreview(); scheduleSave() } })
@@ -1439,8 +1455,9 @@ function initApp() {
   async function sendToDiscord() {
     const embed = buildDiscordEmbed()
     if (!embed) return false
-    const photos = sections.flatMap(sec => sec.subjects.map(s => s.photo).filter(Boolean))
-      .map((p, i) => ({ name: `photo${i + 1}.jpg`, data: p.split(",")[1] }))
+    // Discord takes at most 10 files per message; the card still shows them all.
+    const photos = sections.flatMap(sec => sec.subjects.flatMap(s => s.photos || [])).slice(0, 10)
+      .map((p, i) => ({ name: `photo${i + 1}.jpg`, data: p.src.split(",")[1] }))
     const sentKey = embed.description + "\u0000" + photos.map(p => p.data.length).join(",")
     if (sentKey === lastDiscordSent) return true
     try {
