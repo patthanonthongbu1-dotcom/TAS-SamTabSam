@@ -45,7 +45,7 @@ export function hasContent(data){
   if(!data || !Array.isArray(data.sections)) return false
   return data.sections.some(sec =>
     (sec.subjects || []).some(su =>
-      (su.title || "").trim() || (su.bullets || []).some(b => (b.text || "").trim())))
+      (su.title || "").trim() || su.photo || (su.bullets || []).some(b => (b.text || "").trim())))
 }
 
 const CSS = `
@@ -116,6 +116,7 @@ const CSS = `
   background:#fff8e6;border:1px solid #ffe2a8;border-radius:8px;
   padding:6px 9px;line-height:1.55;display:flex;gap:6px;
 }
+.tc-photo{display:block;width:100%;margin-top:6px;border-radius:8px;border:1px solid #e2e8f0}
 .tc-empty{font-size:12px;font-weight:300;color:#94a3b8;font-style:italic;padding:6px 0}
 `
 
@@ -139,7 +140,7 @@ export function cardHTML(data){
 
   const sections = (data.sections || []).map(sec => {
     const subjects = (sec.subjects || []).filter(su =>
-      (su.title || "").trim() || (su.bullets || []).some(b => (b.text || "").trim()))
+      (su.title || "").trim() || su.photo || (su.bullets || []).some(b => (b.text || "").trim()))
 
     if(!subjects.length) return ""
 
@@ -157,6 +158,7 @@ export function cardHTML(data){
         </div>
         ${bullets ? `<div class="tc-bullets">${bullets}</div>` : ""}
         ${note}
+        ${su.photo ? `<img class="tc-photo" src="${esc(su.photo)}" alt="">` : ""}
       </div>`
     }).join("")
 

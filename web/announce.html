@@ -277,6 +277,9 @@
     /* ── Note (amber accent) ────────────────────────────────────── */
     .note-field { display: none; }
     .note-field.visible { display: block; }
+    .photo-field { position: relative; display: inline-block; margin-top: 8px; }
+    .photo-field img { display: block; max-height: 140px; max-width: 100%; border-radius: 10px; }
+    .photo-field .rm-photo { position: absolute; top: 4px; right: 4px; }
     .note-input { font-size: 15px !important; padding: 8px 11px !important; border-color: rgba(234,179,8,0.32) !important; background: rgba(234,179,8,0.1) !important; color: var(--amber) !important; }
     .subject-actions { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
 
@@ -913,7 +916,7 @@ function initApp() {
     const today = localToday()
     sections[si].subjects.push({
       icon: "📝", title: "", bullets: [makeBullet()], note: "", showNote: false,
-      syncToCalendar: false, taskStart: today, taskEnd: "", taskType: "send_on",
+      syncToCalendar: false, taskStart: today, taskEnd: "", taskType: "send_on", photo: "",
     })
     if (doRender) { pendingEnter = { sel: `.subject-block[data-si="${si}"][data-sj="${sections[si].subjects.length - 1}"]`, cls: "box-enter" }; renderSections() }
   }
@@ -971,6 +974,39 @@ function initApp() {
   function setBulletMarkerType(si, sj, bk, type) {
     sections[si].subjects[sj].bullets[bk].markerType = type
     renderSections(); scheduleSave()
+  }
+
+  // Photos are shrunk to a ≤1024px JPEG data URL so they fit in the
+  // localStorage draft and the Discord upload stays small.
+  function readPhoto(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file)
+      const img = new Image()
+      img.onload = () => {
+        const k = Math.min(1, 1024 / Math.max(img.naturalWidth, img.naturalHeight))
+        const c = document.createElement("canvas")
+        c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k)
+        const ctx = c.getContext("2d")
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height)   // transparent PNGs → white, not black
+        ctx.drawImage(img, 0, 0, c.width, c.height)
+        URL.revokeObjectURL(url)
+        resolve(c.toDataURL("image/jpeg", 0.8))
+      }
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("not an image")) }
+      img.src = url
+    })
+  }
+  function pickPhoto(si, sj) {
+    const input = document.createElement("input")
+    input.type = "file"; input.accept = "image/*"
+    input.onchange = async () => {
+      if (!input.files[0]) return
+      try {
+        sections[si].subjects[sj].photo = await readPhoto(input.files[0])
+        renderSections(); scheduleSave()
+      } catch (e) { setStatus("s-error", "❌ That file couldn't be read as a photo.") }
+    }
+    input.click()
   }
 
   function renderSections() {
@@ -1061,6 +1097,7 @@ function initApp() {
                       <button class="add-dd-item bullet add-bullet" data-si="${si}" data-sj="${sj}"><span class="dd-ico">${ICON_BULLET}</span> Bullet point</button>
                       <button class="add-dd-item note toggle-note" data-si="${si}" data-sj="${sj}"><span class="dd-ico">${ICON_NOTE}</span> ${subj.showNote ? "Hide note" : "Note"}</button>
                       <button class="add-dd-item cal toggle-sync${syncActive?" active":""}" data-si="${si}" data-sj="${sj}"><span class="dd-ico">${ICON_CAL}</span> ${syncActive ? "Remove from calendar" : "Add to calendar"}${syncActive ? '<span class="dd-check">✓</span>' : ''}</button>
+                      <button class="add-dd-item note add-photo" data-si="${si}" data-sj="${sj}"><span class="dd-ico">📷</span> ${subj.photo ? "Replace photo" : "Photo"}</button>
                     </div>
                   </div>
                 </div>
@@ -1068,6 +1105,8 @@ function initApp() {
                   <input class="note-input subj-note" type="text" placeholder="Write note here..." value="${esc(subj.note)}"
                     data-si="${si}" data-sj="${sj}" style="margin-top:6px;" />
                 </div>
+                ${subj.photo ? `<div class="photo-field"><img src="${esc(subj.photo)}" alt="Attached photo" />
+                  <button class="action-btn btn-delete icon-only rm-photo" data-si="${si}" data-sj="${sj}" title="Remove photo" aria-label="Remove photo">${ICON_X}</button></div>` : ""}
                 ${calPanel}
               </div>
             </div>
@@ -1128,6 +1167,8 @@ function initApp() {
     list.querySelectorAll(".marker-type-btn").forEach(el => {
       el.onclick = () => setBulletMarkerType(+el.dataset.si, +el.dataset.sj, +el.dataset.bk, el.dataset.mtype)
     })
+    list.querySelectorAll(".add-photo").forEach(el => { el.onclick = () => pickPhoto(+el.dataset.si, +el.dataset.sj) })
+    list.querySelectorAll(".rm-photo").forEach(el => { el.onclick = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].photo = ""; renderSections(); scheduleSave() } })
     list.querySelectorAll(".add-subj").forEach(el => { el.onclick = () => addSubject(+el.dataset.si) })
     list.querySelectorAll(".cal-start").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskStart = el.value; updatePreview(); scheduleSave() } })
     list.querySelectorAll(".cal-end").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskEnd = el.value; updatePreview(); scheduleSave() } })
@@ -1398,18 +1439,21 @@ function initApp() {
   async function sendToDiscord() {
     const embed = buildDiscordEmbed()
     if (!embed) return false
-    if (embed.description === lastDiscordSent) return true
+    const photos = sections.flatMap(sec => sec.subjects.map(s => s.photo).filter(Boolean))
+      .map((p, i) => ({ name: `photo${i + 1}.jpg`, data: p.split(",")[1] }))
+    const sentKey = embed.description + "\u0000" + photos.map(p => p.data.length).join(",")
+    if (sentKey === lastDiscordSent) return true
     try {
       // The server checks this token against the moderator whitelist.
       const idToken = await auth.currentUser.getIdToken()
       const res  = await fetch(`${DISCORD_SERVER_URL}/send`, {
         method:  "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + idToken },
-        body:    JSON.stringify({ embed }),
+        body:    JSON.stringify({ embed, photos }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok || data.ok === false) throw new Error(data.error || `Server responded ${res.status}`)
-      lastDiscordSent = embed.description
+      lastDiscordSent = sentKey
       return true
     } catch(e) {
       console.warn("Discord send failed:", e)

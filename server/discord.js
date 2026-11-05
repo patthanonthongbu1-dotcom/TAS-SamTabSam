@@ -4,7 +4,7 @@ const cors = require("cors")
 
 const app = express()
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: "10mb" }))   // room for the formatter's photos (≤1024px JPEGs)
 
 // Discord webhook URL. This is the equivalent of the LINE bot's TOKEN + groupId
 // combined — it identifies BOTH the target channel and the auth to post there.
@@ -36,7 +36,12 @@ async function isModerator(idToken) {
 app.post("/send", async (req, res) => {
   // message  -> plain text (Discord "content")
   // embed    -> rich card   (Discord "embed", the analog of LINE flexMessage)
+  // photos   -> [{ name, data: base64 jpeg }], posted as attachments under the embed
   const { message, embed } = req.body || {}
+  const photos = Array.isArray(req.body?.photos) ? req.body.photos : []
+  if (photos.length > 10 || photos.some(p => typeof p?.data !== "string")) {
+    return res.status(400).json({ ok: false, error: "Up to 10 photos, as base64 strings" })
+  }
 
   if (!DISCORD_WEBHOOK) {
     return res.status(500).json({ ok: false, error: "No Discord webhook URL configured" })
@@ -54,11 +59,23 @@ app.post("/send", async (req, res) => {
 
     // ?wait=true makes Discord return the created message JSON (like LINE's response),
     // otherwise a successful post is a bare 204 No Content.
-    const response = await fetch(DISCORD_WEBHOOK + "?wait=true", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    })
+    let response
+    if (photos.length) {
+      // Files need multipart. Node's own fetch/FormData — node-fetch v3
+      // can't serialise the global FormData.
+      const form = new FormData()
+      payload.attachments = photos.map((p, i) => ({ id: i, filename: `photo${i + 1}.jpg` }))
+      form.append("payload_json", JSON.stringify(payload))
+      photos.forEach((p, i) =>
+        form.append(`files[${i}]`, new Blob([Buffer.from(p.data, "base64")], { type: "image/jpeg" }), `photo${i + 1}.jpg`))
+      response = await globalThis.fetch(DISCORD_WEBHOOK + "?wait=true", { method: "POST", body: form })
+    } else {
+      response = await fetch(DISCORD_WEBHOOK + "?wait=true", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+    }
 
     // An error page from Discord (or a proxy in front of it) isn't JSON.
     const text = await response.text()
