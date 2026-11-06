@@ -11,6 +11,11 @@
   "orientation": "any",
   "background_color": "#0b1c3d",
   "theme_color": "#0b1c3d",
+  "share_target": {
+    "action": "calendar.html",
+    "method": "GET",
+    "params": { "title": "share_title", "text": "share_text", "url": "share_url" }
+  },
   "icons": [
     {
       "src": "TASLogo.png",

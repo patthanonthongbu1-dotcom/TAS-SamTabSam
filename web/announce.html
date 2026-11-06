@@ -280,7 +280,9 @@
     .photo-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
     .photo-field { position: relative; display: flex; flex-direction: column; gap: 5px; }
     .photo-field img { display: block; height: 96px; max-width: 160px; object-fit: cover; border-radius: 10px; }
-    .photo-field .rm-photo { position: absolute; top: 4px; right: 4px; }
+    /* Solid, so the ✕ stays visible on top of any photo */
+    .photo-field .rm-photo { position: absolute; top: 4px; right: 4px; width: 32px; min-height: 32px; border-radius: 50%; background: #c0392b; color: #fff; border-color: rgba(255,255,255,0.85); box-shadow: 0 1px 4px rgba(0,0,0,0.35); }
+    .photo-field .rm-photo:hover { background: #a93226; }
     .photo-sizes { display: flex; gap: 3px; }
     .photo-size { flex: 1; padding: 2px 0; border-radius: 7px; border: 1px solid var(--field-brd, rgba(255,255,255,.15)); background: transparent; color: inherit; font: inherit; font-size: 11.5px; cursor: pointer; opacity: .65; }
     .photo-size.active { opacity: 1; background: rgba(255,79,163,0.18); border-color: #ff4fa3; }

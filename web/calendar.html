@@ -2124,6 +2124,47 @@
       width:100%;box-sizing:border-box;padding:14px 16px;border:1px solid var(--field-brd);border-radius:14px;
       font-size:17px;font-family:'Kanit',sans-serif;color:var(--text);background:var(--field-bg);outline:none;
     }
+    .idea-add-row{display:flex;gap:8px}
+    .idea-add-row .idea-add{flex:1;min-width:0}
+    .idea-go{
+      width:52px;flex-shrink:0;border:none;border-radius:14px;background:var(--pink);color:#fff;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;touch-action:manipulation;
+    }
+    .idea-go .ic{width:22px;height:22px}
+    .idea-go:disabled{opacity:.45;cursor:not-allowed}
+    .idea-mic{background:var(--glass-2);color:var(--text);border:1px solid var(--glass-brd)}
+    .idea-mic.on{background:var(--red);color:#fff;border-color:transparent;animation:micPulse 1.2s ease-in-out infinite}
+    @keyframes micPulse{50%{box-shadow:0 0 0 6px rgba(239,68,68,0.25)}}
+    .idea-search{padding:10px 14px;font-size:16px}
+    .idea-stale-bar{
+      display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;border-radius:12px;font-size:14px;color:var(--text);
+      background:rgba(234,179,8,0.12);border:1px solid rgba(234,179,8,0.35);
+    }
+    .idea-stale-bar .ic{width:18px;height:18px;color:var(--amber,#d97706);flex-shrink:0}
+    .idea-stale-bar span{flex:1;min-width:160px}
+    .idea-stale-bar button{
+      min-height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--glass-brd);background:var(--glass-2);
+      color:var(--text);font-family:inherit;font-size:14px;cursor:pointer;
+    }
+    .idea-stale-bar button.danger{color:var(--red)}
+    .idea-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+    .idea-chip{font-size:12px;line-height:1;padding:4px 8px;border-radius:999px;font-weight:400}
+    .idea-chip.tag{background:var(--accent-ring);color:var(--pink);cursor:pointer}
+    .idea-chip.due{background:rgba(47,111,237,0.15);color:var(--blue,#2f6fed)}
+    .idea-pin{
+      width:40px;height:48px;flex-shrink:0;border:none;background:none;cursor:pointer;color:var(--label);opacity:.55;
+      display:flex;align-items:center;justify-content:center;border-radius:10px;
+    }
+    .idea-pin .ic{width:17px;height:17px}
+    .idea-pin:hover{opacity:1}
+    .idea-row.pinned .idea-pin{color:var(--pink);opacity:1}
+    .idea-row.pinned{box-shadow:inset 3px 0 0 var(--pink)}
+    .idea-row.stale{opacity:.6}
+    .idea-row[hidden]{display:none}
+    /* Swipe: pan-y leaves vertical drags to the page; the tint says what letting go does */
+    .idea-row{touch-action:pan-y;transition:transform .2s ease,background-color .15s}
+    .idea-row[data-swipe="del"]{background:rgba(239,68,68,0.22)!important}
+    .idea-row[data-swipe="task"]{background:rgba(34,197,94,0.22)!important}
     .idea-add::placeholder{color:var(--label)}
     .idea-add:focus{border-color:var(--pink);box-shadow:0 0 0 3px var(--accent-ring)}
     .idea-list{display:flex;flex-direction:column;gap:8px}
@@ -2151,7 +2192,7 @@
     /* The date input sits invisibly over the label, so the whole pill opens the native picker */
     .idea-plan{
       position:relative;display:inline-flex;align-items:center;gap:6px;flex-shrink:0;min-height:48px;padding:0 12px;
-      border-radius:10px;border:1px solid var(--glass-brd);background:var(--glass-2);color:var(--text);font-size:13.5px;cursor:pointer;
+      border-radius:10px;border:1px solid var(--glass-brd);background:var(--glass-2);color:var(--text);font-size:13.5px;cursor:pointer;font-family:inherit;
     }
     .idea-plan .ic{width:16px;height:16px}
     .idea-plan input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
@@ -2165,6 +2206,7 @@
     @media(max-width:600px){ .idea-plan span{display:none} .idea-plan{padding:0 11px} }
     html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) .idea-row{background:var(--card);border-color:var(--border)}
     html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) .idea-plan{background:var(--card);border-color:var(--border)}
+    html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) :is(.idea-mic,.idea-stale-bar button){background:var(--card);border-color:var(--border)}
 
     /* ── To Do view ─────────────────────────────────────────────
        Two lanes: the tasks you can pull from, and the list you order.
@@ -2554,6 +2596,9 @@
   </symbol>
   <symbol id="ic-tack" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M9.4 3.6h5.2l-.7 5 3.3 2.8v1.8H6.8v-1.8l3.3-2.8z"/><path d="M12 13.2v7.2"/>
+  </symbol>
+  <symbol id="ic-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/>
   </symbol>
   <symbol id="ic-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M4.4 6.6h15.2"/><path d="M9.4 6.6V5a1.4 1.4 0 0 1 1.4-1.4h2.4A1.4 1.4 0 0 1 14.6 5v1.6"/>
@@ -4869,6 +4914,7 @@ function initIdeasView(uid){
     uid, mount: document.getElementById("calWrap"),
     load: loadIdeas, save: saveIdeas, adopt: adoptGuestIdeas,
     addToDay: BlocksUI.addToDay, removeFromDay: BlocksUI.removeFromDay,
+    makeTask: ideaToTask,
     helpers: {
       esc, ico, toast, shortDate,
       isActive: () => currentView==="ideas",
@@ -4879,6 +4925,38 @@ function initIdeasView(uid){
       }
     }
   })
+  if(shareArrived){ shareArrived = false; switchView("ideas") }
+}
+
+/* Shared in from another app via the manifest's share_target. Read once,
+   wiped from the address bar, and opened in Ideas once that's set up. */
+let shareArrived = false
+{
+  const q = new URLSearchParams(location.search)
+  const title = q.get("share_title") || "", text = q.get("share_text") || "", url = q.get("share_url") || ""
+  const all = [title, text].filter(Boolean).join(" — ") + (url && !text.includes(url) ? " " + url : "")
+  if(all.trim()){
+    IdeasUI.queueShared(all)
+    shareArrived = true
+    history.replaceState(null, "", location.pathname)
+  }
+}
+
+/* An idea that is real work: open the My Tasks form with its text as the
+   name. The idea stays in Ideas until that task is actually saved. */
+function ideaToTask(idea, quick = {}){
+  if(!idea) return
+  if(!currentUser) return requireSignIn("turn an idea into a task")
+  switchView("tasks")          // rebuilds and resets the form
+  mtTab("add")
+  ideaSource = idea.id
+  document.getElementById("pt-name").value = quick.name || idea.text
+  if(quick.subject) document.getElementById("pt-subject").value = quick.subject
+  if(quick.due){ document.getElementById("pt-end").value = quick.due; ptDateSync() }
+  const banner = document.getElementById("ptExtendBanner")
+  banner.style.display = "block"
+  banner.textContent = `From your idea — pick a subject and dates, then save`
+  updatePtPreview(); mtSyncNav()
 }
 
 /* ── Blocks — the third calendar layout ──────────────────────
@@ -5181,6 +5259,7 @@ window.archiveDeleteSelected = async function(){
 // ↻ Extend: reopen an archived task as a personal task — name/details are
 // locked to the original, the user only picks the new dates.
 let extendSource = null
+let ideaSource = null   // the idea a task is being made from — removed from Ideas once saved
 window.archiveExtendTask = function(e,id){
   e.stopPropagation()
   const t = getOrderedTasks().find(x=>x.id===id)
@@ -7951,6 +8030,7 @@ window.savePtTask = async function(){
     return
   }finally{ptSaving=false}
   toast("Saved to My Tasks")
+  if(ideaSource) IdeasUI.removeIdea(ideaSource)
   resetPtForm()
   mtTab("list")
 }
@@ -7961,6 +8041,7 @@ function resetPtForm(){
   ptSideQuest = false; ptMarkerType = "quiz"
   // Clear extend-from-archive mode: unlock the fields it locked
   extendSource = null
+  ideaSource = null
   ;["pt-name","pt-subject","pt-note"].forEach(id=>{ const el=document.getElementById(id); if(el) el.readOnly=false })
   ptTypeLocked=false
   document.getElementById("ptTypeGrid").classList.remove("locked")
