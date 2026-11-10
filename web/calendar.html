@@ -1864,6 +1864,12 @@
     .subj-row .subj-alias{grid-column:2/-1;font-size:12.5px}
     .subj-row button{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0}
     .subj-row input:disabled{opacity:.8}
+    .hwc-modal{max-width:480px}
+    .hwc-prev{border-radius:12px;overflow:hidden;margin:4px 0 12px;max-height:52vh;overflow-y:auto;background:#f6f8fb}
+    .hwc-note{width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(--field-brd);border-radius:10px;background:var(--field-bg);color:var(--text);font-family:'Kanit',sans-serif;font-size:14px;resize:vertical;outline:none}
+    .hwc-tg{display:flex;flex-wrap:wrap;gap:6px 16px;margin:10px 0 2px;font-size:14px;color:var(--text)}
+    .hwc-tg label{display:flex;align-items:center;gap:6px;cursor:pointer}
+    .hwc-acts{flex-wrap:wrap}
     .subj-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
     .subj-acts .pts-fold{width:auto;flex:1 1 auto}
 
@@ -2765,6 +2771,7 @@
       <div class="user-dropdown-email" id="dropdownEmail"></div>
       <span class="user-dropdown-role" id="dropdownRole">Member</span>
     </div>
+    <button class="user-dropdown-btn menu" onclick="openHwCard()"><svg class="ic" aria-hidden="true"><use href="#ic-check-square"/></svg> Homework card</button>
     <button class="user-dropdown-btn menu" onclick="openTour()"><svg class="ic" aria-hidden="true"><use href="#ic-help"/></svg> How to use</button>
     <button class="user-dropdown-btn menu" onclick="handleReturnToMenu()"><svg class="ic" aria-hidden="true"><use href="#ic-home"/></svg> Return to menu</button>
     <a class="user-dropdown-btn menu" href="announce.html" style="text-decoration:none;"><svg class="ic" aria-hidden="true"><use href="#ic-note"/></svg> Open task formatter</a>
@@ -2918,6 +2925,27 @@
     </div>
   </div>
 </div>
+
+<!-- Homework card (design A): preview, toggles, export -->
+<div class="modal-overlay" id="hwModal" style="z-index:940">
+  <div class="modal hwc-modal">
+    <h2>Homework card</h2>
+    <div class="hwc-prev" id="hwPrev"></div>
+    <textarea class="hwc-note" id="hwNote" rows="2" maxlength="300" placeholder="Note to friends (optional)" oninput="renderHwCard()"></textarea>
+    <div class="hwc-tg">
+      <label><input type="checkbox" id="hwOptProgress" onchange="hwOptTouched.progress=1;renderHwCard()"> Progress bar</label>
+      <label><input type="checkbox" id="hwOptNote" checked onchange="renderHwCard()"> Note</label>
+      <label><input type="checkbox" id="hwOptDone" checked onchange="renderHwCard()"> Done today</label>
+    </div>
+    <div class="modal-actions hwc-acts">
+      <button class="modal-cancel" onclick="closeHwCard()">Close</button>
+      <button class="modal-save" id="hwShareBtn" onclick="hwExport('share')">Share</button>
+      <button class="modal-save" onclick="hwExport('copy')">Copy</button>
+      <button class="modal-save" onclick="hwExport('download')">Download</button>
+    </div>
+  </div>
+</div>
+<div id="hwRenderHost" style="position:fixed;left:-10000px;top:0" aria-hidden="true"></div>
 
 <!-- MOD ADD/EDIT MODAL (kept for mod use) -->
 <div class="modal-overlay" id="taskModal">
@@ -3419,6 +3447,8 @@ import { loadIdeas, saveIdeas, adoptGuestIdeas } from "./tas-blocks-store.js"
 // module so the pills and the meter can never disagree about a weight.
 import * as Points from "./tas-points.js"
 import * as Subj from "./tas-subjects.js"
+import { cardModel, fromTasks } from "./tas-hwcard.js"
+import { mountHwCard, exportHwCard, HW_WIDTH } from "./tas-card.js"
 import { icsFor } from "./tas-ics.js"
 import {
   getMessaging, getToken, deleteToken, isSupported as messagingSupported
@@ -7220,6 +7250,76 @@ window.openHistory=async function(){
     list.innerHTML=`<div class="hist-row"><small>Couldn't load the history — check your connection and try again.</small></div>`
   }
 }
+// ── Homework card ─────────────────────────────────────────────
+// Every task not done (class + personal; no markers, dailies or estimates),
+// plus what was ticked off today. One tap gives a 1080px PNG for LINE.
+const hwOptTouched={}
+function hwModel(){
+  const today=localToday()
+  const subjectOf=s=>{ const h=Subj.match(s,subjectList); return h?{name:h.name,color:h.color,icon:h.icon}:{name:(s||"").trim()||"ไม่ระบุ",color:subjectColor(s),icon:""} }
+  const rows=fromTasks([...tasks,...personalTasks].filter(t=>["normal","deadline"].includes(taskType(t))),userDoneCache,today,subjectOf)
+  const on=id=>document.getElementById(id).checked
+  return cardModel({ date:today, name:currentUser?(currentUser.displayName||""):"", note:document.getElementById("hwNote").value, rows,
+    opts:{ progress: hwOptTouched.progress?on("hwOptProgress"):undefined, note:on("hwOptNote"), done:on("hwOptDone") } }, today)
+}
+window.renderHwCard=function(){
+  const host=document.getElementById("hwPrev")
+  const m=hwModel()
+  if(!hwOptTouched.progress) document.getElementById("hwOptProgress").checked=!!m.progress
+  const card=mountHwCard(host,m)
+  card.style.zoom=Math.min(1,host.clientWidth/HW_WIDTH)
+  clearTimeout(hwTimer); hwTimer=setTimeout(()=>hwBlob().catch(()=>{}),500)
+}
+window.openHwCard=function(){
+  document.getElementById("userDropdown")?.classList.remove("open")
+  document.getElementById("hwShareBtn").style.display = navigator.canShare?.({files:[new File([""],"a.png",{type:"image/png"})]}) ? "" : "none"
+  document.getElementById("hwModal").classList.add("open")
+  renderHwCard()
+}
+window.closeHwCard=function(){animCloseOverlay(document.getElementById("hwModal"))}
+document.getElementById("hwModal").addEventListener("click",e=>{if(e.target.id==="hwModal")closeHwCard()})
+let htmlToImage=null
+// Rendered ahead while the sheet is open, keyed by the model: iOS only lets
+// share/clipboard run inside the tap, and a render takes a second or more.
+let hwCache={key:"",p:null}, hwQueue=Promise.resolve(), hwTimer=0
+function hwBlob(){
+  const m=hwModel(), key=JSON.stringify(m)
+  if(hwCache.key!==key){
+    htmlToImage ||= import("https://esm.sh/html-to-image@1.11.13")
+    const p=hwQueue.then(async()=>{
+      const { toBlob }=await htmlToImage
+      const host=document.getElementById("hwRenderHost")
+      try{ return await exportHwCard(mountHwCard(host,m),toBlob) }
+      finally{ host.innerHTML="" }
+    })
+    hwQueue=p.catch(()=>{})
+    hwCache={key,p}
+    p.catch(()=>{ if(hwCache.p===p) hwCache={key:"",p:null} })
+  }
+  return hwCache.p
+}
+window.hwExport=async function(how){
+  const name=`tas-homework-${localToday()}.png`
+  try{
+    if(how==="copy"){
+      // The promise, not the blob: the render outlasts the click's user gesture
+      await navigator.clipboard.write([new ClipboardItem({"image/png":hwBlob()})])
+      return toast("Card copied — paste it into LINE")
+    }
+    const blob=await hwBlob()
+    if(how==="share"){
+      try{ await navigator.share({files:[new File([blob],name,{type:"image/png"})]}) }
+      catch(e){ if(e.name!=="AbortError") throw e }
+      return
+    }
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000)
+  }catch(e){
+    console.warn("Homework card export failed:",e)
+    toast(how==="copy"?"Couldn't copy — try Download":"Couldn't make the image",{error:true})
+  }
+}
+
 window.closeHistory=function(){animCloseOverlay(document.getElementById("historyModal"))}
 document.getElementById("historyModal").addEventListener("click",e=>{if(e.target.id==="historyModal")closeHistory()})
 
