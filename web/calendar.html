@@ -1670,7 +1670,7 @@
     .confirm-modal{max-width:340px;text-align:center}
     .confirm-emoji{font-size:41px;margin-bottom:8px}
     .confirm-modal h2{margin-bottom:6px}
-    .confirm-msg{font-size:15px;color:var(--muted);font-weight:300;line-height:1.6;word-break:break-word}
+    .confirm-msg{font-size:15px;color:var(--muted);font-weight:300;line-height:1.6;word-break:break-word;white-space:pre-line;max-height:50vh;overflow:auto}
     .confirm-danger-btn{flex:1;padding:10px;background:linear-gradient(180deg,#f05252,#c81e1e);color:#fff;border:none;border-radius:10px;font-family:'Kanit',sans-serif;font-size:16px;font-weight:500;cursor:pointer;box-shadow:0 10px 24px -10px rgba(229,62,62,0.5);transition:filter 0.15s}
     .confirm-danger-btn:hover{filter:brightness(1.08)}
 
@@ -1857,6 +1857,15 @@
     .zone-row input:focus{border-color:var(--pink)}
     .zone-reset{background:none;border:none;color:var(--muted);font-family:'Kanit',sans-serif;font-size:12.5px;cursor:pointer;text-decoration:underline;text-underline-offset:2px;padding:3px 0 0;transition:color 0.15s}
     .zone-reset:hover{color:var(--text)}
+    .subj-row{display:grid;grid-template-columns:2.4em 1fr 5.5em 2.2em 1.8em;gap:6px;align-items:center;margin-bottom:6px}
+    .subj-row input{min-width:0;padding:6px 8px;border:1px solid var(--field-brd);border-radius:8px;background:var(--field-bg);color:var(--text);font-family:'Kanit',sans-serif;font-size:14px;outline:none}
+    .subj-row input:focus{border-color:var(--pink)}
+    .subj-row input[type=color]{padding:2px;height:32px;cursor:pointer}
+    .subj-row .subj-alias{grid-column:2/-1;font-size:12.5px}
+    .subj-row button{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0}
+    .subj-row input:disabled{opacity:.8}
+    .subj-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+    .subj-acts .pts-fold{width:auto;flex:1 1 auto}
 
     /* ══ Light theme — the classic look, green accent on white ══ */
     html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]){
@@ -2915,7 +2924,7 @@
   <div class="modal">
     <h2 id="modal-title">Add task</h2>
     <div class="modal-field"><label>Name</label><input type="text" id="t-name" placeholder="e.g. MindMap งานการงาน" /></div>
-    <div class="modal-field"><label>Subject</label><input type="text" id="t-subject" placeholder="e.g. การงาน, ภาษาไทย" /></div>
+    <div class="modal-field"><label>Subject</label><input type="text" id="t-subject" list="subjectOptions" autocomplete="off" placeholder="Pick a subject" /><datalist id="subjectOptions"></datalist></div>
     <div class="modal-field" id="t-type-field"><label>Type</label>
       <select id="t-type" onchange="setModalMarker(this.value==='marker')">
         <option value="normal">Send On (fixed send date)</option>
@@ -3056,6 +3065,17 @@
             <button class="theme-opt" id="colOptUrgency" onclick="setColourMode('urgency')"><svg class="ic" aria-hidden="true"><use href="#ic-flame"/></svg> Urgency<span>Days left</span></button>
           </div>
           <button class="zone-reset" onclick="resetSubjectColors()">Reset subject colours</button>
+        </div>
+
+        <div class="set-row stack" id="subjectsRow">
+          <div class="set-row-main">
+            <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-palette"/></svg></div>
+            <div class="set-row-text">
+              <div class="set-row-title">Subjects</div>
+              <div class="set-row-desc" id="subjDesc">The class's subject list. A task picks its subject from here and takes its colour.</div>
+            </div>
+          </div>
+          <div id="subjEditor"></div>
         </div>
 
         <div class="set-row stack">
@@ -3398,6 +3418,7 @@ import { loadIdeas, saveIdeas, adoptGuestIdeas } from "./tas-blocks-store.js"
 // How heavy each task is. Pure arithmetic, tested, and shared with the To Do
 // module so the pills and the meter can never disagree about a weight.
 import * as Points from "./tas-points.js"
+import * as Subj from "./tas-subjects.js"
 import { icsFor } from "./tas-ics.js"
 import {
   getMessaging, getToken, deleteToken, isSupported as messagingSupported
@@ -3744,6 +3765,7 @@ if(!VALID_MODES.includes(calMode)) calMode = "timeline"
 // First day of the month the grid is showing — starts on the current month
 let gridMonth = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1)
 
+let subjectList=[]
 let tasks=[], personalTasks=[], isMod=false, editingId=null, currentRange=storedRange, hlPct=null, currentView="calendar"
 let tasksLoaded=false   // first shared-tasks snapshot received — until then, show skeletons
 let currentUser = null
@@ -4352,6 +4374,7 @@ window.addEventListener("offline", () =>
   toast("You're offline — showing the last tasks this device saw",{error:true,duration:6000}))
 function startTasksListener() {
   if (unsubTasks) return
+  startSubjectsListener()
   // The last list this device saw, shown until the live one arrives — which
   // with no connection is never, and a blank calendar helps nobody.
   try{
@@ -5554,7 +5577,7 @@ function ensureSubjectColors(){
   const used=new Set(subs.map(s=>subjectColors[s]).filter(Boolean))
   let changed=false
   subs.forEach(s=>{
-    if(subjectColors[s]) return
+    if(subjectColors[s] || Subj.match(s,subjectList)) return
     const free=SUBJECT_PALETTE.find(c=>!used.has(c))
       || SUBJECT_PALETTE[Object.keys(subjectColors).length % SUBJECT_PALETTE.length]
     subjectColors[s]=free; used.add(free); changed=true
@@ -5562,7 +5585,121 @@ function ensureSubjectColors(){
   if(changed) saveSubjectColors()
   return subs
 }
-const subjectColor = s => subjectColors[(s||"").trim()] || NO_SUBJECT_COLOR
+// The shared list (subjects/list) wins: a listed subject looks the same on
+// every phone. Anything not on it keeps the per-browser automatic colour.
+const subjectColor = s => Subj.colorOf(s,subjectList) || subjectColors[(s||"").trim()] || NO_SUBJECT_COLOR
+
+// ── Shared subject list ───────────────────────────────────────
+try{ subjectList=Subj.sanitize(JSON.parse(localStorage.getItem("tas_subject_list")||"[]")) }catch(e){}
+function startSubjectsListener(){
+  fillSubjectPicker()
+  onSnapshot(doc(db,"subjects","list"), snap=>{
+    subjectList=Subj.sanitize(snap.data()?.items)
+    try{ localStorage.setItem("tas_subject_list",JSON.stringify(subjectList)) }catch(e){}
+    fillSubjectPicker()
+    subjDraft=null   // a save (ours or another mod's) is the new starting point
+    renderSubjectEditor()
+    renderCurrentView()
+  }, err=>console.warn("Subjects listener error:",err))
+}
+// The task forms keep their text inputs (and every place that reads them),
+// with the list as the dropdown; save then snaps the text to the list's name.
+function fillSubjectPicker(){
+  const dl=document.getElementById("subjectOptions")
+  if(dl) dl.innerHTML=subjectList.map(s=>`<option value="${esc(s.name)}">${esc(s.icon?s.icon+" ":"")}${esc(s.short||"")}</option>`).join("")
+}
+const canonSubject = s => Subj.match(s,subjectList)?.name || (s||"").trim()
+
+// Settings editor: a working copy, saved in one write
+let subjDraft=null
+function renderSubjectEditor(){
+  const box=document.getElementById("subjEditor")
+  if(!box) return
+  const mod=isMod||isWhitelisted
+  if(!subjDraft || !mod) subjDraft=subjectList.map(s=>({...s,aliases:[...s.aliases]}))
+  const dis=mod?"":"disabled"
+  document.getElementById("subjDesc").textContent = mod
+    ? "The class's subject list. Tasks pick from it and take its colour. Aliases are other spellings old tasks used, comma-separated."
+    : "The class's subject list, set by moderators. A task picks its subject from here and takes its colour."
+  box.innerHTML = subjDraft.map((s,i)=>`<div class="subj-row">
+      <input value="${esc(s.icon)}" maxlength="4" placeholder="📘" aria-label="Icon" oninput="subjEdit(${i},'icon',this.value)" ${dis}>
+      <input value="${esc(s.name)}" placeholder="Name" aria-label="Name" oninput="subjEdit(${i},'name',this.value)" ${dis}>
+      <input value="${esc(s.short)}" placeholder="Short" aria-label="Short name" oninput="subjEdit(${i},'short',this.value)" ${dis}>
+      <input type="color" value="${esc(s.color)}" aria-label="Colour" oninput="subjEdit(${i},'color',this.value)" ${dis}>
+      ${mod?`<button type="button" aria-label="Remove" onclick="subjRemove(${i})">×</button>`:"<span></span>"}
+      ${mod||s.aliases.length?`<input class="subj-alias" value="${esc(s.aliases.join(", "))}" placeholder="Also written as…" aria-label="Aliases" oninput="subjEdit(${i},'aliases',this.value)" ${dis}>`:""}
+    </div>`).join("")
+    + (!subjDraft.length && !mod ? `<div class="set-row-desc">No list yet.</div>` : "")
+    + (mod ? `<div class="subj-acts">
+      <button class="pts-fold" type="button" onclick="subjAdd()">+ Add</button>
+      ${subjDraft.length?"":`<button class="pts-fold" type="button" onclick="subjSeed()">Start from current subjects</button>`}
+      <button class="pts-fold" type="button" onclick="subjSave()">Save list</button>
+      <button class="pts-fold" type="button" id="subjMigBtn" onclick="matchOldSubjects()">Match old tasks</button>
+    </div>` : "")
+}
+window.subjEdit=(i,k,v)=>{ if(subjDraft[i]) subjDraft[i][k]= k==="aliases" ? v.split(",").map(x=>x.trim()).filter(Boolean) : v }
+window.subjRemove=i=>{ subjDraft.splice(i,1); renderSubjectEditor() }
+window.subjAdd=()=>{ subjDraft.push({id:"",name:"",short:"",color:SUBJECT_PALETTE[subjDraft.length%SUBJECT_PALETTE.length],icon:"",aliases:[]}); renderSubjectEditor() }
+window.subjSeed=()=>{
+  subjDraft=[...new Set(tasks.filter(t=>taskType(t)!=="marker").map(t=>(t.subject||"").trim()).filter(Boolean))].sort()
+    .map((name,i)=>({id:"",name,short:"",icon:"",aliases:[],color:subjectColors[name]||SUBJECT_PALETTE[i%SUBJECT_PALETTE.length]}))
+  renderSubjectEditor()
+}
+window.subjSave=async function(){
+  const items=Subj.sanitize(subjDraft)
+  try{
+    await setDoc(doc(db,"subjects","list"),{v:1,items,updatedAt:Date.now()})
+    toast("Subject list saved")
+  }catch(e){
+    console.warn("Could not save subjects:",e)
+    toast("Couldn't save the subject list",{error:true})
+  }
+}
+/* Old class tasks were typed by hand. Each one whose subject matches a list
+   entry (name, short, alias or a unique prefix) is rewritten to that entry's
+   name; the rest are listed so they can be added as aliases and run again.
+   Shown in full and confirmed first — it writes to the whole class's data. */
+window.matchOldSubjects=async function(){
+  const btn=document.getElementById("subjMigBtn")
+  if(!btn||btn.disabled) return
+  if(!subjectList.length) return toast("Save a subject list first")
+  btn.disabled=true
+  try{
+    const snap=await getDocs(collection(db,"tasks"))
+    const fix=[], miss=new Set()
+    snap.docs.forEach(d=>{
+      const t=d.data()
+      if(taskType(t)==="marker") return
+      const cur=(t.subject||"").trim(), hit=Subj.match(cur,subjectList)
+      if(!hit) { if(cur) miss.add(cur); return }
+      if(hit.name!==t.subject) fix.push({ref:d.ref,from:cur,to:hit.name})
+    })
+    const pairs=[...new Set(fix.map(f=>f.from+" → "+f.to))]
+    const ok = fix.length && await confirmDialog({
+      title:`Rename ${fix.length} task${fix.length===1?"":"s"}?`,
+      message: pairs.join("\n") + (miss.size?`\n\nNo match (add as aliases): ${[...miss].join(", ")}`:""),
+      confirmLabel:"Rename them"
+    })
+    if(!fix.length) toast(miss.size?`Nothing to rename. No match: ${[...miss].join(", ")}`:"Every task already matches",{duration:8000})
+    if(ok){
+      for(let i=0;i<fix.length;i+=400){
+        const batch=writeBatch(db)
+        fix.slice(i,i+400).forEach(f=>batch.update(f.ref,{subject:f.to}))
+        await batch.commit()
+      }
+      // This user's own tasks too — nobody else can reach them
+      if(currentUser){
+        const own=personalTasks.filter(t=>{ if(taskType(t)==="marker") return false; const h=Subj.match(t.subject,subjectList); return h&&h.name!==t.subject })
+        for(const t of own) await updateDoc(doc(db,"userTasks",currentUser.uid,"tasks",t.id),{subject:Subj.match(t.subject,subjectList).name})
+      }
+      toast(`Renamed ${fix.length} task${fix.length===1?"":"s"}`)
+    }
+  }catch(e){
+    console.warn("Subject match failed:",e)
+    toast("Couldn't match old subjects — try again",{error:true})
+  }
+  btn.disabled=false
+}
 
 // The one colour every bar asks for, in either mode. Markers stay orange in
 // both — that's a kind of event, not a subject or a deadline.
@@ -6387,7 +6524,11 @@ function subjectLegendHTML(){
   if(colourMode!=="subject") return ""
   legendSubjects=ensureSubjectColors()
   if(!legendSubjects.length) return ""
-  const chips=legendSubjects.map((s,i)=>`<label class="tl-leg" title="Change the colour for ${esc(s)}">
+  const chips=legendSubjects.map((s,i)=>Subj.match(s,subjectList)
+  ? `<label class="tl-leg" title="${esc(s)} — set in Settings → Subjects"><span class="tl-leg-sw static" style="background:${subjectColor(s)}"></span>
+    <span class="tl-leg-name">${esc(s)}</span>
+  </label>`
+  : `<label class="tl-leg" title="Change the colour for ${esc(s)}">
     <input type="color" class="tl-leg-sw" value="${subjectColor(s)}" onchange="setSubjectColorAt(${i},this.value)" />
     <span class="tl-leg-name">${esc(s)}</span>
   </label>`).join("")
@@ -7340,6 +7481,7 @@ function updateRoleUI(){
   if(role) role.textContent=isModerator?"Moderator":"Member"
   const fb=document.getElementById("ddFirebase")
   if(fb) fb.style.display=isModerator?"flex":"none"
+  renderSubjectEditor()
   const rescale=document.getElementById("rescaleRow")
   if(rescale) rescale.style.display=isModerator?"":"none"
   const hist=document.getElementById("historyRow")
@@ -7461,11 +7603,13 @@ window.saveTask=async function(){
   const note=document.getElementById("t-note").value.trim()
   if(!name||!subject||!end||(!editingMarker&&!start)){toast("Fill in the name, subject and dates first",{error:true});return}
   if(!editingMarker&&new Date(start)>new Date(end)){toast("The start date has to be before the due date",{error:true});return}
+  // Class tasks take their subject from the shared list, so it can't drift
+  if(!editingMarker&&subjectList.length&&!Subj.match(subject,subjectList)){toast(`"${subject}" isn't on the subject list — pick one, or add it in Settings → Subjects`,{error:true,duration:6000});return}
   // Left unset, it stays unset — the reader's own estimate is a better
   // answer than a number the author never thought about.
   const data=editingMarker
     ? {name,subject,type:"marker",markerType:document.getElementById("t-mkind").value,date:end,start:end,end,note}
-    : {name,subject,type,start,end,note,difficulty:modDiff||null}
+    : {name,subject:canonSubject(subject),type,start,end,note,difficulty:modDiff||null}
   const who=currentUser?(currentUser.displayName||currentUser.email||""):""
   taskSaving=true
   try{
@@ -7589,13 +7733,13 @@ function myTasksHTML(){
             <div class="pt-field"><label>Task name</label>
               <input type="text" id="pt-name" placeholder="e.g. อ่านหนังสือ Math" /></div>
             <div class="pt-field"><label>Subject</label>
-              <input type="text" id="pt-subject" placeholder="e.g. คณิตศาสตร์" /></div>
+              <input type="text" id="pt-subject" list="subjectOptions" autocomplete="off" placeholder="e.g. คณิตศาสตร์" /></div>
           </div>
           <div class="mt-only-marker">
             <div class="pt-field"><label>Event name</label>
               <input type="text" id="pt-m-name" placeholder="e.g. สอบ Math midterm" /></div>
             <div class="pt-field"><label>Subject / Topic</label>
-              <input type="text" id="pt-m-subject" placeholder="e.g. คณิตศาสตร์" /></div>
+              <input type="text" id="pt-m-subject" list="subjectOptions" autocomplete="off" placeholder="e.g. คณิตศาสตร์" /></div>
             <div class="pt-field"><label>Kind of event</label>
               <div class="pt-marker-type-grid">
                 <button class="pt-mtype-btn active" data-type="quiz"  onclick="setPtMarkerType('quiz')">${ico("note")} Quiz</button>
@@ -7993,7 +8137,7 @@ window.savePtTask = async function(){
   try{
     if(ptMarkerMode){
       const name    = document.getElementById("pt-m-name").value.trim()
-      const subject = document.getElementById("pt-m-subject").value.trim()
+      const subject = canonSubject(document.getElementById("pt-m-subject").value)
       const date    = document.getElementById("pt-m-date").value
       const note    = document.getElementById("pt-m-note").value.trim()
       // The wizard won't reach Save without these, so this is a backstop.
@@ -8001,7 +8145,7 @@ window.savePtTask = async function(){
       await addDoc(col,{ name, subject, type:"marker", markerType:ptMarkerType, date, start:date, end:date, note, createdAt:Date.now() })
     } else {
       const name    = document.getElementById("pt-name").value.trim()
-      const subject = document.getElementById("pt-subject").value.trim()
+      const subject = canonSubject(document.getElementById("pt-subject").value)
       const type    = ptType
       const start   = document.getElementById("pt-start").value
       const end     = document.getElementById("pt-end").value

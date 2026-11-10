@@ -31,6 +31,18 @@ service cloud.firestore {
       allow update, delete: if isMod();
     }
 
+    // ── Shared subject list (subjects/list) ───────────────────
+    // One document: { v, items:[{id,name,short,color,icon,aliases}] }.
+    // Everyone reads it so every phone shows the same colours; only
+    // moderators edit it, the same people who write class tasks.
+    match /subjects/{docId} {
+      allow read: if true;
+      allow write: if isMod()
+                   && docId == 'list'
+                   && request.resource.data.items is list
+                   && request.resource.data.items.size() <= 60;
+    }
+
     // ── Change history for class tasks ────────────────────────
     // One document per add / edit / delete / restore, written by the
     // moderator who did it. Append-only: a log that can be edited after
