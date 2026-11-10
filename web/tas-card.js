@@ -1,3 +1,4 @@
+import { SEND } from "./tas-hwcard.js"
 /* ─────────────────────────────────────────────────────────────
    Homework card painter + font-safe PNG export. The model comes from
    tas-hwcard.js; calendar.html and announce.html both paint it here.
@@ -84,6 +85,7 @@ const ICONS = {
   "📐": svg(`<path d="M4 20V4l16 16Z"/><path d="M8 16v-4.5l4.5 4.5Z"/>`),
   "✏": svg(`<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/><path d="m14.5 5.5 3 3"/>`),
 }
+const SEND_ICO = svg(`<path d="M12 15V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14"/>`)
 const iconHTML = e => {
   const key = String(e || "").replace(/️/g, "").trim()
   if(!key) return ""
@@ -113,6 +115,10 @@ const HW_CSS = `
 .hw-emo{flex-shrink:0}
 .hw-subj-t{min-width:0;overflow-wrap:anywhere}
 .hw-code{font-size:12.5px;font-weight:400;color:#94a3b8;margin-left:6px;white-space:nowrap}
+.hw-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:5px;font-size:13px;color:#64748b;line-height:1.35}
+.hw-meta>span{display:inline-flex;align-items:center;gap:5px}
+.hw-meta svg{width:14px;height:14px;flex-shrink:0}
+.hw-send{color:#1d4ed8;font-weight:500}
 .hw-pill{flex-shrink:0;font-size:12.5px;font-weight:600;line-height:1.35;padding:3px 11px;border-radius:99px;white-space:nowrap;margin-top:1px}
 .hw-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .hw-chip{font-size:13.5px;font-weight:400;line-height:1.35;padding:4px 10px;border-radius:8px;background:#f1f5f9;color:#1e293b;overflow-wrap:anywhere;max-width:100%}
@@ -134,6 +140,7 @@ export function hwCardHTML(m){
           <div class="hw-subj" style="color:#0f1d3a"><span class="hw-num">${r.n}.</span><span style="color:${color(r.color)};display:contents">${iconHTML(r.icon)}</span><span class="hw-subj-t">${esc(r.subject || "")}${r.code ? `<span class="hw-code">${esc(r.code)}</span>` : ""}</span></div>
           ${pill(r.pill)}
         </div>
+        ${r.teacher || SEND[r.send] ? `<div class="hw-meta">${r.teacher ? `<span>${ICO.user}${esc(r.teacher)}</span>` : ""}${SEND[r.send] ? `<span class="hw-send">${SEND_ICO}${esc(SEND[r.send])}</span>` : ""}</div>` : ""}
         ${r.lines.length ? `<div class="hw-chips">${r.lines.map(l => `<span class="hw-chip">${esc(l)}</span>`).join("")}</div>` : ""}
         ${(r.photos || []).length ? `<div class="hw-photos">${r.photos.map(ph =>
           `<img class="hw-photo" src="${esc(ph.src)}" alt="" style="width:calc(${Math.min(100, Math.max(10, Number(ph.size) || 100))}% - 4px)">`).join("")}</div>` : ""}

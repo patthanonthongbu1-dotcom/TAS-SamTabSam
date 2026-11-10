@@ -45,7 +45,8 @@ test("timetable: codes settle it, the three Englishes stay apart", () => {
   assert.equal(match("อ23204 งานพูด", tt).name, "English Communication")
   assert.equal(match("english-core", tt).code, "อ23102")
   assert.equal(match("Eng.Core", tt).code, "อ23102")
-  assert.equal(match("T.Miles", tt).code, "อ23204")
+  assert.equal(match("T.Miles", tt).code, "อ23204")          // by teacher
+  assert.equal(tt[9].teacher, "T.Allan")
   assert.equal(match("ว23210", tt).code, "ว23104")          // second code, as an alias
   assert.equal(match("อังกฤษ", tt), null)
   assert.equal(candidates("อังกฤษ", tt).length, 3)          // ambiguous, not unknown

@@ -13,6 +13,9 @@ test("duePill: every branch", () => {
   assert.deepEqual(duePill("2026-11-13", T), { label: "ส่งวันศุกร์", tone: "grey" })
   assert.deepEqual(duePill("2026-11-17", T), { label: "ส่ง 17 พ.ย.", tone: "grey" })
   assert.equal(duePill("2027-01-02", "2026-12-31").label, "ส่งวันเสาร์")   // across a year
+  assert.equal(duePill("2026-11-11", T, " คาบ 3 ").label, "ส่งพรุ่งนี้ · คาบ 3")
+  assert.equal(duePill("2026-11-09", T, "คาบ 3").label, "เลยกำหนด")       // past: the period is moot
+  assert.deepEqual(duePill("", T, "08:00"), { label: "ส่ง 08:00", tone: "grey" })
 })
 
 const row = subject => ({ subject, lines: ["x"], due: T })
@@ -42,7 +45,8 @@ test("fromTasks: open only, merged by subject/due, no markers/dailies", () => {
   const sub = n => ({ name: n.startsWith("คณิต") ? "คณิตศาสตร์พื้นฐาน" : n, code: n.startsWith("คณิต") ? "ค23102" : "", color: "#111", icon: "📐" })
   const rows = fromTasks([
     { id: "1", name: "Ex 1.2", subject: "คณิต", end: "2026-11-12" },
-    { id: "2", name: "Ex 1.3", subject: "คณิตพื้นฐาน", end: "2026-11-12" },
+    { id: "2", name: "Ex 1.3", subject: "คณิตพื้นฐาน", end: "2026-11-12", send: "paper", dueAt: "คาบ 2" },
+    { id: "5", name: "x", subject: "ไทย", end: "2026-11-20", send: "carrier pigeon" },
     { id: "3", name: "Essay", subject: "อังกฤษ", end: "2026-11-11" },
     { id: "4", name: "Done today", subject: "ไทย", end: "2026-11-10" },
     { id: "6", name: "Quiz", subject: "คณิต", type: "marker", end: "2026-11-12" },
@@ -51,5 +55,8 @@ test("fromTasks: open only, merged by subject/due, no markers/dailies", () => {
   assert.deepEqual(rows.map(r => [r.subject, r.code, r.lines.join("+")]), [
     ["อังกฤษ", "", "Essay"],
     ["คณิตศาสตร์พื้นฐาน", "ค23102", "Ex 1.2+Ex 1.3"],
+    ["ไทย", "", "x"],
   ])
+  assert.deepEqual([rows[1].send, rows[1].dueAt], ["paper", "คาบ 2"])
+  assert.equal(rows[2].send, "")                                         // unknown key dropped
 })

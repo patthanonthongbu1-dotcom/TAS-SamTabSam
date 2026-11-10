@@ -244,6 +244,8 @@
     .subject-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13.5px; color: var(--label); }
     .subject-meta input[type=date] { width: auto !important; padding: 6px 9px !important; font-size: 14px !important; }
     .subject-meta label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .subject-meta .subj-dueat { width: 7.5em !important; padding: 6px 9px !important; font-size: 14px !important; }
+    .subject-meta .subj-send { width: auto !important; padding: 6px 9px !important; font-size: 14px !important; }
     .subject-meta .subj-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .subject-meta .cal-due { color: #8fd3ff; }
     .subj-hint { font-size: 13px; color: #ffb86b; }
@@ -612,7 +614,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/fireba
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
 import { getFirestore, collection, addDoc, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 import { mountHwCard, exportHwCard, HW_WIDTH } from "./tas-card.js"
-import { cardModel, shortThai } from "./tas-hwcard.js"
+import { cardModel, shortThai, SEND } from "./tas-hwcard.js"
 import * as Subj from "./tas-subjects.js"
 // The page navigator — the glass dot bottom-right, shared with the
 // calendar and the Tools pages.
@@ -836,7 +838,7 @@ function initApp() {
     .catch(e => console.warn("Could not read the calendar:", e))
   // The soonest open calendar task for this subject (one whose name is a
   // bullet's text wins), or null when the subject has none.
-  function calendarDue(su) {
+  function calendarTask(su) {
     const h = Subj.match(su.title, subjectList)
     if (!h) return null
     const from = document.getElementById("fmtDate").value || localToday()
@@ -844,9 +846,13 @@ function initApp() {
     const hits = calTasks
       .filter(t => t.type !== "marker" && t.end && t.end >= from && Subj.match(t.subject, subjectList) === h)
       .sort((a, b) => a.end.localeCompare(b.end))
-    return (hits.find(t => names.has((t.name || "").trim())) || hits[0])?.end || null
+    return hits.find(t => names.has((t.name || "").trim())) || hits[0] || null
   }
+  const calendarDue = su => calendarTask(su)?.end || null
   const dueOf = su => calendarDue(su) || su.taskEnd || ""
+  // Typed here wins; otherwise whatever the calendar task says
+  const sendOf  = su => su.send  || calendarTask(su)?.send  || ""
+  const dueAtOf = su => (su.dueAt || "").trim() || calendarTask(su)?.dueAt || ""
 
   // The class subject list (subjects/list) — subjects are picked from it
   let subjectList = []
@@ -1166,6 +1172,12 @@ function initApp() {
                   ${calendarDue(subj)
                     ? `<span class="cal-due" title="Due date of this subject's task on the calendar">📅 จากปฏิทิน · ส่ง ${esc(shortThai(calendarDue(subj)))}</span>`
                     : `<label>Due <input type="date" value="${esc(subj.taskEnd)}" class="cal-end" data-si="${si}" data-sj="${sj}" /></label>`}
+                  <input type="text" class="subj-dueat" maxlength="16" placeholder="${esc(dueAtOf(subj) || "คาบ / เวลา")}" value="${esc(subj.dueAt || "")}"
+                    data-si="${si}" data-sj="${sj}" aria-label="Due period or time" />
+                  <select class="subj-send" data-si="${si}" data-sj="${sj}" aria-label="How to send">
+                    <option value="">ส่งยังไง…</option>
+                    ${Object.entries(SEND).map(([k, l]) => `<option value="${k}"${sendOf(subj) === k ? " selected" : ""}>${esc(l)}</option>`).join("")}
+                  </select>
                 </div>
                 ${subjectHint(subj.title)}
                 <div class="bullet-list">${bulletsHTML}</div>
@@ -1237,6 +1249,8 @@ function initApp() {
       el.onchange = () => { const h = Subj.match(el.value, subjectList); if (h) sections[+el.dataset.si].subjects[+el.dataset.sj].title = h.name; renderSections(); scheduleSave() }
     })
     list.querySelectorAll(".subj-note").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].note = el.value; updatePreview(); scheduleSave() } })
+    list.querySelectorAll(".subj-dueat").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].dueAt = el.value; updatePreview(); scheduleSave() } })
+    list.querySelectorAll(".subj-send").forEach(el => { el.onchange = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].send = el.value; updatePreview(); scheduleSave() } })
     list.querySelectorAll(".subj-pick").forEach(el => {
       el.onchange = () => {
         const su = sections[+el.dataset.si].subjects[+el.dataset.sj]
@@ -1391,6 +1405,8 @@ function initApp() {
           type:    subj.taskType || "send_on",
           start:   subj.taskStart || today,
           end:     dueOf(subj) || subj.taskStart || today,
+          send:    sendOf(subj),
+          dueAt:   dueAtOf(subj),
           note:    note + (bulletNote ? (note ? "\n" : "") + bulletNote : "")
         })
       })
@@ -1453,7 +1469,8 @@ function initApp() {
       icon: sec.icon, title: sec.title,
       rows: sec.subjects.map(su => {
         const h = Subj.match(su.title, subjectList)
-        return { subject: h ? h.name : su.title.trim(), code: h ? h.code : "", color: h ? h.color : "#64748b",
+        return { subject: h ? h.name : su.title.trim(), code: h ? h.code : "", teacher: h ? h.teacher : "",
+                 send: sendOf(su), dueAt: dueAtOf(su), color: h ? h.color : "#64748b",
                  icon: (h && h.icon) || su.icon, lines: su.bullets.map(b => b.text.trim()).filter(Boolean),
                  due: dueOf(su), photos: su.photos || [] }
       })
