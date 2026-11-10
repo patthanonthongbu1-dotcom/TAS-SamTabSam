@@ -17,7 +17,8 @@ export const CATS = [
   { id: "study",   label: "Study" },
   { id: "project", label: "Project" },
   { id: "rest",    label: "Rest" },
-  { id: "other",   label: "Other" }
+  { id: "other",   label: "Other" },
+  { id: "free",    label: "Free time" }
 ]
 // Mirrors the 60-block cap in firestore.rules, so the page refuses before
 // Firestore does and the error is one we can word ourselves.
@@ -133,4 +134,17 @@ export function copyInto(from, to) {
     n++
   }
   return { blocks: out, copied: n }
+}
+
+/* Weekend planning. Free time is protected: a part of the day holding a
+   "free" block takes no linked work, and free blocks weigh nothing. */
+export const isProtected = (blocks, part) => blocks.some(b => b.part === part && b.cat === "free")
+
+/* How heavy a day is: the points of the tasks its blocks are linked to,
+   each task counted once however many blocks it spans. */
+export function dayLoad(blocks, pointsOf) {
+  const ids = new Set(blocks.filter(b => b.taskId && b.cat !== "free").map(b => b.taskId))
+  let n = 0
+  for (const id of ids) n += Number(pointsOf(id)) || 0
+  return n
 }

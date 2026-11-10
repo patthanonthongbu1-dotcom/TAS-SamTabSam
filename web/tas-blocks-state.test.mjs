@@ -67,3 +67,19 @@ test("copyInto appends unticked copies and respects the cap", () => {
   const full = Array.from({ length: MAX_BLOCKS }, (_, i) => makeBlock({ text: "x" + i, part: "morning" }))
   assert.equal(copyInto(from, full).copied, 0)
 })
+
+test("free time: kept by sanitize, protects its part, weighs nothing", async () => {
+  const { sanitizeBlocks, isProtected, dayLoad } = await import("./tas-blocks-state.js")
+  const l = sanitizeBlocks([
+    { id: "f", text: "เวลาว่าง", part: "evening", cat: "free" },
+    { id: "a", text: "Ex 1", part: "morning", cat: "study", taskId: "t1" },
+    { id: "b", text: "Ex 1 again", part: "afternoon", cat: "study", taskId: "t1" },
+    { id: "c", text: "Essay", part: "afternoon", cat: "study", taskId: "t2" },
+    { id: "d", text: "chill with a link", part: "evening", cat: "free", taskId: "t3" },
+  ])
+  assert.equal(l[0].cat, "free")
+  assert.equal(isProtected(l, "evening"), true)
+  assert.equal(isProtected(l, "morning"), false)
+  const pts = { t1: 500, t2: 250, t3: 1000 }
+  assert.equal(dayLoad(l, id => pts[id]), 750)   // t1 once, t3 on a free block ignored
+})

@@ -30,7 +30,8 @@ let loadFailed = false
 
 let openKey = null         // the day in the designer, or null
 let editingId = null       // the block whose editor is open
-let refocusPart = null     // the add field to put the caret back in after a redraw
+let refocusPart = null     // "day|part" of the add field to put the caret back in after a redraw
+let weekend = false        // the designer shows Saturday (openKey) and Sunday side by side
 let justTicked = null      // the one row whose check pops on this redraw, never on later ones
 
 const CHIPS_PER_DAY = 3
@@ -104,6 +105,8 @@ async function ensureLoaded() {
 }
 
 const blocksOf = k => data[k] || []
+// Which day a control belongs to — two are on screen in the weekend view
+const dayOf = el => el.closest("[data-day]")?.dataset.day || openKey
 
 /* ── Colours ──────────────────────────────────────────────
    A block linked to a task wears that task's colour; otherwise its
@@ -167,6 +170,7 @@ export function render() {
       <div class="bk-legend">${S.CATS.map(c =>
         `<span class="bk-leg"><span class="bk-leg-sw" style="background:var(--bk-${c.id})"></span>${c.label}</span>`).join("")}
         <span class="bk-leg muted">Linked blocks wear their task's colour</span>
+        <button class="tl-today-btn bk-wk-btn" onclick="bkWeekend()">${ico("calendar")} Plan the weekend</button>
       </div>
       <div class="tl-grid bk-grid">
         <div class="tl-wd-row">${wd}</div>
@@ -194,6 +198,7 @@ function buildSheet() {
 }
 
 export function openDay(k) {
+  weekend = false
   openKey = k
   editingId = null
   renderSheet()
@@ -203,12 +208,34 @@ export function openDay(k) {
 export function closeDay() {
   if (!openKey) return
   openKey = null
+  weekend = false
   editingId = null
   sheet.classList.remove("open")
   document.body.classList.remove("bk-open")
   if (H.isActive()) render()
 }
-export function shiftDay(n) { openKey = S.addDays(openKey, n); editingId = null; renderSheet() }
+export function shiftDay(n) { openKey = S.addDays(openKey, weekend ? 7 * n : n); editingId = null; renderSheet(); if (weekend) loadPair() }
+
+/* The weekend planner: this Saturday and Sunday (or the coming ones), with
+   next week's unfinished work in a tray to drag into them. */
+export function openWeekend() {
+  const t = H.today()
+  const back = t.getDay() === 0 ? -1 : 6 - t.getDay()   // Sunday still plans the weekend it's in
+  openDay(S.addDays(S.dayKey(t), back))
+  weekend = true
+  renderSheet()
+  loadPair()
+}
+// A weekend never on screen yet isn't loaded — read the pair first
+function loadPair() {
+  const k = openKey, k2 = S.addDays(k, 1)
+  if (k in data && k2 in data) return
+  Store.loadRange(uid, k, k2).then(got => {
+    if (!got || openKey !== k) return
+    for (const d of [k, k2]) if (!(d in data)) { data[d] = got[d] || []; lastSaved[d] = data[d] }
+    renderSheet()
+  })
+}
 
 function renderSheet() {
   if (!openKey || !sheet) return
@@ -224,16 +251,9 @@ function renderSheet() {
   const scroller = modal.querySelector(".bk-body")
   const keepScroll = scroller ? scroller.scrollTop : 0
 
-  const sections = S.PARTS.map(part => {
-    const rows = S.inPart(bl, part.id).map(b => rowHTML(b)).join("")
-    return `<section class="bk-sec" data-part="${part.id}">
-      <div class="bk-sec-head"><span class="bk-sec-name">${part.label}</span>
-        <span class="bk-sec-count">${S.inPart(bl, part.id).length || ""}</span></div>
-      <div class="bk-list" data-part="${part.id}">${rows || `<div class="bk-empty">Nothing yet</div>`}</div>
-      <input class="bk-add" data-part="${part.id}" enterkeyhint="done" maxlength="${S.MAX_TEXT}"
-        placeholder="Add to ${part.label.toLowerCase()} — type, then Enter" aria-label="Add a ${part.label.toLowerCase()} block" />
-    </section>`
-  }).join("")
+  if (weekend) return renderWeekend(modal, keepScroll)
+  const sections = sectionsHTML(openKey)
+
 
   modal.innerHTML = `
     <div class="bk-top">
@@ -254,13 +274,88 @@ function renderSheet() {
       <button class="modal-save" onclick="bkCloseDay()">Done</button>
     </div>`
 
-  const body = modal.querySelector(".bk-body")
-  body.scrollTop = keepScroll
+  afterSheet(modal, keepScroll)
+}
+
+function afterSheet(modal, keepScroll) {
+  modal.querySelector(".bk-body").scrollTop = keepScroll
   wireSheet(modal)
   if (refocusPart) {
-    modal.querySelector(`.bk-add[data-part="${refocusPart}"]`)?.focus()
+    const [d, part] = refocusPart.split("|")
+    modal.querySelector(`.bk-sec[data-day="${d}"] .bk-add[data-part="${part}"]`)?.focus()
     refocusPart = null
   }
+}
+
+function sectionsHTML(k) {
+  const bl = blocksOf(k)
+  return S.PARTS.map(part => {
+    const rows = S.inPart(bl, part.id).map(b => rowHTML(b)).join("")
+    const guarded = S.isProtected(bl, part.id)
+    return `<section class="bk-sec${guarded ? " guarded" : ""}" data-part="${part.id}" data-day="${k}">
+      <div class="bk-sec-head"><span class="bk-sec-name">${part.label}${guarded ? ` <span class="bk-guard">Free time</span>` : ""}</span>
+        <span class="bk-sec-count">${S.inPart(bl, part.id).length || ""}</span></div>
+      <div class="bk-list" data-part="${part.id}">${rows || `<div class="bk-empty">Nothing yet</div>`}</div>
+      <input class="bk-add" data-part="${part.id}" enterkeyhint="done" maxlength="${S.MAX_TEXT}"
+        placeholder="Add to ${part.label.toLowerCase()} — type, then Enter" aria-label="Add a ${part.label.toLowerCase()} block" />
+    </section>`
+  }).join("")
+}
+
+const taskPoints = id => { const t = H.findTask(id); return t ? H.pointsOf(t) : 0 }
+
+function renderWeekend(modal, keepScroll) {
+  const { esc, ico } = H
+  const sat = openKey, sun = S.addDays(sat, 1)
+  const budget = H.weekendBudget()
+  // Next Monday to Sunday — what the weekend is for getting ahead on
+  const from = S.addDays(sat, 2), to = S.addDays(sat, 8)
+  const linked = new Set([...blocksOf(sat), ...blocksOf(sun)].map(b => b.taskId).filter(Boolean))
+  const tray = H.linkableTasks().filter(t => t.end >= from && t.end <= to && !linked.has(t.id))
+  const trayHTML = tray.map(t => {
+    const task = H.findTask(t.id)
+    return `<div class="bk-row bk-tray-item" data-task="${esc(t.id)}" style="--c:${task ? H.taskColor(task) : "var(--bk-study)"}">
+      <div class="bk-row-main">
+        <span class="bk-grip" aria-label="Drag into the weekend">${ico("grip")}</span>
+        <span class="bk-text"><span class="bk-text-line">${esc(t.name)}</span>
+          <span class="bk-meta">${t.subject ? `<span>${esc(t.subject)}</span>` : ""}<span>${esc(t.due)}</span><span>${task ? H.pointsOf(task) : 0} pts</span></span></span>
+      </div></div>`
+  }).join("")
+  const dayCol = k => {
+    const load = S.dayLoad(blocksOf(k), taskPoints)
+    const pct = budget ? load / budget * 100 : 0
+    const tone = pct > 100 ? "over" : pct > 80 ? "warn" : ""
+    return `<div class="bk-day" data-day="${k}">
+      <div class="bk-day-head"><b>${esc(H.EN_DAYS[S.keyToDate(k).getDay()])}</b> <span>${esc(H.shortDate(S.keyToDate(k)))}</span>
+        <span class="bk-load ${tone}">${load} / ${budget} pts</span></div>
+      <div class="bk-load-bar ${tone}"><span style="width:${Math.min(100, pct)}%"></span></div>
+      ${sectionsHTML(k)}
+    </div>`
+  }
+  modal.innerHTML = `
+    <div class="bk-top">
+      <button class="bk-icon-btn" onclick="bkShiftDay(-1)" aria-label="Previous weekend">‹</button>
+      <div class="bk-title">
+        <h2>Weekend · ${esc(H.shortDate(S.keyToDate(sat)))} – ${esc(H.shortDate(S.keyToDate(sun)))}</h2>
+        <span class="bk-sub">Drag next week's work in. The budget is a guide, not a wall.</span>
+      </div>
+      <button class="bk-icon-btn" onclick="bkShiftDay(1)" aria-label="Next weekend">›</button>
+      <button class="bk-icon-btn close" onclick="bkCloseDay()" aria-label="Close">&#10005;</button>
+    </div>
+    <div class="bk-body wk">
+      <div class="bk-tray">
+        <div class="bk-sec-head"><span class="bk-sec-name">Due next week</span><span class="bk-sec-count">${tray.length || ""}</span></div>
+        <label class="bk-budget">Budget per day <input type="number" min="0" max="20000" step="100" value="${budget}" inputmode="numeric" aria-label="Points budget per day"> pts</label>
+        <div class="bk-tray-list">${trayHTML || `<div class="bk-empty">Nothing due next week that isn't planned</div>`}</div>
+      </div>
+      ${dayCol(sat)}${dayCol(sun)}
+    </div>
+    <div class="modal-actions bk-actions">
+      <button class="modal-save" onclick="bkCloseDay()">Done</button>
+    </div>`
+  modal.querySelector(".bk-budget input").addEventListener("change", e => { H.setWeekendBudget(e.target.value); renderSheet() })
+  modal.querySelectorAll(".bk-tray-item .bk-grip").forEach(g => g.addEventListener("pointerdown", e => startDrag(e, g.closest(".bk-tray-item"))))
+  afterSheet(modal, keepScroll)
 }
 
 function rowHTML(b) {
@@ -269,7 +364,7 @@ function rowHTML(b) {
   const link = t ? `<span class="bk-link">${ico(t._personal && t.sideQuest ? "moon" : "tack")} ${esc(t.name)}</span>` : ""
   const cat = S.CATS.find(c => c.id === b.cat)
   const editing = editingId === b.id
-  return `<div class="bk-row${b.done ? " done" : ""}${b.id === justTicked ? " pop" : ""}${editing ? " editing" : ""}" data-id="${b.id}" style="--c:${blockColor(b)}">
+  return `<div class="bk-row${b.done ? " done" : ""}${b.id === justTicked ? " pop" : ""}${editing ? " editing" : ""}" data-id="${b.id}" data-cat="${b.cat}" style="--c:${blockColor(b)}">
     <div class="bk-row-main">
       <span class="bk-grip" aria-label="Drag to move">${ico("grip")}</span>
       <button class="bk-check" data-act="tick" aria-label="${b.done ? "Mark not done" : "Mark done"}" aria-pressed="${b.done}">
@@ -319,25 +414,27 @@ function wireSheet(modal) {
       e.preventDefault()
       const { text, part } = S.parseEntry(inp.value, inp.dataset.part)
       if (!text) return
-      const bl = blocksOf(openKey)
+      const k = dayOf(inp)
+      const bl = blocksOf(k)
       if (bl.length >= S.MAX_BLOCKS) { H.toast(`A day holds up to ${S.MAX_BLOCKS} blocks`, { error: true }); return }
-      refocusPart = inp.dataset.part
-      setDay(openKey, S.addBlock(bl, S.makeBlock({ text, part, cat: guessCat(text) })))
+      refocusPart = k + "|" + inp.dataset.part
+      setDay(k, S.addBlock(bl, S.makeBlock({ text, part, cat: guessCat(text) })))
     })
   })
 
-  modal.querySelectorAll(".bk-row").forEach(row => {
+  modal.querySelectorAll(".bk-row:not(.bk-tray-item)").forEach(row => {
     const id = row.dataset.id
+    const k = dayOf(row)
     row.querySelector(".bk-grip").addEventListener("pointerdown", e => startDrag(e, row))
     row.addEventListener("click", e => {
       const act = e.target.closest("[data-act]")?.dataset.act
       if (!act) return
-      const b = blocksOf(openKey).find(x => x.id === id)
+      const b = blocksOf(k).find(x => x.id === id)
       if (!b) return
       if (act === "tick") {
         // setDay redraws synchronously, so the pop lands on this draw only
         justTicked = b.done ? null : id
-        setDay(openKey, S.updateBlock(blocksOf(openKey), id, { done: !b.done }))
+        setDay(k, S.updateBlock(blocksOf(k), id, { done: !b.done }))
         justTicked = null
         if (!b.done) navigator.vibrate?.(6)
       } else if (act === "edit") {
@@ -345,10 +442,10 @@ function wireSheet(modal) {
         renderSheet()
         if (editingId) sheet.querySelector(".bk-edit-text")?.focus()
       } else if (act === "cat") {
-        setDay(openKey, S.updateBlock(blocksOf(openKey), id, { cat: e.target.closest("[data-cat]").dataset.cat }))
+        setDay(k, S.updateBlock(blocksOf(k), id, { cat: e.target.closest("[data-cat]").dataset.cat }))
       } else if (act === "delete") {
-        const was = blocksOf(openKey)
-        const key = openKey
+        const was = blocksOf(k)
+        const key = k
         editingId = null
         setDay(key, S.removeBlock(was, id))
         H.toast("Block deleted", { action: "Undo", onAction: () => setDay(key, was) })
@@ -367,7 +464,7 @@ function wireSheet(modal) {
       txt.addEventListener("change", () => commitText(row, id))
     }
     row.querySelector(".bk-link-sel")?.addEventListener("change", e => {
-      setDay(openKey, S.updateBlock(blocksOf(openKey), id, { taskId: e.target.value || null }))
+      setDay(k, S.updateBlock(blocksOf(k), id, { taskId: e.target.value || null }))
     })
   })
 }
@@ -375,17 +472,19 @@ function wireSheet(modal) {
 function commitText(row, id) {
   const inp = row.querySelector(".bk-edit-text")
   if (!inp) return
+  const k = dayOf(row)
   const text = inp.value.trim().slice(0, S.MAX_TEXT)
-  const b = blocksOf(openKey).find(x => x.id === id)
+  const b = blocksOf(k).find(x => x.id === id)
   if (!b || !text || text === b.text) return
-  data[openKey] = S.updateBlock(blocksOf(openKey), id, { text })
-  persist(openKey)
+  data[k] = S.updateBlock(blocksOf(k), id, { text })
+  persist(k)
 }
 
 /* A first guess at the category from the words typed, so most blocks need
    no second tap. Anything it gets wrong is one chip away. */
 function guessCat(text) {
   const s = text.toLowerCase()
+  if (/\bfree\b|ว่าง/.test(s)) return "free"
   if (/\b(rest|break|nap|sleep|gym|walk|lunch|dinner|chill|relax)\b/.test(s)) return "rest"
   if (/\b(project|build|code|coding|design|sketch|app|website|story|draw)/.test(s)) return "project"
   return "study"
@@ -466,7 +565,8 @@ function startDrag(e, row) {
   ghost.style.width = r.width + "px"
   document.body.appendChild(ghost)
   row.classList.add("dragging")
-  drag = { id: row.dataset.id, row, ghost, offX: e.clientX - r.left, offY: e.clientY - r.top,
+  drag = { id: row.dataset.id, taskId: row.dataset.task || null, from: row.dataset.task ? null : dayOf(row),
+           row, ghost, offX: e.clientX - r.left, offY: e.clientY - r.top,
            pointerId: e.pointerId, target: null, pendingRender: false }
   navigator.vibrate?.(8)
   moveDrag(e.clientX, e.clientY)
@@ -505,7 +605,7 @@ function moveDrag(x, y) {
   list.classList.add("drag-over")
   if (before) before.classList.add("drop-before")
   else if (rows.length) rows[rows.length - 1].classList.add("drop-after")
-  drag.target = { part: sec.dataset.part, beforeId: before ? before.dataset.id : null }
+  drag.target = { day: sec.dataset.day || openKey, part: sec.dataset.part, beforeId: before ? before.dataset.id : null }
 }
 
 function clearDropChrome() {
@@ -519,15 +619,42 @@ function endDrag(commit) {
   was.ghost.remove()
   was.row.classList.remove("dragging")
   clearDropChrome()
-  if (commit && was.target) {
-    const next = S.moveBlock(blocksOf(openKey), was.id, was.target.part, was.target.beforeId)
-    if (next !== blocksOf(openKey)) { setDay(openKey, next); return }
-  }
+  const tg = commit && was.target
+  if (tg && was.taskId) { if (dropTask(was.taskId, tg)) return }
+  else if (tg && tg.day === was.from) {
+    const next = S.moveBlock(blocksOf(tg.day), was.id, tg.part, tg.beforeId)
+    if (next !== blocksOf(tg.day)) { setDay(tg.day, next); return }
+  } else if (tg) { if (moveAcross(was.id, was.from, tg)) return }
   if (was.pendingRender) renderSheet()
+}
+
+// Each returns true when it changed (and so redrew) something
+function placeAt(k, block, tg) {
+  const bl = blocksOf(k)
+  if (bl.length >= S.MAX_BLOCKS) { H.toast(`A day holds up to ${S.MAX_BLOCKS} blocks`, { error: true }); return false }
+  let next = S.addBlock(bl, { ...block, part: tg.part })
+  if (tg.beforeId) next = S.moveBlock(next, block.id, tg.part, tg.beforeId)
+  setDay(k, next)
+  return true
+}
+const FREE_MSG = "That part of the day is free time — keep it free"
+function dropTask(taskId, tg) {
+  const t = H.findTask(taskId)
+  if (!t) return false
+  if (S.isProtected(blocksOf(tg.day), tg.part)) { H.toast(FREE_MSG, { error: true }); return false }
+  return placeAt(tg.day, S.makeBlock({ text: t.name, part: tg.part, cat: "study", taskId }), tg)
+}
+function moveAcross(id, from, tg) {
+  const b = blocksOf(from).find(x => x.id === id)
+  if (!b) return false
+  if (b.taskId && b.cat !== "free" && S.isProtected(blocksOf(tg.day), tg.part)) { H.toast(FREE_MSG, { error: true }); return false }
+  if (!placeAt(tg.day, b, tg)) return false
+  setDay(from, S.removeBlock(blocksOf(from), id))
+  return true
 }
 
 /* Inline handlers in the markup resolve against window. */
 Object.assign(window, {
   bkOpenDay: openDay, bkCloseDay: closeDay, bkShiftDay: shiftDay,
-  bkMonth: goMonth, bkToday: goToday, bkCopyTomorrow: copyToTomorrow
+  bkMonth: goMonth, bkToday: goToday, bkCopyTomorrow: copyToTomorrow, bkWeekend: openWeekend
 })

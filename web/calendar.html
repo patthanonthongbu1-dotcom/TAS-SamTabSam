@@ -2002,10 +2002,11 @@
        The month frame is the grid layout's own (.tl-wrap/.tl-grid), so the
        two read as the same calendar; only the cells differ. Category
        colours are tokens so the light themes can deepen them. */
-    :root{--bk-study:#6aa9ff;--bk-project:#ff4fa3;--bk-rest:#4ac97e;--bk-other:#a3aec2}
+    :root{--bk-study:#6aa9ff;--bk-project:#ff4fa3;--bk-rest:#4ac97e;--bk-other:#a3aec2;--bk-free:#94a3b8}
     .bk-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:14px;color:var(--muted)}
     .bk-leg{display:inline-flex;align-items:center;gap:6px}
     .bk-leg.muted{color:var(--label);font-weight:300;font-size:13px}
+    .bk-wk-btn{position:static;margin-left:auto;display:inline-flex;align-items:center}
     .bk-leg-sw{width:12px;height:12px;border-radius:4px;flex-shrink:0;display:inline-block}
     .bk-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
     .bk-cell{
@@ -2108,12 +2109,31 @@
     .bk-add::placeholder{color:var(--label)}
     .bk-add:focus{border-style:solid;border-color:var(--pink);background:var(--field-bg);box-shadow:0 0 0 3px var(--accent-ring)}
     .bk-actions{margin-top:10px}
+    /* Free time: hatched, and its part of the day is marked as kept free */
+    .bk-row[data-cat="free"]{background-image:repeating-linear-gradient(135deg,transparent 0 8px,color-mix(in srgb,var(--bk-free) 16%,transparent) 8px 16px)}
+    .bk-guard{font-size:12px;font-weight:500;color:var(--bk-free);border:1px solid var(--bk-free);border-radius:99px;padding:0 7px;margin-left:4px}
+    /* Weekend planner: tray, Saturday, Sunday */
+    .bk-body.wk{gap:12px}
+    .bk-tray,.bk-day{display:flex;flex-direction:column;gap:8px;min-width:0}
+    .bk-tray{background:var(--glass-2);border:1px solid var(--glass-brd);border-radius:14px;padding:10px}
+    .bk-tray-list{display:flex;flex-direction:column;gap:6px}
+    .bk-tray-item .bk-text{cursor:default}
+    .bk-budget{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+    .bk-budget input{width:84px;padding:5px 8px;border:1px solid var(--field-brd);border-radius:8px;background:var(--field-bg);color:var(--text);font-family:'Kanit',sans-serif;font-size:14px}
+    .bk-day-head{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;font-size:15px;color:var(--text)}
+    .bk-day-head span{color:var(--muted);font-size:13.5px}
+    .bk-load{margin-left:auto;font-variant-numeric:tabular-nums}
+    .bk-load.warn{color:#d97706 !important}.bk-load.over{color:var(--red) !important}
+    .bk-load-bar{height:6px;border-radius:6px;background:var(--glass);overflow:hidden}
+    .bk-load-bar span{display:block;height:100%;border-radius:6px;background:var(--green-text,#16a34a);transition:width .3s ease}
+    .bk-load-bar.warn span{background:#f59e0b}.bk-load-bar.over span{background:var(--red)}
     .bk-actions .modal-cancel{display:inline-flex;align-items:center;justify-content:center;gap:6px}
     .bk-actions .modal-cancel:disabled{opacity:0.45;cursor:default}
     /* iPad portrait and up: the three parts side by side, like a day */
     @media(min-width:760px){
       .bk-modal{max-width:980px}
       .bk-body{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}
+      .bk-body.wk{grid-template-columns:minmax(0,.85fr) minmax(0,1fr) minmax(0,1fr)}
     }
     @media(max-width:600px){
       .bk-cell{min-height:84px;padding:4px 3px 6px;gap:3px}
@@ -2126,7 +2146,7 @@
       .bk-legend{font-size:13px;gap:4px 10px}
       .bk-title h2{white-space:normal;font-size:16.5px;line-height:1.25}
     }
-    html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]){--bk-study:#1e6fd9;--bk-project:#d0287a;--bk-rest:#1f9d5c;--bk-other:#6b7a90}
+    html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]){--bk-study:#1e6fd9;--bk-project:#d0287a;--bk-rest:#1f9d5c;--bk-other:#6b7a90;--bk-free:#64748b}
     html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) .bk-cell.weekend{background:#f8faf8}
     html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) .bk-cell.today{background:#fff1f1}
     html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) .bk-sec,html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) .bk-row{background:var(--card);border-color:var(--border)}
@@ -4744,6 +4764,7 @@ async function loadSettings(uid){
     const snap = await getDoc(doc(db, "settings", uid))
     if(snap.exists() && snap.data().pointTarget !== undefined)
       pointTarget = Points.normTarget(snap.data().pointTarget)
+    if(snap.exists() && Number(snap.data().weekendBudget) > 0) weekendBudget = Number(snap.data().weekendBudget)
     // A doc with no target has nothing on the old scale to rescale, and a
     // doc that isn't there at all starts life on the current one.
     pointTargetScale = (snap.exists() && snap.data().pointTarget !== undefined)
@@ -5032,10 +5053,21 @@ function initBlocksView(uid){
       linkableTasks: () => [...tasks, ...personalTasks]
         .filter(t => t.end && taskType(t)!=="marker" && !userDoneCache[t.id] && daysLeft(parseDate(t.end))>=0)
         .sort((a,b) => parseDate(a.end)-parseDate(b.end))
-        .map(t => ({ id:t.id, name:t.name, subject:t.subject, due:shortDate(parseDate(t.end)) }))
+        .map(t => ({ id:t.id, name:t.name, subject:t.subject, end:t.end, due:shortDate(parseDate(t.end)) })),
+      pointsOf: t => pointsOf(t).points,
+      weekendBudget: () => weekendBudget,
+      setWeekendBudget: v => {
+        weekendBudget = Math.max(0, Math.min(20000, Math.round(Number(v) || 0)))
+        try{ localStorage.setItem("tas_weekend_budget", String(weekendBudget)) }catch(e){}
+        if(currentUser) setDoc(doc(db,"settings",currentUser.uid),{weekendBudget,updatedAt:Date.now()},{merge:true})
+          .catch(e=>console.warn("Could not save the weekend budget:",e))
+      }
     }
   })
 }
+// Soft points budget per weekend day — a guide on the Weekend planner, never a cap
+let weekendBudget = 1500
+try{ const v = Number(localStorage.getItem("tas_weekend_budget")); if(v > 0) weekendBudget = v }catch(e){}
 
 /* ── To Do view ──────────────────────────────────────────────
    The module gets the page's live task arrays through getters rather than
