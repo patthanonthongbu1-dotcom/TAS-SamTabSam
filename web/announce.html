@@ -245,11 +245,8 @@
     .subject-meta input[type=date] { width: auto !important; padding: 6px 9px !important; font-size: 14px !important; }
     .subject-meta label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
     .subject-meta .subj-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-    .card-opts { display: none; flex-direction: column; gap: 8px; margin-top: 10px; }
-    .card-opts.show { display: flex; }
-    .card-opts textarea { width: 100%; box-sizing: border-box; resize: vertical; font-family: 'Kanit', sans-serif; }
-    .card-opts .tg { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; }
-    .card-opts .tg label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .subject-meta .cal-due { color: #8fd3ff; }
+    .subj-hint { font-size: 13px; color: #ffb86b; }
 
     /* ── Calendar-task fields (pink accent) ─────────────────────── */
     .task-fields { background: rgba(255,79,163,0.1); border: 1px solid rgba(255,79,163,0.28); border-radius: 10px; padding: 11px 12px; display: flex; flex-direction: column; gap: 8px; }
@@ -550,15 +547,7 @@
     </div>
     <div class="preview-box" id="preview">Fill in the form to see preview...</div>
     <div class="preview-card-stage" id="previewCardStage"><div id="previewCardHost"></div></div>
-    <div class="card-opts" id="cardOpts">
-      <textarea id="cardNote" rows="2" maxlength="300" placeholder="Note to friends (on the card, optional)"></textarea>
-      <div class="tg">
-        <label><input type="checkbox" id="cardOptProgress"> Progress bar</label>
-        <label><input type="checkbox" id="cardOptNote" checked> Note</label>
-        <label><input type="checkbox" id="cardOptDone" checked> Done items</label>
-      </div>
-    </div>
-    <div class="pv-note" id="pvNote">This is exactly what “Card image” downloads (1080px wide, for LINE). Each subject is one row: its bullets become the chips, the due date sets the pill. Sections and links go into the text and Discord message only.</div>
+    <div class="pv-note" id="pvNote">This is exactly what “Card image” downloads (1080px wide, for LINE). Sections become headings and each subject a numbered row: its bullets are the chips, and the due date — taken from the calendar when the subject already has a task there — sets the pill. Notes and links go into the text and Discord message only.</div>
 
     <div class="divider"></div>
 
@@ -623,7 +612,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/fireba
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
 import { getFirestore, collection, addDoc, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 import { mountHwCard, exportHwCard, HW_WIDTH } from "./tas-card.js"
-import { cardModel } from "./tas-hwcard.js"
+import { cardModel, shortThai } from "./tas-hwcard.js"
 import * as Subj from "./tas-subjects.js"
 // The page navigator — the glass dot bottom-right, shared with the
 // calendar and the Tools pages.
@@ -839,27 +828,32 @@ function initApp() {
   const ICON_CAL    = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v4M16 3v4"/></svg>`
 
   let sections = []
-  // Card-level options. Progress is automatic (3+ subjects) until ticked.
-  let cardProgressTouched = false
-  function cardOpts() {
-    return {
-      note:     document.getElementById("cardNote").value,
-      progress: cardProgressTouched ? document.getElementById("cardOptProgress").checked : undefined,
-      showNote: document.getElementById("cardOptNote").checked,
-      showDone: document.getElementById("cardOptDone").checked,
-    }
+  // The class's calendar, read once: a subject that already has a task
+  // there takes its due date from it, so the card and calendar agree.
+  let calTasks = []
+  if (db) getDocs(collection(db, "tasks"))
+    .then(snap => { calTasks = snap.docs.map(d => d.data()); renderSections() })
+    .catch(e => console.warn("Could not read the calendar:", e))
+  // The soonest open calendar task for this subject (one whose name is a
+  // bullet's text wins), or null when the subject has none.
+  function calendarDue(su) {
+    const h = Subj.match(su.title, subjectList)
+    if (!h) return null
+    const from = document.getElementById("fmtDate").value || localToday()
+    const names = new Set(su.bullets.map(b => b.text.trim()).filter(Boolean))
+    const hits = calTasks
+      .filter(t => t.type !== "marker" && t.end && t.end >= from && Subj.match(t.subject, subjectList) === h)
+      .sort((a, b) => a.end.localeCompare(b.end))
+    return (hits.find(t => names.has((t.name || "").trim())) || hits[0])?.end || null
   }
-  document.getElementById("cardNote").oninput = () => { updatePreview(); scheduleSave() }
-  document.getElementById("cardOptProgress").onchange = () => { cardProgressTouched = true; updatePreview(); scheduleSave() }
-  document.getElementById("cardOptNote").onchange = () => { updatePreview(); scheduleSave() }
-  document.getElementById("cardOptDone").onchange = () => { updatePreview(); scheduleSave() }
+  const dueOf = su => calendarDue(su) || su.taskEnd || ""
 
   // The class subject list (subjects/list) — subjects are picked from it
   let subjectList = []
   try { subjectList = Subj.sanitize(JSON.parse(localStorage.getItem("tas_subject_list") || "[]")) } catch(e) {}
   function fillSubjectOptions() {
     document.getElementById("subjectOptions").innerHTML = subjectList
-      .map(x => `<option value="${esc(x.name)}">${esc(x.icon ? x.icon + " " : "")}${esc(x.short || "")}</option>`).join("")
+      .map(x => `<option value="${esc(x.name)}">${esc(Subj.label(x))}${x.short ? " (" + esc(x.short) + ")" : ""}</option>`).join("")
   }
   fillSubjectOptions()
   if (db) getDoc(doc(db, "subjects", "list")).then(snap => {
@@ -889,7 +883,6 @@ function initApp() {
       reporter: document.getElementById("fmtReporter").value,
       links:    { ...linkPrefs },
       sections: JSON.parse(JSON.stringify(sections)),
-      card:     cardOpts(),
     }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(draft)) } catch(e) {}
     setSaveIndicator("saved")
@@ -917,12 +910,6 @@ function initApp() {
       linkPrefs = { classroom: draft.links.classroom !== false, calendar: draft.links.calendar !== false }
       syncLinkChips()
     }
-    if (draft.card) {
-      document.getElementById("cardNote").value = draft.card.note || ""
-      if (draft.card.progress !== undefined) { cardProgressTouched = true; document.getElementById("cardOptProgress").checked = !!draft.card.progress }
-      document.getElementById("cardOptNote").checked = draft.card.showNote !== false
-      document.getElementById("cardOptDone").checked = draft.card.showDone !== false
-    }
     if (draft.sections && draft.sections.length > 0) {
       sections = draft.sections.map(sec => ({
         ...sec,
@@ -945,8 +932,6 @@ function initApp() {
     sections = []
     document.getElementById("fmtDate").value     = localToday()
     document.getElementById("fmtReporter").value = ""
-    document.getElementById("cardNote").value = ""
-    cardProgressTouched = false
     clearDraft(); setSaveIndicator("saved")
     addSection()
     updatePreview()
@@ -960,6 +945,16 @@ function initApp() {
     const months = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"]
     const d = new Date(dateStr + "T00:00:00")
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()+543}`
+  }
+
+  // Why a typed subject didn't resolve: it fits several (the three
+  // Englishes), or none on the list
+  function subjectHint(title) {
+    if (!(title || "").trim() || !subjectList.length || Subj.match(title, subjectList)) return ""
+    const c = Subj.candidates(title, subjectList)
+    return `<div class="subj-hint">${c.length > 1
+      ? "⚠️ เลือกวิชาให้ชัด: " + c.map(x => esc(Subj.label(x))).join(" / ")
+      : "⚠️ ไม่อยู่ในรายการวิชา — เลือกจากรายการ"}</div>`
   }
 
   function iconOpts(sel, icons) { return icons.map(ic => `<option value="${ic}"${ic===sel?" selected":""}>${ic}</option>`).join("") }
@@ -1153,9 +1148,11 @@ function initApp() {
                 </div>
                 <div class="subject-meta">
                   <span class="subj-dot" style="background:${esc(Subj.colorOf(subj.title, subjectList) || "#64748b")}"></span>
-                  <label>Due <input type="date" value="${esc(subj.taskEnd)}" class="cal-end" data-si="${si}" data-sj="${sj}" /></label>
-                  <label><input type="checkbox" class="subj-done" data-si="${si}" data-sj="${sj}"${subj.done ? " checked" : ""} /> Done</label>
+                  ${calendarDue(subj)
+                    ? `<span class="cal-due" title="Due date of this subject's task on the calendar">📅 จากปฏิทิน · ส่ง ${esc(shortThai(calendarDue(subj)))}</span>`
+                    : `<label>Due <input type="date" value="${esc(subj.taskEnd)}" class="cal-end" data-si="${si}" data-sj="${sj}" /></label>`}
                 </div>
+                ${subjectHint(subj.title)}
                 <div class="bullet-list">${bulletsHTML}</div>
                 <div class="subject-actions">
                   <div class="add-dd">
@@ -1224,7 +1221,6 @@ function initApp() {
       // Picked or typed: snap to the list's name and show its colour
       el.onchange = () => { const h = Subj.match(el.value, subjectList); if (h) sections[+el.dataset.si].subjects[+el.dataset.sj].title = h.name; renderSections(); scheduleSave() }
     })
-    list.querySelectorAll(".subj-done").forEach(el => { el.onchange = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].done = el.checked; updatePreview(); scheduleSave() } })
     list.querySelectorAll(".subj-note").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].note = el.value; updatePreview(); scheduleSave() } })
     list.querySelectorAll(".rm-subj").forEach(el => { el.onclick = () => removeSubject(+el.dataset.si, +el.dataset.sj) })
     list.querySelectorAll(".add-bullet").forEach(el => { el.onclick = () => addBullet(+el.dataset.si, +el.dataset.sj) })
@@ -1271,7 +1267,7 @@ function initApp() {
   }
 
   document.getElementById("addSectionBtn").onclick = () => { addSection(); scheduleSave() }
-  document.getElementById("fmtDate").oninput     = () => { updatePreview(); scheduleSave() }
+  document.getElementById("fmtDate").oninput     = () => { renderSections(); scheduleSave() }
   document.getElementById("fmtReporter").oninput = () => { updatePreview(); scheduleSave() }
 
   const LINK_CLASSROOM = "https://classroom.google.com"   // ← replace with the class's own Classroom link if you have one
@@ -1325,7 +1321,6 @@ function initApp() {
     const stage = document.getElementById("previewCardStage")
     const card = mountHwCard(document.getElementById("previewCardHost"), currentCardModel())
     if (stage.clientWidth) card.style.zoom = Math.min(1, (stage.clientWidth - 28) / HW_WIDTH)
-    if (!cardProgressTouched) document.getElementById("cardOptProgress").checked = !!card.querySelector(".hw-prog")
   }
 
   function setPreviewMode(mode) {
@@ -1334,7 +1329,6 @@ function initApp() {
     document.getElementById("preview").style.display = mode === "text" ? "block" : "none"
     document.getElementById("previewCardStage").classList.toggle("show", mode === "card")
     document.getElementById("pvNote").classList.toggle("show", mode === "card")
-    document.getElementById("cardOpts").classList.toggle("show", mode === "card")
     if (mode === "card") renderPreviewCard()
     try { localStorage.setItem("tas_fmt_preview_mode", mode) } catch(e) {}
   }
@@ -1372,7 +1366,7 @@ function initApp() {
           subject: hit ? hit.name : (sec.title.trim() || "ไม่ระบุ"),
           type:    subj.taskType || "send_on",
           start:   subj.taskStart || today,
-          end:     subj.taskEnd || subj.taskStart || today,
+          end:     dueOf(subj) || subj.taskStart || today,
           note:    note + (bulletNote ? (note ? "\n" : "") + bulletNote : "")
         })
       })
@@ -1427,20 +1421,20 @@ function initApp() {
   // Same renderer the Tools page uses (tas-card.js), fed straight from
   // the live form rather than the saved draft, so it never lags behind
   // what's on screen by a debounce.
-  // One card row per subject: bullets are the chips, the subject's note
-  // rides along as a pinned chip, the due date sets the pill.
+  // Each formatter section is a heading on the card, each subject a
+  // numbered row under it: bullets are the chips, the due date sets the pill.
   function currentCardModel() {
     const date = document.getElementById("fmtDate").value || localToday()
-    const rows = sections.flatMap(sec => sec.subjects.map(su => {
-      const h = Subj.match(su.title, subjectList)
-      const lines = su.bullets.map(b => b.text.trim()).filter(Boolean)
-      if ((su.note || "").trim()) lines.push("📌 " + su.note.trim())
-      return { subject: h ? h.name : su.title.trim(), color: h ? h.color : "#64748b", icon: h ? h.icon : su.icon,
-               lines, due: su.taskEnd || "", done: !!su.done, photos: su.photos || [] }
+    const cardSections = sections.map(sec => ({
+      icon: sec.icon, title: sec.title,
+      rows: sec.subjects.map(su => {
+        const h = Subj.match(su.title, subjectList)
+        return { subject: h ? h.name : su.title.trim(), code: h ? h.code : "", color: h ? h.color : "#64748b",
+                 icon: (h && h.icon) || su.icon, lines: su.bullets.map(b => b.text.trim()).filter(Boolean),
+                 due: dueOf(su), photos: su.photos || [] }
+      })
     }))
-    const o = cardOpts()
-    return cardModel({ date, name: document.getElementById("fmtReporter").value, note: o.note, rows,
-      opts: { progress: o.progress, note: o.showNote, done: o.showDone } }, localToday())
+    return cardModel({ date, name: document.getElementById("fmtReporter").value, sections: cardSections }, localToday())
   }
 
   // Rasterise the card once; both "Copy image" and "Save image" reuse this.

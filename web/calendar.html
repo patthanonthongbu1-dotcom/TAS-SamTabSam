@@ -1861,14 +1861,13 @@
     .subj-row input{min-width:0;padding:6px 8px;border:1px solid var(--field-brd);border-radius:8px;background:var(--field-bg);color:var(--text);font-family:'Kanit',sans-serif;font-size:14px;outline:none}
     .subj-row input:focus{border-color:var(--pink)}
     .subj-row input[type=color]{padding:2px;height:32px;cursor:pointer}
-    .subj-row .subj-alias{grid-column:2/-1;font-size:12.5px}
+    .subj-row2{grid-column:1/-1;display:flex;gap:6px}
+    .subj-row2 .subj-code{width:6.5em;flex-shrink:0;font-size:12.5px}
+    .subj-row2 .subj-alias{flex:1;font-size:12.5px}
     .subj-row button{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0}
     .subj-row input:disabled{opacity:.8}
     .hwc-modal{max-width:480px}
     .hwc-prev{border-radius:12px;overflow:hidden;margin:4px 0 12px;max-height:52vh;overflow-y:auto;background:#f6f8fb}
-    .hwc-note{width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(--field-brd);border-radius:10px;background:var(--field-bg);color:var(--text);font-family:'Kanit',sans-serif;font-size:14px;resize:vertical;outline:none}
-    .hwc-tg{display:flex;flex-wrap:wrap;gap:6px 16px;margin:10px 0 2px;font-size:14px;color:var(--text)}
-    .hwc-tg label{display:flex;align-items:center;gap:6px;cursor:pointer}
     .hwc-acts{flex-wrap:wrap}
     .subj-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
     .subj-acts .pts-fold{width:auto;flex:1 1 auto}
@@ -2951,12 +2950,6 @@
   <div class="modal hwc-modal">
     <h2>Homework card</h2>
     <div class="hwc-prev" id="hwPrev"></div>
-    <textarea class="hwc-note" id="hwNote" rows="2" maxlength="300" placeholder="Note to friends (optional)" oninput="renderHwCard()"></textarea>
-    <div class="hwc-tg">
-      <label><input type="checkbox" id="hwOptProgress" onchange="hwOptTouched.progress=1;renderHwCard()"> Progress bar</label>
-      <label><input type="checkbox" id="hwOptNote" checked onchange="renderHwCard()"> Note</label>
-      <label><input type="checkbox" id="hwOptDone" checked onchange="renderHwCard()"> Done today</label>
-    </div>
     <div class="modal-actions hwc-acts">
       <button class="modal-cancel" onclick="closeHwCard()">Close</button>
       <button class="modal-save" id="hwShareBtn" onclick="hwExport('share')">Share</button>
@@ -5668,7 +5661,7 @@ function startSubjectsListener(){
 // with the list as the dropdown; save then snaps the text to the list's name.
 function fillSubjectPicker(){
   const dl=document.getElementById("subjectOptions")
-  if(dl) dl.innerHTML=subjectList.map(s=>`<option value="${esc(s.name)}">${esc(s.icon?s.icon+" ":"")}${esc(s.short||"")}</option>`).join("")
+  if(dl) dl.innerHTML=subjectList.map(s=>`<option value="${esc(s.name)}">${esc(Subj.label(s))}${s.short?" ("+esc(s.short)+")":""}</option>`).join("")
 }
 const canonSubject = s => Subj.match(s,subjectList)?.name || (s||"").trim()
 
@@ -5681,7 +5674,7 @@ function renderSubjectEditor(){
   if(!subjDraft || !mod) subjDraft=subjectList.map(s=>({...s,aliases:[...s.aliases]}))
   const dis=mod?"":"disabled"
   document.getElementById("subjDesc").textContent = mod
-    ? "The class's subject list. Tasks pick from it and take its colour. Aliases are other spellings old tasks used, comma-separated."
+    ? "The class's subject list. Tasks pick from it and take its colour. The course code (อ23102…) tells same-named subjects apart; aliases are other spellings, comma-separated."
     : "The class's subject list, set by moderators. A task picks its subject from here and takes its colour."
   box.innerHTML = subjDraft.map((s,i)=>`<div class="subj-row">
       <input value="${esc(s.icon)}" maxlength="4" placeholder="📘" aria-label="Icon" oninput="subjEdit(${i},'icon',this.value)" ${dis}>
@@ -5689,23 +5682,30 @@ function renderSubjectEditor(){
       <input value="${esc(s.short)}" placeholder="Short" aria-label="Short name" oninput="subjEdit(${i},'short',this.value)" ${dis}>
       <input type="color" value="${esc(s.color)}" aria-label="Colour" oninput="subjEdit(${i},'color',this.value)" ${dis}>
       ${mod?`<button type="button" aria-label="Remove" onclick="subjRemove(${i})">×</button>`:"<span></span>"}
-      ${mod||s.aliases.length?`<input class="subj-alias" value="${esc(s.aliases.join(", "))}" placeholder="Also written as…" aria-label="Aliases" oninput="subjEdit(${i},'aliases',this.value)" ${dis}>`:""}
+      <div class="subj-row2">
+        <input class="subj-code" value="${esc(s.code||"")}" maxlength="10" placeholder="Code" aria-label="Course code" oninput="subjEdit(${i},'code',this.value)" ${dis}>
+        ${mod||s.aliases.length?`<input class="subj-alias" value="${esc(s.aliases.join(", "))}" placeholder="Also written as…" aria-label="Aliases" oninput="subjEdit(${i},'aliases',this.value)" ${dis}>`:""}
+      </div>
     </div>`).join("")
     + (!subjDraft.length && !mod ? `<div class="set-row-desc">No list yet.</div>` : "")
     + (mod ? `<div class="subj-acts">
       <button class="pts-fold" type="button" onclick="subjAdd()">+ Add</button>
-      ${subjDraft.length?"":`<button class="pts-fold" type="button" onclick="subjSeed()">Start from current subjects</button>`}
+      <button class="pts-fold" type="button" onclick="subjSeed()">Fill from the timetable</button>
       <button class="pts-fold" type="button" onclick="subjSave()">Save list</button>
       <button class="pts-fold" type="button" id="subjMigBtn" onclick="matchOldSubjects()">Match old tasks</button>
     </div>` : "")
 }
 window.subjEdit=(i,k,v)=>{ if(subjDraft[i]) subjDraft[i][k]= k==="aliases" ? v.split(",").map(x=>x.trim()).filter(Boolean) : v }
 window.subjRemove=i=>{ subjDraft.splice(i,1); renderSubjectEditor() }
-window.subjAdd=()=>{ subjDraft.push({id:"",name:"",short:"",color:SUBJECT_PALETTE[subjDraft.length%SUBJECT_PALETTE.length],icon:"",aliases:[]}); renderSubjectEditor() }
+window.subjAdd=()=>{ subjDraft.push({id:"",code:"",name:"",short:"",color:SUBJECT_PALETTE[subjDraft.length%SUBJECT_PALETTE.length],icon:"",aliases:[]}); renderSubjectEditor() }
+// Adds the timetable's subjects that aren't on the list yet (by code or
+// name); nothing already there is touched. Saved only on "Save list".
 window.subjSeed=()=>{
-  subjDraft=[...new Set(tasks.filter(t=>taskType(t)!=="marker").map(t=>(t.subject||"").trim()).filter(Boolean))].sort()
-    .map((name,i)=>({id:"",name,short:"",icon:"",aliases:[],color:subjectColors[name]||SUBJECT_PALETTE[i%SUBJECT_PALETTE.length]}))
+  const have=new Set(subjDraft.flatMap(s=>[Subj.norm(s.code),Subj.norm(s.name)]).filter(Boolean))
+  const add=Subj.TIMETABLE.filter(t=>!have.has(Subj.norm(t.code))&&!have.has(Subj.norm(t.name)))
+  subjDraft.push(...add.map(t=>({...t,aliases:[...t.aliases]})))
   renderSubjectEditor()
+  toast(add.length?`Added ${add.length} subject${add.length===1?"":"s"} — check them, then Save list`:"Every timetable subject is already on the list")
 }
 window.subjSave=async function(){
   const items=Subj.sanitize(subjDraft)
@@ -7284,20 +7284,16 @@ window.openHistory=async function(){
 }
 // ── Homework card ─────────────────────────────────────────────
 // Every task not done (class + personal; no markers, dailies or estimates),
-// plus what was ticked off today. One tap gives a 1080px PNG for LINE.
-const hwOptTouched={}
+// numbered under one การบ้าน heading. One tap gives a 1080px PNG for LINE.
 function hwModel(){
   const today=localToday()
-  const subjectOf=s=>{ const h=Subj.match(s,subjectList); return h?{name:h.name,color:h.color,icon:h.icon}:{name:(s||"").trim()||"ไม่ระบุ",color:subjectColor(s),icon:""} }
-  const rows=fromTasks([...tasks,...personalTasks].filter(t=>["normal","deadline"].includes(taskType(t))),userDoneCache,today,subjectOf)
-  const on=id=>document.getElementById(id).checked
-  return cardModel({ date:today, name:currentUser?(currentUser.displayName||""):"", note:document.getElementById("hwNote").value, rows,
-    opts:{ progress: hwOptTouched.progress?on("hwOptProgress"):undefined, note:on("hwOptNote"), done:on("hwOptDone") } }, today)
+  const subjectOf=s=>{ const h=Subj.match(s,subjectList); return h?{name:h.name,code:h.code,color:h.color,icon:h.icon}:{name:(s||"").trim()||"ไม่ระบุ",color:subjectColor(s),icon:"📝"} }
+  const rows=fromTasks([...tasks,...personalTasks].filter(t=>["normal","deadline"].includes(taskType(t))),userDoneCache,subjectOf)
+  return cardModel({ date:today, name:currentUser?(currentUser.displayName||""):"", sections:[{icon:"📢",title:"การบ้าน",rows}] }, today)
 }
 window.renderHwCard=function(){
   const host=document.getElementById("hwPrev")
   const m=hwModel()
-  if(!hwOptTouched.progress) document.getElementById("hwOptProgress").checked=!!m.progress
   const card=mountHwCard(host,m)
   card.style.zoom=Math.min(1,host.clientWidth/HW_WIDTH)
   clearTimeout(hwTimer); hwTimer=setTimeout(()=>hwBlob().catch(()=>{}),500)
@@ -7736,7 +7732,9 @@ window.saveTask=async function(){
   if(!name||!subject||!end||(!editingMarker&&!start)){toast("Fill in the name, subject and dates first",{error:true});return}
   if(!editingMarker&&new Date(start)>new Date(end)){toast("The start date has to be before the due date",{error:true});return}
   // Class tasks take their subject from the shared list, so it can't drift
-  if(!editingMarker&&subjectList.length&&!Subj.match(subject,subjectList)){toast(`"${subject}" isn't on the subject list — pick one, or add it in Settings → Subjects`,{error:true,duration:6000});return}
+  if(!editingMarker&&subjectList.length&&!Subj.match(subject,subjectList)){
+    const c=Subj.candidates(subject,subjectList)
+    toast(c.length>1?`"${subject}" could be ${c.map(Subj.label).join(" / ")} — pick one`:`"${subject}" isn't on the subject list — pick one, or add it in Settings → Subjects`,{error:true,duration:7000});return}
   // Left unset, it stays unset — the reader's own estimate is a better
   // answer than a number the author never thought about.
   const data=editingMarker
