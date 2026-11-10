@@ -2965,7 +2965,7 @@
   <div class="modal">
     <h2 id="modal-title">Add task</h2>
     <div class="modal-field"><label>Name</label><input type="text" id="t-name" placeholder="e.g. MindMap งานการงาน" /></div>
-    <div class="modal-field"><label>Subject</label><input type="text" id="t-subject" list="subjectOptions" autocomplete="off" placeholder="Pick a subject" /><datalist id="subjectOptions"></datalist></div>
+    <div class="modal-field"><label>Subject</label><select id="t-subject-pick" onchange="document.getElementById('t-subject').value=this.value"></select><input type="text" id="t-subject" list="subjectOptions" autocomplete="off" placeholder="Pick a subject" /><datalist id="subjectOptions"></datalist></div>
     <div class="modal-field" id="t-type-field"><label>Type</label>
       <select id="t-type" onchange="setModalMarker(this.value==='marker')">
         <option value="normal">Send On (fixed send date)</option>
@@ -5652,6 +5652,7 @@ function startSubjectsListener(){
     subjectList=Subj.sanitize(snap.data()?.items)
     try{ localStorage.setItem("tas_subject_list",JSON.stringify(subjectList)) }catch(e){}
     fillSubjectPicker()
+    syncSubjectPick()
     subjDraft=null   // a save (ours or another mod's) is the new starting point
     renderSubjectEditor()
     renderCurrentView()
@@ -5664,6 +5665,24 @@ function fillSubjectPicker(){
   if(dl) dl.innerHTML=subjectList.map(s=>`<option value="${esc(s.name)}">${esc(Subj.label(s))}${s.short?" ("+esc(s.short)+")":""}</option>`).join("")
 }
 const canonSubject = s => Subj.match(s,subjectList)?.name || (s||"").trim()
+
+/* Class tasks pick their subject from the list — a dropdown can't invent
+   one. The text input stays underneath as the value everything reads; it
+   only shows itself while there is no list yet. An old task whose subject
+   isn't on the list shows it flagged, so opening it loses nothing. */
+function syncSubjectPick(){
+  const inp=document.getElementById("t-subject"), sel=document.getElementById("t-subject-pick")
+  if(!inp||!sel) return
+  const on=subjectList.length>0
+  sel.style.display=on?"":"none"; inp.style.display=on?"none":""
+  if(!on) return
+  const cur=inp.value.trim(), hit=Subj.match(cur,subjectList)
+  sel.innerHTML=`<option value="">— Pick a subject —</option>`
+    +(cur&&!hit?`<option value="${esc(cur)}">⚠️ ${esc(cur)} — not on the list</option>`:"")
+    +subjectList.map(s=>`<option value="${esc(s.name)}">${esc(Subj.label(s))}</option>`).join("")
+  sel.value=hit?hit.name:cur
+  inp.value=sel.value
+}
 
 // Settings editor: a working copy, saved in one write
 let subjDraft=null
@@ -7689,6 +7708,7 @@ window.openAddModal=function(kind){
   editingId=null
   document.getElementById("t-name").value=""
   document.getElementById("t-subject").value=""
+  syncSubjectPick()
   document.getElementById("t-type").value=kind==="marker"?"marker":"normal"
   document.getElementById("t-mkind").value="quiz"
   document.getElementById("t-start").value=localToday()
@@ -7706,6 +7726,7 @@ function openEditModal(t){
   const marker=t.type==="marker"
   document.getElementById("t-name").value=t.name
   document.getElementById("t-subject").value=t.subject||""
+  syncSubjectPick()
   document.getElementById("t-type").value=t.type
   document.getElementById("t-mkind").value=MARKER_INFO[t.markerType]?t.markerType:"quiz"
   document.getElementById("t-start").value=marker?"":t.start

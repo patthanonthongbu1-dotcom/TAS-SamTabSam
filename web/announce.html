@@ -957,6 +957,22 @@ function initApp() {
       : "⚠️ ไม่อยู่ในรายการวิชา — เลือกจากรายการ"}</div>`
   }
 
+  /* The subject is picked, not typed, so a slip of the keyboard can't
+     invent a new one. A title from an old draft that isn't on the list
+     stays as a flagged option until another is picked. With no list yet
+     (not loaded, or never saved) it's the plain text box. */
+  function subjectPicker(title, si, sj) {
+    if (!subjectList.length) return `<input class="subject-title-input subj-title" type="text" placeholder="Subject name" value="${esc(title)}"
+      list="subjectOptions" autocomplete="off" data-si="${si}" data-sj="${sj}" />`
+    const hit = Subj.match(title, subjectList)
+    const cur = (title || "").trim()
+    return `<select class="subject-title-input subj-pick" data-si="${si}" data-sj="${sj}" aria-label="Subject">
+      <option value=""${!cur ? " selected" : ""}>— เลือกวิชา —</option>
+      ${cur && !hit ? `<option value="${esc(cur)}" selected>⚠️ ${esc(cur)} — ไม่อยู่ในรายการ</option>` : ""}
+      ${subjectList.map(x => `<option value="${esc(x.name)}"${hit === x ? " selected" : ""}>${esc(Subj.label(x))}</option>`).join("")}
+    </select>`
+  }
+
   function iconOpts(sel, icons) { return icons.map(ic => `<option value="${ic}"${ic===sel?" selected":""}>${ic}</option>`).join("") }
 
   // ── Structural add / remove (with box animations) ─────────────
@@ -1142,8 +1158,7 @@ function initApp() {
               <div class="subject-body">
                 <div class="subject-top">
                   <select class="work-icon-select subj-icon" data-si="${si}" data-sj="${sj}">${iconOpts(subj.icon,WORK_ICONS)}</select>
-                  <input class="subject-title-input subj-title" type="text" placeholder="Subject — pick from the list" value="${esc(subj.title)}"
-                    list="subjectOptions" autocomplete="off" data-si="${si}" data-sj="${sj}" />
+                  ${subjectPicker(subj.title, si, sj)}
                   <button class="action-btn btn-delete icon-only rm-subj" data-si="${si}" data-sj="${sj}" title="Remove subject" aria-label="Remove subject">${ICON_X}</button>
                 </div>
                 <div class="subject-meta">
@@ -1222,6 +1237,15 @@ function initApp() {
       el.onchange = () => { const h = Subj.match(el.value, subjectList); if (h) sections[+el.dataset.si].subjects[+el.dataset.sj].title = h.name; renderSections(); scheduleSave() }
     })
     list.querySelectorAll(".subj-note").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].note = el.value; updatePreview(); scheduleSave() } })
+    list.querySelectorAll(".subj-pick").forEach(el => {
+      el.onchange = () => {
+        const su = sections[+el.dataset.si].subjects[+el.dataset.sj]
+        const h = Subj.match(el.value, subjectList)
+        su.title = h ? h.name : el.value
+        if (h && h.icon) su.icon = h.icon   // the text message's emoji follows the subject
+        renderSections(); scheduleSave()
+      }
+    })
     list.querySelectorAll(".rm-subj").forEach(el => { el.onclick = () => removeSubject(+el.dataset.si, +el.dataset.sj) })
     list.querySelectorAll(".add-bullet").forEach(el => { el.onclick = () => addBullet(+el.dataset.si, +el.dataset.sj) })
     list.querySelectorAll(".toggle-note").forEach(el => { el.onclick = () => toggleNote(+el.dataset.si, +el.dataset.sj) })
