@@ -2966,7 +2966,7 @@
   <div class="modal">
     <h2 id="modal-title">Add task</h2>
     <div class="modal-field"><label>Name</label><input type="text" id="t-name" placeholder="e.g. MindMap งานการงาน" /></div>
-    <div class="modal-field"><label>Subject</label><select id="t-subject-pick" onchange="document.getElementById('t-subject').value=this.value"></select><input type="text" id="t-subject" list="subjectOptions" autocomplete="off" placeholder="Pick a subject" /><datalist id="subjectOptions"></datalist></div>
+    <div class="modal-field"><label>Subject</label><div id="t-subject-ss"></div><input type="text" id="t-subject" list="subjectOptions" autocomplete="off" placeholder="Pick a subject" hidden /><datalist id="subjectOptions"></datalist></div>
     <div class="modal-field" id="t-type-field"><label>Type</label>
       <select id="t-type" onchange="setModalMarker(this.value==='marker')">
         <option value="normal">Send On (fixed send date)</option>
@@ -3465,6 +3465,7 @@ import { loadIdeas, saveIdeas, adoptGuestIdeas } from "./tas-blocks-store.js"
 // module so the pills and the meter can never disagree about a weight.
 import * as Points from "./tas-points.js"
 import * as Subj from "./tas-subjects.js"
+import { mountSubjectSearch } from "./tas-subject-search.js"
 import { cardModel, fromTasks, SEND } from "./tas-hwcard.js"
 import { mountHwCard, exportHwCard, HW_WIDTH } from "./tas-card.js"
 import { icsFor } from "./tas-ics.js"
@@ -5650,11 +5651,11 @@ function ensureSubjectColors(){
 const subjectColor = s => Subj.colorOf(s,subjectList) || subjectColors[(s||"").trim()] || NO_SUBJECT_COLOR
 
 // ── Shared subject list ───────────────────────────────────────
-try{ subjectList=Subj.sanitize(JSON.parse(localStorage.getItem("tas_subject_list")||"[]")) }catch(e){}
+try{ subjectList=Subj.listOrTimetable(JSON.parse(localStorage.getItem("tas_subject_list")||"[]")) }catch(e){ subjectList=Subj.listOrTimetable() }
 function startSubjectsListener(){
   fillSubjectPicker()
   onSnapshot(doc(db,"subjects","list"), snap=>{
-    subjectList=Subj.sanitize(snap.data()?.items)
+    subjectList=Subj.listOrTimetable(snap.data()?.items)
     try{ localStorage.setItem("tas_subject_list",JSON.stringify(subjectList)) }catch(e){}
     fillSubjectPicker()
     syncSubjectPick()
@@ -5675,19 +5676,32 @@ const canonSubject = s => Subj.match(s,subjectList)?.name || (s||"").trim()
    one. The text input stays underneath as the value everything reads; it
    only shows itself while there is no list yet. An old task whose subject
    isn't on the list shows it flagged, so opening it loses nothing. */
+// The task form's subject: a search box with suggestions (eng core, คณิต >
+// เพิ่ม…). The hidden text input stays the value saveTask reads. An old
+// task whose subject isn't on the list shows it flagged until changed.
+let subjSearch=null
 function syncSubjectPick(){
-  const inp=document.getElementById("t-subject"), sel=document.getElementById("t-subject-pick")
-  if(!inp||!sel) return
-  const on=subjectList.length>0
-  sel.style.display=on?"":"none"; inp.style.display=on?"none":""
-  if(!on) return
-  const cur=inp.value.trim(), hit=Subj.match(cur,subjectList)
-  sel.innerHTML=`<option value="">— Pick a subject —</option>`
-    +(cur&&!hit?`<option value="${esc(cur)}">⚠️ ${esc(cur)} — not on the list</option>`:"")
-    +subjectList.map(s=>`<option value="${esc(s.name)}">${esc(Subj.label(s))}</option>`).join("")
-  sel.value=hit?hit.name:cur
-  inp.value=sel.value
+  const inp=document.getElementById("t-subject"), host=document.getElementById("t-subject-ss")
+  if(!inp||!host) return
+  const hit=Subj.match(inp.value,subjectList)
+  if(hit) inp.value=hit.name
+  if(!subjSearch) subjSearch=mountSubjectSearch(host,{
+    items:()=>subjectList, value:inp.value,
+    onPick:x=>{ inp.value=x.name },
+    canAdd:()=>isMod||isWhitelisted, onAdd:addSubjectFromSearch,
+  })
+  else subjSearch.set(inp.value)
 }
+// Moderators can add a subject right from the search box
+async function addSubjectFromSearch(it){
+  const next=Subj.sanitize([...subjectList,it])
+  if(next.length===subjectList.length) return null
+  await setDoc(doc(db,"subjects","list"),{v:1,items:next,updatedAt:Date.now()})
+  subjectList=next
+  return next.find(x=>Subj.norm(x.name)===Subj.norm(it.name))
+}
+// "อ23102 · English Core" wherever a task names its subject
+const subjText = s => { const h=Subj.match(s,subjectList); return esc(h&&h.code ? h.code+" · "+(s||"").trim() : s) }
 
 // Settings editor: a working copy, saved in one write
 let subjDraft=null
@@ -5760,21 +5774,29 @@ window.matchOldSubjects=async function(){
   btn.disabled=true
   try{
     const snap=await getDocs(collection(db,"tasks"))
-    const fix=[], miss=new Set()
+    /* Older tasks often hold the real subject in the name ("Math Core"
+       under the subject "การบ้าน"), and old Formatter markers have the two
+       swapped — so the subject is tried, then the name. One that fits
+       several subjects ("Math": two maths) keeps its text to be picked by
+       hand; one that fits nothing at all is left without a subject. */
+    const fix=[], amb=new Set()
     snap.docs.forEach(d=>{
       const t=d.data()
-      if(taskType(t)==="marker") return
-      const cur=(t.subject||"").trim(), hit=Subj.match(cur,subjectList)
-      if(!hit) { if(cur) miss.add(cur); return }
-      if(hit.name!==t.subject) fix.push({ref:d.ref,from:cur,to:hit.name})
+      const cur=(t.subject||"").trim()
+      const bySubj=Subj.match(cur,subjectList), hit=bySubj||Subj.match(t.name,subjectList)
+      const from=bySubj?cur:`“${t.name||""}” (${cur||"—"})`   // say where the match came from
+      if(hit){ if(hit.name!==t.subject) fix.push({ref:d.ref,from,to:hit.name}); return }
+      if(Subj.candidates(cur,subjectList).length>1){ amb.add(cur); return }
+      if(Subj.candidates(t.name,subjectList).length>1){ amb.add(t.name); return }
+      if(cur) fix.push({ref:d.ref,from,to:""})
     })
-    const pairs=[...new Set(fix.map(f=>f.from+" → "+f.to))]
+    const pairs=[...new Set(fix.map(f=>f.from+" → "+(f.to||"(no subject)")))]
     const ok = fix.length && await confirmDialog({
-      title:`Rename ${fix.length} task${fix.length===1?"":"s"}?`,
-      message: pairs.join("\n") + (miss.size?`\n\nNo match (add as aliases): ${[...miss].join(", ")}`:""),
-      confirmLabel:"Rename them"
+      title:`Re-tag ${fix.length} task${fix.length===1?"":"s"}?`,
+      message: pairs.join("\n") + (amb.size?`\n\nFits more than one subject, left for you to pick: ${[...amb].join(", ")}`:""),
+      confirmLabel:"Re-tag them"
     })
-    if(!fix.length) toast(miss.size?`Nothing to rename. No match: ${[...miss].join(", ")}`:"Every task already matches",{duration:8000})
+    if(!fix.length) toast(amb.size?`Nothing to re-tag. Pick by hand: ${[...amb].join(", ")}`:"Every task already matches",{duration:8000})
     if(ok){
       for(let i=0;i<fix.length;i+=400){
         const batch=writeBatch(db)
@@ -5786,7 +5808,7 @@ window.matchOldSubjects=async function(){
         const own=personalTasks.filter(t=>{ if(taskType(t)==="marker") return false; const h=Subj.match(t.subject,subjectList); return h&&h.name!==t.subject })
         for(const t of own) await updateDoc(doc(db,"userTasks",currentUser.uid,"tasks",t.id),{subject:Subj.match(t.subject,subjectList).name})
       }
-      toast(`Renamed ${fix.length} task${fix.length===1?"":"s"}`)
+      toast(`Re-tagged ${fix.length} task${fix.length===1?"":"s"}`)
     }
   }catch(e){
     console.warn("Subject match failed:",e)
@@ -6367,7 +6389,7 @@ function renderCalendar(){
     leftHTML+=`<div class="label-row" tabindex="0" role="button" style="animation-delay:${delay}s" onclick="showDetail(event,'${t.id}')">
       <div style="overflow:hidden;width:100%">
         <div class="row-name" title="${esc(t.name)}">${sq?`<span class="row-sq">${ico("moon")}</span>`:""}${esc(t.name)}</div>
-        <div class="row-subject" title="${esc(t.subject)}">${esc(t.subject)}${pointsPillHTML(t)}</div>
+        <div class="row-subject" title="${esc(t.subject)}">${subjText(t.subject)}${pointsPillHTML(t)}</div>
       </div>
       ${isMod?`<button class="row-del" title="Delete task" onclick="quickDeleteTask(event,'${t.id}')">${ico("trash")}</button>`:""}
     </div>`
@@ -7498,7 +7520,7 @@ window.showDetail=function(e,id){
     dpCountdown=dl===0?null:{target:+markerDate,mode:"marker"}
 
     document.getElementById("dp-name").textContent=t.name
-    document.getElementById("dp-subject").innerHTML=`${esc(t.subject)} · <span class="type-badge badge-marker">${ico(info.icon)} ${info.label}</span>`
+    document.getElementById("dp-subject").innerHTML=`${subjText(t.subject)} · <span class="type-badge badge-marker">${ico(info.icon)} ${info.label}</span>`
     document.getElementById("dp-due-label").innerHTML=ico("pin")+" Date"
     const dd=document.getElementById("dp-due-date")
     dd.textContent=longDate(markerDate)
@@ -7542,7 +7564,7 @@ window.showDetail=function(e,id){
   document.getElementById("dp-name").textContent=t.name
   // Normalised so the pre-rename type spellings still get a badge and a label
   const badgeType=taskType(t)
-  document.getElementById("dp-subject").innerHTML=`${esc(t.subject)} · <span class="type-badge badge-${badgeType}">${TYPE_LABEL[badgeType]||esc(badgeType)}</span>`
+  document.getElementById("dp-subject").innerHTML=`${subjText(t.subject)} · <span class="type-badge badge-${badgeType}">${TYPE_LABEL[badgeType]||esc(badgeType)}</span>`
   // Big takeaway date first, boxed countdown under it
   document.getElementById("dp-due-label").innerHTML=ico("calendar-grid")+" Due"
   const dd=document.getElementById("dp-due-date")
@@ -7760,7 +7782,8 @@ window.closeModal=function(){animCloseOverlay(document.getElementById("taskModal
 function fillSendPick(v){
   const sel=document.getElementById("t-send")
   sel.innerHTML=`<option value="">—</option>`+Object.entries(SEND).map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join("")
-  sel.value=SEND[v]?v:""
+    +(v&&!SEND[v]?`<option value="${esc(v)}">${esc(v)}</option>`:"")   // typed in the formatter — keep it on edit
+  sel.value=v||""
 }
 
 let taskSaving=false   // one write at a time — a double-tapped Save must not create duplicates

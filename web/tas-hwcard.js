@@ -2,8 +2,9 @@
 // node can test it. tas-card.js paints the model; calendar.html builds it
 // from real tasks (fromTasks) and announce.html from rows typed by hand.
 //
-// A row:     { subject, code, teacher, color, icon, lines:[string], due:"YYYY-MM-DD"|"",
-//              dueAt:"คาบ 3"|"08:00"|"", send:key of SEND|"", photos? }
+// A row:     { subject, code, teacher, color, icon, lines:[string | {text, style, size}], due:"YYYY-MM-DD"|"",
+//              dueAt:"คาบ 3"|"08:00"|"", send:key of SEND|free text|"", kind:key of DUE_KINDS,
+//              photos? }  — each line picks its own style/size (default pills, m)
 // A section: { icon, title, rows:[row] } — rows are numbered 1, 2… inside it
 
 export const MAX_ROWS = 12          // past this the card says "+N รายการ"
@@ -16,6 +17,22 @@ export const SEND = {
   online:    "ส่งออนไลน์",
 }
 
+export const sendLabel = v => SEND[v] || String(v || "").trim()
+
+// What the due date is for. Keys past "homework" are the calendar's
+// marker types, so a quiz typed here lands on the calendar as a quiz.
+export const DUE_KINDS = {
+  homework: { label: "Homework", verb: "ส่ง" },
+  quiz:     { label: "Quiz",     verb: "ควิซ" },
+  exam:     { label: "Exam",     verb: "สอบ" },
+  event:    { label: "Event",    verb: "กิจกรรม" },
+  date:     { label: "Important", verb: "สำคัญ" },
+}
+
+// How a row's lines are drawn, and how big
+export const LINE_STYLES = { pills: "Pills", big: "Large pills", bullets: "Bullets", plain: "Plain text" }
+export const LINE_SIZES = { s: 14, m: 16, l: 19 }
+
 const WEEKDAYS = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"]
 const MONTHS_SHORT = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."]
 
@@ -27,18 +44,29 @@ export const localKey = (d = new Date()) =>
   d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0")
 
 /** Due date (+ optional period/time) → the pill on the right of a row,
-    or null for no pill. "ส่งพรุ่งนี้ · คาบ 3" */
-export function duePill(due, today, at = ""){
+    or null for no pill. "ส่งพรุ่งนี้ · คาบ 3", "ควิซวันศุกร์" */
+export function duePill(due, today, at = "", kind = "homework"){
   at = String(at || "").trim()
-  if(!due || isNaN(ymd(due))) return at ? { label: "ส่ง " + at, tone: "grey" } : null
+  const hw = !DUE_KINDS[kind] || kind === "homework"
+  const v = hw ? "ส่ง" : DUE_KINDS[kind].verb
+  const calm = hw ? "grey" : "violet"     // a test stands out even when it's far off
+  if(!due || isNaN(ymd(due))) return at ? { label: v + " " + at, tone: calm } : null
   const d = dayDiff(due, today)
-  const p = d < 0 ? { label: "เลยกำหนด", tone: "red" }
-    : d === 0 ? { label: "ส่งวันนี้", tone: "red" }
-    : d === 1 ? { label: "ส่งพรุ่งนี้", tone: "orange" }
-    : d < 7 ? { label: "ส่งวัน" + weekdayOf(due), tone: "grey" }
-    : { label: "ส่ง " + shortThai(due), tone: "grey" }
+  const p = d < 0 ? { label: hw ? "เลยกำหนด" : "ผ่านไปแล้ว", tone: hw ? "red" : "grey" }
+    : d === 0 ? { label: v + "วันนี้", tone: "red" }
+    : d === 1 ? { label: v + "พรุ่งนี้", tone: "orange" }
+    : d < 7 ? { label: v + "วัน" + weekdayOf(due), tone: calm }
+    : { label: v + " " + shortThai(due), tone: calm }
   if(at && d >= 0) p.label += " · " + at
   return p
+}
+
+// A line as the painter wants it: text plus a known style and size
+export const lineOf = l => {
+  const o = typeof l === "string" ? { text: l } : (l || {})
+  return { text: String(o.text || "").trim(),
+           style: LINE_STYLES[o.style] ? o.style : "pills",
+           size: LINE_SIZES[o.size] ? o.size : "m" }
 }
 
 /** Everything the painter needs. Empty rows and sections drop out. */
@@ -47,10 +75,10 @@ export function cardModel({ date, name = "", sections = [] }, today = date){
   const out = []
   for(const sec of sections){
     const rows = (sec.rows || [])
-      .filter(r => r && ((r.subject || "").trim() || (r.lines || []).some(l => (l || "").trim())))
-      .map(r => ({ ...r, lines: (r.lines || []).map(l => (l || "").trim()).filter(Boolean) }))
+      .filter(r => r && ((r.subject || "").trim() || (r.lines || []).some(l => lineOf(l).text)))
+      .map(r => ({ ...r, lines: (r.lines || []).map(lineOf).filter(l => l.text) }))
     total += rows.length
-    const shown = rows.slice(0, Math.max(0, left)).map((r, i) => ({ ...r, n: i + 1, pill: duePill(r.due, today, r.dueAt) }))
+    const shown = rows.slice(0, Math.max(0, left)).map((r, i) => ({ ...r, n: i + 1, pill: duePill(r.due, today, r.dueAt, r.kind) }))
     left -= shown.length
     if(shown.length) out.push({ icon: sec.icon || "", title: (sec.title || "").trim(), rows: shown })
   }
@@ -74,7 +102,7 @@ export function fromTasks(tasks, doneMap, subjectOf){
     const r = rows.get(key)
     r.lines.push(t.name || "")
     r.dueAt ||= t.dueAt || ""          // merged tasks: the first one that says wins
-    r.send ||= SEND[t.send] ? t.send : ""
+    r.send ||= String(t.send || "").trim().slice(0, 40)
   }
   return [...rows.values()].sort((a, b) =>
     (a.due || "9999").localeCompare(b.due || "9999") || a.subject.localeCompare(b.subject, "th"))

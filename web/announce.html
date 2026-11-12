@@ -233,10 +233,10 @@
     .section-title-input { flex: 1; font-size: 16px !important; font-weight: 500 !important; min-width: 0; }
     .section-body { padding: 12px 14px; }
     /* Nested one level in, with a left guide rail */
-    .subject-block { padding: 12px 0 12px 12px; border-top: 1px dashed rgba(255,255,255,0.12); border-left: 2px solid rgba(255,255,255,0.09); margin: 2px 0 0 2px; }
+    .subject-block { padding: 12px 0 12px 12px; border-top: 1px dashed rgba(255,255,255,0.12); border-left: 3px solid var(--sc, rgba(255,255,255,0.09)); margin: 2px 0 0 2px; }
     .subject-block:first-child { border-top: none; padding-top: 4px; margin-top: 0; }
     .subject-row { display: flex; align-items: flex-start; gap: 8px; }
-    .subject-num { font-size: 14px; font-weight: 600; color: var(--label); min-width: 18px; padding-top: 11px; text-align: right; flex-shrink: 0; }
+    .subject-num { font-size: 14px; font-weight: 600; color: var(--sc, var(--label)); min-width: 18px; padding-top: 11px; text-align: right; flex-shrink: 0; }
     .subject-body { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
     .subject-top { display: flex; align-items: center; gap: 6px; }
     .work-icon-select { width: 50px !important; flex-shrink: 0; padding: 7px 2px !important; font-size: 17.5px !important; text-align: center; border-radius: 9px !important; }
@@ -248,7 +248,48 @@
     .subject-meta .subj-send { width: auto !important; padding: 6px 9px !important; font-size: 14px !important; }
     .subject-meta .subj-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .subject-meta .cal-due { color: #8fd3ff; }
-    .subj-hint { font-size: 13px; color: #ffb86b; }
+    .subj-hint { font-size: 13px; color: #ffb86b; display: flex; align-items: center; gap: 6px; }
+    .subj-hint svg { flex-shrink: 0; }
+
+    /* ── SVG icons dropped in by data-ic ─────────────────────────── */
+    [data-ic] { display: inline-flex; align-items: center; }
+    [data-ic] svg, .ic svg { display: block; }
+    .confirm-icon svg { width: 40px; height: 40px; margin: 0 auto; color: var(--pink); }
+    .tour-emoji svg { width: 46px; height: 46px; margin: 0 auto; color: var(--pink); }
+
+    /* ── Picks: the custom dropdowns (built on .add-dd) ──────────── */
+    .subj-search { flex: 1; min-width: 0; display: flex; }
+    .pk .add-dd-btn { gap: 7px; padding: 7px 10px; min-height: 38px; font-weight: 400; }
+    .bullet-row .pk .add-dd-btn { padding: 7px 8px; min-height: 34px; }
+    .bullet-row .pk .add-dd-btn .caret, .pk.icon .add-dd-btn .caret { display: none; }
+    .add-dd-menu.flip { left: auto; right: 0; transform-origin: top right; }
+    .add-dd-item { white-space: nowrap; }
+    .bullet-row .bullet-marker-btn { padding: 5px 7px; }
+    .pk .add-dd-btn .caret { display: inline-flex; }
+    .pk .dd-ico { display: inline-flex; width: 18px; height: 18px; flex-shrink: 0; }
+    .pk .dd-ico svg { width: 100%; height: 100%; }
+    .pk.icon .add-dd-btn { padding: 7px 8px; }
+    .pk.icon .dd-ico { width: 21px; height: 21px; }
+    .pk.right .add-dd-menu { left: auto; right: 0; transform-origin: top right; }
+    .add-dd-menu { max-height: 320px; overflow-y: auto; }
+    .add-dd-menu.pk-grid.open { display: grid; grid-template-columns: repeat(4, 42px); min-width: 0; }
+    .pk-grid .add-dd-item { justify-content: center; padding: 9px 0; }
+    .pk-grid .add-dd-item .dd-ico { width: 22px; height: 22px; }
+    .pk-grid .add-dd-item .dd-check { display: none; }
+    .pk-grid .add-dd-item.active { background: rgba(255,79,163,0.18); }
+    .add-dd-item.pk-item:hover { background: rgba(255,255,255,0.09); color: #fff; }
+    .pk-sizes { display: flex; gap: 4px; padding: 6px 4px 2px; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .pk-sizes .pk-item { flex: 1; justify-content: center; padding: 6px 0; border: 1px solid rgba(255,255,255,0.14); font-weight: 500; }
+    .pk-sizes .pk-item.active { background: rgba(255,79,163,0.2); border-color: var(--pink); color: #fff; }
+    .pk-sizes-l { font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--label); padding: 8px 6px 0; }
+
+    /* ── Add info rows: due date · send on · send by ─────────────── */
+    .info-rows { display: flex; flex-direction: column; gap: 6px; }
+    .info-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; padding: 6px 6px 6px 8px; border-radius: 10px; background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.08); }
+    .info-row input { width: auto !important; flex: 1; min-width: 110px; padding: 6px 9px !important; font-size: 14.5px !important; }
+    .info-l { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--muted); }
+    .info-row .cal-due { flex: 1; display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; color: #8fd3ff; }
+    .info-row .info-x { margin-left: auto; width: 30px; min-height: 30px; }
 
     /* ── Calendar-task fields (pink accent) ─────────────────────── */
     .task-fields { background: rgba(255,79,163,0.1); border: 1px solid rgba(255,79,163,0.28); border-radius: 10px; padding: 11px 12px; display: flex; flex-direction: column; gap: 8px; }
@@ -264,7 +305,7 @@
     .bullet-block { display: flex; flex-direction: column; gap: 6px; }
     .bullet-row { display: flex; align-items: center; gap: 6px; }
     .bullet-dash { color: var(--label); font-size: 15px; flex-shrink: 0; padding-left: 2px; }
-    .bullet-row input { flex: 1; font-size: 15px !important; padding: 7px 10px !important; min-width: 0; background: rgba(255,255,255,0.14) !important; border-color: rgba(255,255,255,0.22) !important; }
+    .bullet-row input { flex: 1; font-size: 16px !important; padding: 7px 10px !important; min-width: 0; background: rgba(255,255,255,0.14) !important; border-color: rgba(255,255,255,0.22) !important; }
     .bullet-row input:focus { background: rgba(255,255,255,0.2) !important; border-color: var(--pink) !important; }
     .bullet-marker-btn {
       display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px; font-size: 12.5px; font-weight: 500;
@@ -291,6 +332,12 @@
     /* Solid, so the ✕ stays visible on top of any photo */
     .photo-field .rm-photo { position: absolute; top: 4px; right: 4px; width: 32px; min-height: 32px; border-radius: 50%; background: #c0392b; color: #fff; border-color: rgba(255,255,255,0.85); box-shadow: 0 1px 4px rgba(0,0,0,0.35); }
     .photo-field .rm-photo:hover { background: #a93226; }
+    .photo-field .crop-photo { position: absolute; top: 4px; left: 4px; width: 32px; min-height: 32px; padding: 0; justify-content: center; border-radius: 50%; background: rgba(15,23,42,0.85); color: #fff; border-color: rgba(255,255,255,0.85); }
+    /* Crop: drag a box over the photo; outside it is dimmed */
+    .crop-modal { max-width: 560px; }
+    .crop-stage { position: relative; display: inline-block; max-width: 100%; margin: 0 auto 1.1rem; touch-action: none; user-select: none; -webkit-user-select: none; overflow: hidden; border-radius: 10px; cursor: crosshair; }
+    .crop-stage img { display: block; max-width: 100%; max-height: 58vh; pointer-events: none; }
+    .crop-box { position: absolute; border: 2px solid #fff; box-shadow: 0 0 0 9999px rgba(0,0,0,0.55); border-radius: 3px; pointer-events: none; }
     .photo-sizes { display: flex; gap: 3px; }
     .photo-size { flex: 1; padding: 2px 0; border-radius: 7px; border: 1px solid var(--field-brd, rgba(255,255,255,.15)); background: transparent; color: inherit; font: inherit; font-size: 11.5px; cursor: pointer; opacity: .65; }
     .photo-size.active { opacity: 1; background: rgba(255,79,163,0.18); border-color: #ff4fa3; }
@@ -372,7 +419,7 @@
     .link-chip:hover { background: rgba(255,255,255,0.12); }
     .link-chip .chip-check { display: none; font-weight: 600; }
     .link-chip.active { background: rgba(255,79,163,0.16); border-color: rgba(255,79,163,0.42); color: var(--pink-soft); }
-    .link-chip.active .chip-check { display: inline; }
+    .link-chip.active .chip-check { display: inline-flex; }
     .preview-box { background: rgba(0,0,0,0.24); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 1rem 1.1rem; font-size: 15px; line-height: 1.9; white-space: pre-wrap; color: rgba(255,255,255,0.9); font-family: 'Kanit', sans-serif; font-weight: 300; min-height: 80px; word-break: break-word; }
     .divider { height: 1px; background: rgba(255,255,255,0.1); margin: 1.35rem 0; }
 
@@ -475,7 +522,7 @@
       <div class="skel skel-pill"></div>
     </div>
     <div class="skel skel-card" style="height:400px;"></div>
-    <div class="gate-note">🔒 Checking access…</div>
+    <div class="gate-note"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-2px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg> Checking access…</div>
   </div>
 </div>
 
@@ -498,10 +545,10 @@
           <div class="user-dropdown-email" id="dropdownEmail"></div>
           <span class="user-dropdown-role">Moderator</span>
         </div>
-        <button class="user-dropdown-btn menu" onclick="handleHowItWorks()">❔ How it works</button>
-        <button class="user-dropdown-btn menu" onclick="handleReturnToMenu()">🏠 Return to menu</button>
-        <a class="user-dropdown-btn menu" href="calendar.html" style="text-decoration:none;">📅 Open calendar</a>
-        <button class="user-dropdown-btn signout" onclick="handleSignOut()">🚪 Sign out</button>
+        <button class="user-dropdown-btn menu" onclick="handleHowItWorks()"><i data-ic="help"></i> How it works</button>
+        <button class="user-dropdown-btn menu" onclick="handleReturnToMenu()"><i data-ic="home"></i> Return to menu</button>
+        <a class="user-dropdown-btn menu" href="calendar.html" style="text-decoration:none;"><i data-ic="cal"></i> Open calendar</a>
+        <button class="user-dropdown-btn signout" onclick="handleSignOut()"><i data-ic="logout"></i> Sign out</button>
       </div>
     </div>
   </div>
@@ -542,14 +589,13 @@
          that the browser has actually laid out. -->
     <div id="cardRenderHost" aria-hidden="true"
          style="position:fixed;left:-10000px;top:0;width:540px;pointer-events:none;"></div>
-    <datalist id="subjectOptions"></datalist>
     <div class="link-toggles">
-      <button class="link-chip" id="lnkClassroom" title="Append the Google Classroom link to the message">🔗 Classroom link <span class="chip-check">✓</span></button>
-      <button class="link-chip" id="lnkCalendar" title="Append the TAS calendar link to the message">📅 Calendar link <span class="chip-check">✓</span></button>
+      <button class="link-chip" id="lnkClassroom" title="Append the Google Classroom link to the message"><i data-ic="link"></i> Classroom link <span class="chip-check" data-ic="check"></span></button>
+      <button class="link-chip" id="lnkCalendar" title="Append the TAS calendar link to the message"><i data-ic="cal"></i> Calendar link <span class="chip-check" data-ic="check"></span></button>
     </div>
     <div class="preview-box" id="preview">Fill in the form to see preview...</div>
     <div class="preview-card-stage" id="previewCardStage"><div id="previewCardHost"></div></div>
-    <div class="pv-note" id="pvNote">This is exactly what “Card image” downloads (1080px wide, for LINE). Sections become headings and each subject a numbered row: its bullets are the chips, and the due date — taken from the calendar when the subject already has a task there — sets the pill. Notes and links go into the text and Discord message only.</div>
+    <div class="pv-note" id="pvNote">This is exactly what “Card image” downloads (1080px wide, for LINE). Sections become headings and each subject a numbered row. Each bullet picks its own look and size from the button beside it, and the due date and its type (homework, quiz, exam…) set the pill. Notes and links go into the text and Discord message only.</div>
 
     <div class="divider"></div>
 
@@ -564,15 +610,15 @@
     <!-- Pick what Publish does. Remembered per device. -->
     <div class="publish-label">On publish</div>
     <div class="link-toggles" id="pvActions" role="group" aria-label="Publish actions">
-      <button class="link-chip" data-act="copyText"  type="button" title="Put the formatted text on your clipboard">📋 Copy text <span class="chip-check">✓</span></button>
-      <button class="link-chip" data-act="copyImage" type="button" title="Put the card image on your clipboard — paste it straight into LINE or Discord">🖼️ Copy image <span class="chip-check">✓</span></button>
-      <button class="link-chip" data-act="saveImage" type="button" title="Download the card as a PNG file">⬇️ Save image <span class="chip-check">✓</span></button>
-      <button class="link-chip" data-act="discord"   type="button" title="Post the announcement to the Discord channel">💬 Send to Discord <span class="chip-check">✓</span></button>
-      <button class="link-chip" data-act="calendar"  type="button" title="Add the flagged tasks to the shared calendar">📅 Save to calendar <span class="chip-check">✓</span></button>
+      <button class="link-chip" data-act="copyText"  type="button" title="Put the formatted text on your clipboard"><i data-ic="copy"></i> Copy text <span class="chip-check" data-ic="check"></span></button>
+      <button class="link-chip" data-act="copyImage" type="button" title="Put the card image on your clipboard — paste it straight into LINE or Discord"><i data-ic="image"></i> Copy image <span class="chip-check" data-ic="check"></span></button>
+      <button class="link-chip" data-act="saveImage" type="button" title="Download the card as a PNG file"><i data-ic="download"></i> Save image <span class="chip-check" data-ic="check"></span></button>
+      <button class="link-chip" data-act="discord"   type="button" title="Post the announcement to the Discord channel"><i data-ic="chat"></i> Send to Discord <span class="chip-check" data-ic="check"></span></button>
+      <button class="link-chip" data-act="calendar"  type="button" title="Add the flagged tasks to the shared calendar"><i data-ic="cal"></i> Save to calendar <span class="chip-check" data-ic="check"></span></button>
     </div>
     <div class="publish-hint" id="publishHint"></div>
 
-    <button class="btn" id="publishBtn">🚀 Publish <span class="task-count-badge" id="taskCount">0</span></button>
+    <button class="btn" id="publishBtn"><i data-ic="send"></i> Publish <span class="task-count-badge" id="taskCount">0</span></button>
     <div class="status" id="status"></div>
   </div>
 </div>
@@ -580,7 +626,7 @@
 <!-- ── Confirmation modal ─────────────────────────────────────── -->
 <div class="modal-overlay" id="confirmOverlay">
   <div class="modal confirm-modal">
-    <div class="confirm-icon" id="confirmIcon">⚠️</div>
+    <div class="confirm-icon" id="confirmIcon"></div>
     <div class="confirm-title" id="confirmTitle"></div>
     <div class="confirm-msg" id="confirmMsg"></div>
     <div class="confirm-actions">
@@ -609,13 +655,28 @@
   </div>
 </div>
 
+<!-- ── Photo crop ─────────────────────────────────────────────── -->
+<div class="modal-overlay" id="cropOverlay">
+  <div class="modal crop-modal">
+    <div class="confirm-title">Crop photo</div>
+    <div class="confirm-msg">Drag across the photo to choose the part to keep.</div>
+    <div class="crop-stage" id="cropStage"><img id="cropImg" alt="Photo to crop"><div class="crop-box" id="cropBox" hidden></div></div>
+    <div class="confirm-actions">
+      <button class="btn-ghost" id="cropCancel">Cancel</button>
+      <button class="btn-ghost" id="cropReset">Reset</button>
+      <button class="btn-solid" id="cropOk">Crop</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js"
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
-import { getFirestore, collection, addDoc, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
-import { mountHwCard, exportHwCard, HW_WIDTH } from "./tas-card.js"
-import { cardModel, shortThai, SEND } from "./tas-hwcard.js"
+import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
+import { mountHwCard, exportHwCard, HW_WIDTH, iconSVG } from "./tas-card.js"
+import { cardModel, shortThai, SEND, DUE_KINDS, LINE_STYLES } from "./tas-hwcard.js"
 import * as Subj from "./tas-subjects.js"
+import { mountSubjectSearch } from "./tas-subject-search.js"
 // The page navigator — the glass dot bottom-right, shared with the
 // calendar and the Tools pages.
 import { mountNav } from "./tas-nav.js"
@@ -633,6 +694,46 @@ function localToday() {
          String(d.getDate()).padStart(2, "0")
 }
 
+// The page's icons. The Formatter's own UI is SVG only — emoji draw
+// differently on every phone. (The copied text and Discord keep theirs.)
+const sv = d => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`
+const IC = {
+  alert:    sv(`<path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4.5M12 17.3v.2"/>`),
+  trash:    sv(`<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>`),
+  eraser:   sv(`<path d="m7 20-3.5-3.5a1.5 1.5 0 0 1 0-2.1L13.4 4.5a1.5 1.5 0 0 1 2.1 0l4 4a1.5 1.5 0 0 1 0 2.1L10.6 20Z"/><path d="M9 9.5 14.5 15M7 20h13"/>`),
+  send:     sv(`<path d="M21 3 10 14"/><path d="M21 3 14.5 21l-4.5-7-7-4.5Z"/>`),
+  help:     sv(`<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.6v.4M12 17h.01"/>`),
+  home:     sv(`<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/>`),
+  cal:      sv(`<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>`),
+  logout:   sv(`<path d="M9 4H5v16h4"/><path d="m15 8 4 4-4 4M19 12H9"/>`),
+  lock:     sv(`<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>`),
+  link:     sv(`<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>`),
+  copy:     sv(`<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>`),
+  image:    sv(`<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5"/>`),
+  download: sv(`<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>`),
+  chat:     sv(`<path d="M4 5h16v11H9l-5 4Z"/>`),
+  pin:      sv(`<path d="M12 21v-7"/><path d="M8 3h8l-1 6 3 3H6l3-3-1-6Z"/>`),
+  camera:   sv(`<path d="M4 8h3l2-3h6l2 3h3v11H4Z"/><circle cx="12" cy="13" r="3.5"/>`),
+  crop:     sv(`<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M2 6h14a2 2 0 0 1 2 2v14"/>`),
+  clock:    sv(`<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>`),
+  upload:   sv(`<path d="M12 15V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14"/>`),
+  check:    sv(`<path d="m5 12.5 4.5 4.5L19 7.5"/>`),
+  caret:    sv(`<path d="m6 9 6 6 6-6"/>`),
+  info:     sv(`<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/>`),
+  book:     sv(`<path d="M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2Z"/><path d="M4 20a2 2 0 0 0 2 1h13v-3"/>`),
+  note:     sv(`<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8Z"/><path d="M14 3v5h5"/><path d="M8.5 13h7M8.5 17h5"/>`),
+  exam:     sv(`<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10l1.5 1.5L13 9M9 16h6"/>`),
+  star:     sv(`<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9Z"/>`),
+  save:     sv(`<path d="M5 4h11l3 3v13H5Z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>`),
+  megaphone:sv(`<path d="M3 10v4a1 1 0 0 0 1 1h3l6 4V5L7 9H4a1 1 0 0 0-1 1Z"/><path d="M17 8.5a5 5 0 0 1 0 7"/>`),
+  type:     sv(`<path d="M4 7V5h16v2M12 5v14M9 19h6"/>`),
+  pills:    sv(`<rect x="2.5" y="8" width="9" height="8" rx="4"/><rect x="13.5" y="8" width="8" height="8" rx="4"/>`),
+  big:      sv(`<rect x="3" y="4.5" width="18" height="6.5" rx="3"/><rect x="3" y="13" width="18" height="6.5" rx="3"/>`),
+  bullets:  sv(`<circle cx="5" cy="7" r="1.4" fill="currentColor"/><circle cx="5" cy="12" r="1.4" fill="currentColor"/><circle cx="5" cy="17" r="1.4" fill="currentColor"/><path d="M9.5 7h11M9.5 12h11M9.5 17h11"/>`),
+  plain:    sv(`<path d="M4 7h16M4 12h16M4 17h10"/>`),
+}
+const dotSVG = c => `<svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="6" fill="${c}"/></svg>`
+document.querySelectorAll("[data-ic]").forEach(el => { el.innerHTML = IC[el.dataset.ic] || "" })
 
 const firebaseConfig = {
   apiKey: "AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18",
@@ -685,7 +786,7 @@ function showNotModerator(user) {
   const gate = document.getElementById("authGate")
   gate.innerHTML = `
     <div style="margin:auto;width:100%;max-width:320px;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;z-index:1;">
-      <div style="font-size:36.5px;margin-bottom:2px">🔐</div>
+      <div style="margin-bottom:4px;color:var(--pink)">${IC.lock.replace(/16/g, "38")}</div>
       <div style="font-size:19.5px;font-weight:600;color:#fff;">Moderators only</div>
       <div style="font-size:15px;color:rgba(255,255,255,0.6);font-weight:300;margin-bottom:18px;text-align:center;max-width:270px;line-height:1.5">
         <span id="gateEmail"></span> isn't on the moderator list.<br>Ask a moderator to add it.
@@ -762,10 +863,10 @@ function closeOverlay(ov) {
   ov.classList.add("closing")
   setTimeout(() => ov.classList.remove("open", "closing"), 160)
 }
-function openConfirm({ icon = "⚠️", title, message, okText = "Confirm", danger = true }) {
+function openConfirm({ icon = "alert", title, message, okText = "Confirm", danger = true }) {
   return new Promise(resolve => {
     const ov = document.getElementById("confirmOverlay")
-    document.getElementById("confirmIcon").textContent  = icon
+    document.getElementById("confirmIcon").innerHTML    = IC[icon] || IC.alert
     document.getElementById("confirmTitle").textContent = title
     document.getElementById("confirmMsg").textContent   = message
     const ok = document.getElementById("confirmOk"), cancel = document.getElementById("confirmCancel")
@@ -780,15 +881,15 @@ function openConfirm({ icon = "⚠️", title, message, okText = "Confirm", dang
 }
 
 const TOUR_STEPS = [
-  { emoji:"📢", title:"Build your report",      text:"Start with a section for each category — homework, announcements, events. Tap “New section” to add one." },
-  { emoji:"📝", title:"Add subjects & bullets", text:"Inside a section, add a subject, then use the “+ Add” menu on that subject to add bullet points or a note." },
-  { emoji:"📍", title:"Flag calendar tasks",    text:"Turn items into calendar events: tap 📍 on a bullet to mark a quiz/exam/event, or “+ Add → Add to calendar” on a subject." },
-  { emoji:"💾", title:"Save & copy",            text:"Hit “Save tasks to calendar” to push the flagged items to the shared calendar — or use the clipboard button to copy the formatted text." },
+  { icon:"megaphone", title:"Build your report",      text:"Start with a section for each category — homework, announcements, events. Tap “New section” to add one." },
+  { icon:"note",      title:"Add subjects & bullets", text:"Search a subject (“eng core”, “คณิต > เพิ่ม”), then “+ Add” for bullets, a note or photos, and “Add info” for the due date and when and how to send it." },
+  { icon:"pin",       title:"Quizzes & calendar",     text:"Set the due date’s type to Quiz or Exam and the card says so. Tap the pin on a bullet to mark a single event, or “+ Add → Add to calendar” on a subject." },
+  { icon:"send",      title:"Publish",                text:"Pick what Publish does — copy the text or the card, save the image, post to Discord, save to the calendar — then press Publish." },
 ]
 let tourIdx = 0
 function renderTour() {
   const s = TOUR_STEPS[tourIdx]
-  document.getElementById("tourEmoji").textContent = s.emoji
+  document.getElementById("tourEmoji").innerHTML   = IC[s.icon] || ""
   document.getElementById("tourTitle").textContent = s.title
   document.getElementById("tourText").textContent  = s.text
   document.getElementById("tourDots").innerHTML = TOUR_STEPS.map((_, i) => `<span class="tour-dot${i===tourIdx?" active":""}"></span>`).join("")
@@ -813,12 +914,22 @@ document.getElementById("tourOverlay").onclick = (e) => { if (e.target.id === "t
 function initApp() {
   const SECTION_ICONS = ["📢","📚","💻","🎨","🔬","🏫","📌","🗓️"]
   const WORK_ICONS    = ["📝","💻","🔬","🎨","📚","🏃","🎵","📐","✏️"]
-  const MARKER_TYPES  = [
-    { key: "quiz",  label: "📝 Quiz" },
-    { key: "exam",  label: "📋 Exam" },
-    { key: "event", label: "🎉 Event" },
-    { key: "date",  label: "📌 Important" },
+  // Dropdown options. Icons are SVG; stored values stay what they were.
+  const ICON_NAMES = { "📢": "Announcement", "📚": "Books", "💻": "Computer", "🎨": "Art", "🔬": "Science", "🏫": "School",
+    "📌": "Pin", "🗓️": "Calendar", "📝": "Worksheet", "🏃": "Sport", "🎵": "Music", "📐": "Maths", "✏️": "Writing" }
+  const iconOpt = e => ({ v: e, label: ICON_NAMES[e] || e, icon: iconSVG(e) })
+  const KIND_ICON = { homework: IC.book, quiz: IC.note, exam: IC.exam, event: IC.star, date: IC.pin }
+  const KIND_OPTS = Object.entries(DUE_KINDS).map(([v, k]) => ({ v, label: k.label, icon: KIND_ICON[v] }))
+  const MARKER_OPTS = KIND_OPTS.filter(o => o.v !== "homework")
+  const TYPE_OPTS = [
+    { v: "send_on",     label: "Send on",     icon: dotSVG("#22c55e") },
+    { v: "send_before", label: "Send before", icon: dotSVG("#ef4444") },
+    { v: "estimated",   label: "Estimated",   icon: dotSVG("#eab308") },
   ]
+  const SEND_OPTS = [{ v: "", label: "วิธีส่ง…", icon: IC.upload },
+    ...Object.entries(SEND).map(([v, label]) => ({ v, label, icon: IC.upload })),
+    { v: "__type", label: "พิมพ์เอง…", icon: IC.type }]
+  const STYLE_OPTS = Object.entries(LINE_STYLES).map(([v, label]) => ({ v, label, icon: IC[v] }))
   const STORAGE_KEY = "tas_fmt_draft_v4"
   // How wide a photo is drawn on the card, as a share of the card's width.
   // Two Smalls or a Small and a Medium sit side by side.
@@ -827,6 +938,7 @@ function initApp() {
   const ICON_PLUS = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`
   const ICON_BULLET = `<svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>`
   const ICON_NOTE   = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h9"/></svg>`
+  const ICON_CAMERA = IC.camera
   const ICON_CAL    = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v4M16 3v4"/></svg>`
 
   let sections = []
@@ -838,35 +950,54 @@ function initApp() {
     .catch(e => console.warn("Could not read the calendar:", e))
   // The soonest open calendar task for this subject (one whose name is a
   // bullet's text wins), or null when the subject has none.
+  // A quiz looks for the calendar's quiz markers; homework for its tasks.
   function calendarTask(su) {
     const h = Subj.match(su.title, subjectList)
     if (!h) return null
     const from = document.getElementById("fmtDate").value || localToday()
     const names = new Set(su.bullets.map(b => b.text.trim()).filter(Boolean))
+    const k = kindOf(su)
     const hits = calTasks
-      .filter(t => t.type !== "marker" && t.end && t.end >= from && Subj.match(t.subject, subjectList) === h)
+      .filter(t => (k === "homework" ? t.type !== "marker" : t.type === "marker" && t.markerType === k)
+        && t.end && t.end >= from && Subj.match(t.subject, subjectList) === h)
       .sort((a, b) => a.end.localeCompare(b.end))
     return hits.find(t => names.has((t.name || "").trim())) || hits[0] || null
   }
   const calendarDue = su => calendarTask(su)?.end || null
-  const dueOf = su => calendarDue(su) || su.taskEnd || ""
+  const kindOf = su => DUE_KINDS[su.dueKind] ? su.dueKind : "homework"
+  // Add info rows: "due" (date + type), "at" (send on: period/time),
+  // "by" (send by: how). Unset = shown when there's a value; × = off.
+  const infoOff   = (su, k) => su.info?.[k] === false
+  const infoShown = (su, k, val) => su.info?.[k] ?? !!val
+  const dueOf = su => infoOff(su, "due") ? "" : calendarDue(su) || su.taskEnd || ""
   // Typed here wins; otherwise whatever the calendar task says
-  const sendOf  = su => su.send  || calendarTask(su)?.send  || ""
-  const dueAtOf = su => (su.dueAt || "").trim() || calendarTask(su)?.dueAt || ""
+  const sendOf  = su => infoOff(su, "by") ? "" : (su.send || "").trim() || calendarTask(su)?.send || ""
+  const dueAtOf = su => infoOff(su, "at") ? "" : (su.dueAt || "").trim() || calendarTask(su)?.dueAt || ""
 
   // The class subject list (subjects/list) — subjects are picked from it
-  let subjectList = []
-  try { subjectList = Subj.sanitize(JSON.parse(localStorage.getItem("tas_subject_list") || "[]")) } catch(e) {}
-  function fillSubjectOptions() {
-    document.getElementById("subjectOptions").innerHTML = subjectList
-      .map(x => `<option value="${esc(x.name)}">${esc(Subj.label(x))}${x.short ? " (" + esc(x.short) + ")" : ""}</option>`).join("")
+  let subjectList = Subj.listOrTimetable()
+  try { subjectList = Subj.listOrTimetable(JSON.parse(localStorage.getItem("tas_subject_list") || "[]")) } catch(e) {}
+  const saveSubjectList = async items => {
+    await setDoc(doc(db, "subjects", "list"), { v: 1, items, updatedAt: Date.now() })
+    subjectList = items
+    try { localStorage.setItem("tas_subject_list", JSON.stringify(items)) } catch(e) {}
   }
-  fillSubjectOptions()
   if (db) getDoc(doc(db, "subjects", "list")).then(snap => {
-    subjectList = Subj.sanitize(snap.data()?.items)
+    // Nobody has saved a list yet: this page is moderators-only, so save
+    // the timetable now and every phone gets the same codes and colours.
+    // Only when the doc is missing — an edited list is never overwritten.
+    if (!snap.exists()) return saveSubjectList(Subj.sanitize(Subj.TIMETABLE)).then(renderSections)
+    subjectList = Subj.listOrTimetable(snap.data()?.items)
     try { localStorage.setItem("tas_subject_list", JSON.stringify(subjectList)) } catch(e) {}
-    fillSubjectOptions(); renderSections()
+    renderSections()
   }).catch(e => console.warn("Could not load the subject list:", e))
+  // "Add new subject" in the search box: onto the shared list, then picked
+  async function addSubjectToList(it) {
+    const next = Subj.sanitize([...subjectList, it])
+    if (next.length === subjectList.length) return null    // that name is already there
+    await saveSubjectList(next)
+    return next.find(x => Subj.norm(x.name) === Subj.norm(it.name))
+  }
   // "text" = the formatted message, "card" = the rendered homework card.
   // Declared up here because updatePreview() reads it, and that runs during
   // draft restore — before the toggle further down would have initialised it.
@@ -901,11 +1032,12 @@ function initApp() {
   // ── Bullet helpers ────────────────────────────────────────────
   function makeBullet(text = "") {
     const today = localToday()
-    return { text, markerMode: false, markerDate: today, markerType: "quiz" }
+    return { text, markerMode: false, markerDate: today, markerType: "quiz", style: "pills", size: "m" }
   }
   function normalizeBullet(b) {
     if (typeof b === "string") return makeBullet(b)
-    return { text: b.text || "", markerMode: !!b.markerMode, markerDate: b.markerDate || localToday(), markerType: b.markerType || "quiz" }
+    return { text: b.text || "", markerMode: !!b.markerMode, markerDate: b.markerDate || localToday(), markerType: b.markerType || "quiz",
+             style: LINE_STYLES[b.style] ? b.style : "pills", size: ["s", "m", "l"].includes(b.size) ? b.size : "m" }
   }
 
   function restoreDraft(draft) {
@@ -933,7 +1065,7 @@ function initApp() {
   }
 
   async function clearForm() {
-    const ok = await openConfirm({ icon: "🧹", title: "Clear the whole form?", message: "Every section, subject and bullet will be wiped. This can't be undone.", okText: "Clear all" })
+    const ok = await openConfirm({ icon: "eraser", title: "Clear the whole form?", message: "Every section, subject and bullet will be wiped. This can't be undone.", okText: "Clear all" })
     if (!ok) return
     sections = []
     document.getElementById("fmtDate").value     = localToday()
@@ -958,28 +1090,24 @@ function initApp() {
   function subjectHint(title) {
     if (!(title || "").trim() || !subjectList.length || Subj.match(title, subjectList)) return ""
     const c = Subj.candidates(title, subjectList)
-    return `<div class="subj-hint">${c.length > 1
-      ? "⚠️ เลือกวิชาให้ชัด: " + c.map(x => esc(Subj.label(x))).join(" / ")
-      : "⚠️ ไม่อยู่ในรายการวิชา — เลือกจากรายการ"}</div>`
+    return `<div class="subj-hint">${IC.alert}<span>${c.length > 1
+      ? "เลือกวิชาให้ชัด: " + c.map(x => esc(Subj.label(x))).join(" / ")
+      : "ไม่อยู่ในรายการวิชา — ค้นหาแล้วเลือกจากรายการ"}</span></div>`
   }
 
-  /* The subject is picked, not typed, so a slip of the keyboard can't
-     invent a new one. A title from an old draft that isn't on the list
-     stays as a flagged option until another is picked. With no list yet
-     (not loaded, or never saved) it's the plain text box. */
-  function subjectPicker(title, si, sj) {
-    if (!subjectList.length) return `<input class="subject-title-input subj-title" type="text" placeholder="Subject name" value="${esc(title)}"
-      list="subjectOptions" autocomplete="off" data-si="${si}" data-sj="${sj}" />`
-    const hit = Subj.match(title, subjectList)
-    const cur = (title || "").trim()
-    return `<select class="subject-title-input subj-pick" data-si="${si}" data-sj="${sj}" aria-label="Subject">
-      <option value=""${!cur ? " selected" : ""}>— เลือกวิชา —</option>
-      ${cur && !hit ? `<option value="${esc(cur)}" selected>⚠️ ${esc(cur)} — ไม่อยู่ในรายการ</option>` : ""}
-      ${subjectList.map(x => `<option value="${esc(x.name)}"${hit === x ? " selected" : ""}>${esc(Subj.label(x))}</option>`).join("")}
-    </select>`
+  /* One custom dropdown for every choice on the form — SVG icons, which a
+     native <select> can't show. Built on the "+ Add" menu (same toggle and
+     flip-up); a click on an item lands in the one listener on #sectionList
+     as onPick(kind, value, si, sj, bk). */
+  function pick(kind, value, options, data, { iconOnly = false, grid = false, right = false, extra = "", title = "" } = {}) {
+    const cur = options.find(o => o.v === value) || options[0]
+    const attrs = Object.entries(data).map(([k, v]) => `data-${k}="${v}"`).join(" ")
+    return `<div class="add-dd pk${iconOnly ? " icon" : ""}${right ? " right" : ""}">
+      <button type="button" class="add-dd-btn pk-btn" ${attrs} title="${esc(title || cur.label)}" aria-label="${esc(title || cur.label)}">${cur.icon ? `<span class="dd-ico">${cur.icon}</span>` : ""}${iconOnly ? "" : `<span>${esc(cur.label)}</span>`}<span class="caret">${IC.caret}</span></button>
+      <div class="add-dd-menu${grid ? " pk-grid" : ""}">${options.map(o =>
+        `<button type="button" class="add-dd-item pk-item${o.v === cur.v ? " active" : ""}" data-pk="${kind}" data-v="${esc(o.v)}" ${attrs} title="${esc(o.label)}">${o.icon ? `<span class="dd-ico">${o.icon}</span>` : ""}${grid ? "" : esc(o.label)}${o.v === cur.v ? `<span class="dd-check">${IC.check}</span>` : ""}</button>`).join("")}${extra}</div>
+    </div>`
   }
-
-  function iconOpts(sel, icons) { return icons.map(ic => `<option value="${ic}"${ic===sel?" selected":""}>${ic}</option>`).join("") }
 
   // ── Structural add / remove (with box animations) ─────────────
   function addSection() {
@@ -989,7 +1117,7 @@ function initApp() {
     renderSections()
   }
   async function removeSection(si) {
-    const ok = await openConfirm({ icon: "🗑️", title: "Delete this section?", message: "The section and all of its subjects and bullets will be removed.", okText: "Delete" })
+    const ok = await openConfirm({ icon: "trash", title: "Delete this section?", message: "The section and all of its subjects and bullets will be removed.", okText: "Delete" })
     if (!ok) return
     animateRemove(`.section-block[data-si="${si}"]`, () => {
       sections.splice(si, 1); renderSections(); scheduleSave()
@@ -1001,11 +1129,12 @@ function initApp() {
     sections[si].subjects.push({
       icon: "📝", title: "", bullets: [makeBullet()], note: "", showNote: false,
       syncToCalendar: false, taskStart: today, taskEnd: "", taskType: "send_on", photos: [],
+      dueKind: "homework", info: { due: true },
     })
     if (doRender) { pendingEnter = { sel: `.subject-block[data-si="${si}"][data-sj="${sections[si].subjects.length - 1}"]`, cls: "box-enter" }; renderSections() }
   }
   async function removeSubject(si, sj) {
-    const ok = await openConfirm({ icon: "🗑️", title: "Delete this subject?", message: "The subject and all of its bullets will be removed.", okText: "Delete" })
+    const ok = await openConfirm({ icon: "trash", title: "Delete this subject?", message: "The subject and all of its bullets will be removed.", okText: "Delete" })
     if (!ok) return
     animateRemove(`.subject-block[data-si="${si}"][data-sj="${sj}"]`, () => {
       sections[si].subjects.splice(sj, 1); renderSections(); scheduleSave()
@@ -1055,10 +1184,6 @@ function initApp() {
     if (nowOn) pendingEnter = { sel: `.bullet-block[data-si="${si}"][data-sj="${sj}"][data-bk="${bk}"] .bullet-marker-fields`, cls: "just-opened" }
     renderSections(); scheduleSave()
   }
-  function setBulletMarkerType(si, sj, bk, type) {
-    sections[si].subjects[sj].bullets[bk].markerType = type
-    renderSections(); scheduleSave()
-  }
 
   // Photos are shrunk to a ≤1024px JPEG data URL so they fit in the
   // localStorage draft and the Discord upload stays small.
@@ -1090,13 +1215,84 @@ function initApp() {
       for (const f of input.files) {
         try { subj.photos.push({ src: await readPhoto(f), size: PHOTO_SIZES[2].w }) } catch (e) { bad++ }
       }
-      if (bad) setStatus("s-error", `❌ ${bad} file${bad > 1 ? "s" : ""} couldn't be read as a photo.`)
+      if (bad) setStatus("s-error", `${bad} file${bad > 1 ? "s" : ""} couldn't be read as a photo.`)
       renderSections(); scheduleSave()
     }
     input.click()
   }
 
+  // Crop: drag a box over the photo. Always cuts from the original, which
+  // is kept (photo.orig) so Reset can bring the whole photo back.
+  function cropPhoto(si, sj, pk) {
+    const ph = sections[si].subjects[sj].photos[pk]
+    const $ = id => document.getElementById(id)
+    const ov = $("cropOverlay"), img = $("cropImg"), box = $("cropBox"), stage = $("cropStage")
+    let r = null, start = null
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
+    const at = e => { const b = img.getBoundingClientRect(); return { x: clamp(e.clientX - b.left, 0, b.width), y: clamp(e.clientY - b.top, 0, b.height) } }
+    const draw = () => { box.hidden = !r; if (r) Object.assign(box.style, { left: r.x + "px", top: r.y + "px", width: r.w + "px", height: r.h + "px" }) }
+    img.src = ph.orig || ph.src
+    $("cropReset").style.display = ph.orig ? "" : "none"
+    draw()
+    stage.onpointerdown = e => {
+      e.preventDefault()
+      try { stage.setPointerCapture(e.pointerId) } catch(x) {}   // keeps the drag when the finger leaves the photo
+      start = at(e); r = null; draw()
+    }
+    stage.onpointermove = e => {
+      if (!start) return
+      const p = at(e)
+      r = { x: Math.min(start.x, p.x), y: Math.min(start.y, p.y), w: Math.abs(p.x - start.x), h: Math.abs(p.y - start.y) }
+      draw()
+    }
+    stage.onpointerup = stage.onpointercancel = () => { start = null }
+    ov.classList.add("open")
+    const done = changed => {
+      stage.onpointerdown = stage.onpointermove = stage.onpointerup = stage.onpointercancel = null
+      closeOverlay(ov)
+      if (changed) { renderSections(); scheduleSave() }
+    }
+    $("cropCancel").onclick = () => done(false)
+    $("cropReset").onclick = () => { ph.src = ph.orig; delete ph.orig; done(true) }
+    $("cropOk").onclick = () => {
+      if (!r || r.w < 8 || r.h < 8) return done(false)
+      const k = img.naturalWidth / img.clientWidth
+      const c = document.createElement("canvas")
+      c.width = Math.round(r.w * k); c.height = Math.round(r.h * k)
+      c.getContext("2d").drawImage(img, r.x * k, r.y * k, r.w * k, r.h * k, 0, 0, c.width, c.height)
+      ph.orig ??= ph.src
+      ph.src = c.toDataURL("image/jpeg", 0.85)
+      done(true)
+    }
+  }
+
+  // The rows "Add info" puts under a subject
+  function infoRowsHTML(subj, si, sj) {
+    const d = `data-si="${si}" data-sj="${sj}"`
+    const x = k => `<button type="button" class="action-btn btn-delete icon-only info-x" data-k="${k}" ${d} title="Remove" aria-label="Remove">${ICON_X}</button>`
+    const rows = []
+    const cd = calendarDue(subj)
+    if (infoShown(subj, "due", cd || subj.taskEnd)) rows.push(`<div class="info-row">
+        ${pick("kind", kindOf(subj), KIND_OPTS, { si, sj }, { title: "What it's due for" })}
+        ${cd ? `<span class="cal-due" title="From this subject's ${esc(DUE_KINDS[kindOf(subj)].label.toLowerCase())} on the calendar">${IC.cal} จากปฏิทิน · ${esc(shortThai(cd))}</span>`
+             : `<input type="date" value="${esc(subj.taskEnd)}" class="cal-end" ${d} aria-label="Due date" />`}
+        ${x("due")}</div>`)
+    if (infoShown(subj, "at", (subj.dueAt || "").trim())) rows.push(`<div class="info-row">
+        <span class="info-l">${IC.clock} ส่งตอน</span>
+        <input type="text" class="subj-dueat" maxlength="16" placeholder="${esc(calendarTask(subj)?.dueAt || "คาบ 3 · 08:00")}" value="${esc(subj.dueAt || "")}" ${d} aria-label="Send on: period or time" />
+        ${x("at")}</div>`)
+    const typed = subj.sendText || (subj.send && !SEND[subj.send])
+    if (infoShown(subj, "by", subj.send || subj.sendText)) rows.push(`<div class="info-row">
+        <span class="info-l">ส่งทาง</span>
+        ${pick("send", typed ? "__type" : (subj.send || calendarTask(subj)?.send || ""), SEND_OPTS, { si, sj }, { title: "Send by" })}
+        ${typed ? `<input type="text" class="subj-sendtxt" maxlength="40" placeholder="ส่งใน LINE, ส่งหน้าห้อง…" value="${esc(subj.send || "")}" ${d} aria-label="Send by" />` : ""}
+        ${x("by")}</div>`)
+    return rows.length ? `<div class="info-rows">${rows.join("")}</div>` : ""
+  }
+
   function renderSections() {
+    // A search popup belongs to the row being redrawn
+    document.querySelectorAll(".ss-pop").forEach(p => p.remove())
     const list = document.getElementById("sectionList")
     list.innerHTML = ""
     sections.forEach((sec, si) => {
@@ -1107,17 +1303,16 @@ function initApp() {
       const subjHTML = sec.subjects.map((subj, sj) => {
         const bulletsHTML = subj.bullets.map((b, bk) => {
           const isMarker = b.markerMode
-          const markerTypeButtons = MARKER_TYPES.map(mt =>
-            `<button class="marker-type-btn${b.markerType===mt.key?" active":""}"
-              data-si="${si}" data-sj="${sj}" data-bk="${bk}" data-mtype="${mt.key}">${mt.label}</button>`
-          ).join("")
+          const dk = { si, sj, bk }
+          const sizes = `<div class="pk-sizes-l">Size</div><div class="pk-sizes">${["s", "m", "l"].map(z =>
+            `<button type="button" class="add-dd-item pk-item${b.size === z ? " active" : ""}" data-pk="size" data-v="${z}" data-si="${si}" data-sj="${sj}" data-bk="${bk}">${z.toUpperCase()}</button>`).join("")}</div>`
 
           const markerPanel = isMarker ? `
             <div class="bullet-marker-fields">
-              <div class="bullet-marker-fields-label">📍 Marker</div>
-              <div style="display:flex;flex-direction:column;gap:6px;">
-                <input type="date" value="${esc(b.markerDate)}" class="bullet-marker-date" data-si="${si}" data-sj="${sj}" data-bk="${bk}" />
-                <div class="marker-type-grid">${markerTypeButtons}</div>
+              <div class="bullet-marker-fields-label" style="display:flex;align-items:center;gap:6px">${IC.pin} Marker</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+                <input type="date" value="${esc(b.markerDate)}" class="bullet-marker-date" data-si="${si}" data-sj="${sj}" data-bk="${bk}" style="flex:1;min-width:130px" />
+                ${pick("mtype", b.markerType, MARKER_OPTS, dk)}
               </div>
             </div>` : ""
 
@@ -1127,10 +1322,9 @@ function initApp() {
                 <span class="bullet-dash">-</span>
                 <input type="text" placeholder="Write bullet point..." value="${esc(b.text)}"
                   data-si="${si}" data-sj="${sj}" data-bk="${bk}" class="bullet-inp" />
+                ${pick("style", b.style, STYLE_OPTS, dk, { iconOnly: true, right: true, extra: sizes, title: "Look on the card: " + LINE_STYLES[b.style] + ", " + b.size.toUpperCase() })}
                 <button class="bullet-marker-btn${isMarker?" active":""} toggle-bullet-marker"
-                  data-si="${si}" data-sj="${sj}" data-bk="${bk}" title="Toggle marker for this bullet">
-                📍${isMarker?" ✓":""}
-                </button>
+                  data-si="${si}" data-sj="${sj}" data-bk="${bk}" title="Mark this bullet on the calendar" aria-label="Mark on the calendar">${IC.pin}</button>
                 <button class="action-btn btn-delete icon-only rm-bullet" data-si="${si}" data-sj="${sj}" data-bk="${bk}" title="Remove bullet" aria-label="Remove bullet">${ICON_X}</button>
               </div>
               ${markerPanel}
@@ -1139,56 +1333,53 @@ function initApp() {
 
         const noteVisible = subj.showNote ? "visible" : ""
         const syncActive  = subj.syncToCalendar
+        const hw = kindOf(subj) === "homework"
 
         const calPanel = syncActive ? `
           <div class="task-fields">
-            <div class="task-fields-label">📅 Calendar task</div>
+            <div class="task-fields-label" style="display:flex;align-items:center;gap:6px">${IC.cal} Calendar ${hw ? "task" : esc(DUE_KINDS[kindOf(subj)].label.toLowerCase())}</div>
             <div class="field">
               <label>Calendar subject (from the list)</label>
               <input type="text" value="${esc(Subj.match(subj.title, subjectList)?.name || sections[si].title || '(no match)')}" disabled style="opacity:0.6;cursor:not-allowed;" />
             </div>
-            <div class="field"><label>Start date (due date is above)</label><input type="date" value="${esc(subj.taskStart)}" class="cal-start" data-si="${si}" data-sj="${sj}" /></div>
-            <div class="field"><label>Type</label>
-              <select class="cal-type" data-si="${si}" data-sj="${sj}">
-                <option value="send_on"${subj.taskType==="send_on"?" selected":""}>🟢 Send on</option>
-                <option value="send_before"${subj.taskType==="send_before"?" selected":""}>🔴 Send before</option>
-                <option value="estimated"${subj.taskType==="estimated"?" selected":""}>🟡 Estimated</option>
-              </select>
-            </div>
+            ${hw ? `<div class="field"><label>Start date (the due date is in Add info)</label><input type="date" value="${esc(subj.taskStart)}" class="cal-start" data-si="${si}" data-sj="${sj}" /></div>
+            <div class="field"><label>Type</label>${pick("taskType", subj.taskType || "send_on", TYPE_OPTS, { si, sj })}</div>`
+            : `<div class="field"><label>Saved as a ${esc(DUE_KINDS[kindOf(subj)].label)} marker on the due date</label></div>`}
           </div>` : ""
 
+        const hit = Subj.match(subj.title, subjectList)
+        const infoOn = k => infoShown(subj, k, k === "due" ? calendarDue(subj) || subj.taskEnd : k === "at" ? (subj.dueAt || "").trim() : subj.send || subj.sendText)
+        const infoItem = (k, ico, label) => `<button class="add-dd-item cal toggle-info${infoOn(k) ? " active" : ""}" data-k="${k}" data-si="${si}" data-sj="${sj}"><span class="dd-ico">${ico}</span> ${label}${infoOn(k) ? `<span class="dd-check">${IC.check}</span>` : ""}</button>`
+
         return `
-          <div class="subject-block" data-si="${si}" data-sj="${sj}">
+          <div class="subject-block" data-si="${si}" data-sj="${sj}"${hit ? ` style="--sc:${esc(hit.color)}"` : ""}>
             <div class="subject-row">
               <div class="subject-num">${sj+1}.</div>
               <div class="subject-body">
                 <div class="subject-top">
-                  <select class="work-icon-select subj-icon" data-si="${si}" data-sj="${sj}">${iconOpts(subj.icon,WORK_ICONS)}</select>
-                  ${subjectPicker(subj.title, si, sj)}
+                  ${pick("subjIcon", subj.icon, WORK_ICONS.map(iconOpt), { si, sj }, { iconOnly: true, grid: true, title: "Icon" })}
+                  <div class="subj-search" data-si="${si}" data-sj="${sj}"></div>
                   <button class="action-btn btn-delete icon-only rm-subj" data-si="${si}" data-sj="${sj}" title="Remove subject" aria-label="Remove subject">${ICON_X}</button>
                 </div>
-                <div class="subject-meta">
-                  <span class="subj-dot" style="background:${esc(Subj.colorOf(subj.title, subjectList) || "#64748b")}"></span>
-                  ${calendarDue(subj)
-                    ? `<span class="cal-due" title="Due date of this subject's task on the calendar">📅 จากปฏิทิน · ส่ง ${esc(shortThai(calendarDue(subj)))}</span>`
-                    : `<label>Due <input type="date" value="${esc(subj.taskEnd)}" class="cal-end" data-si="${si}" data-sj="${sj}" /></label>`}
-                  <input type="text" class="subj-dueat" maxlength="16" placeholder="${esc(dueAtOf(subj) || "คาบ / เวลา")}" value="${esc(subj.dueAt || "")}"
-                    data-si="${si}" data-sj="${sj}" aria-label="Due period or time" />
-                  <select class="subj-send" data-si="${si}" data-sj="${sj}" aria-label="How to send">
-                    <option value="">ส่งยังไง…</option>
-                    ${Object.entries(SEND).map(([k, l]) => `<option value="${k}"${sendOf(subj) === k ? " selected" : ""}>${esc(l)}</option>`).join("")}
-                  </select>
-                </div>
                 ${subjectHint(subj.title)}
+                ${infoRowsHTML(subj, si, sj)}
                 <div class="bullet-list">${bulletsHTML}</div>
                 <div class="subject-actions">
                   <div class="add-dd">
-                    <button class="add-dd-btn" data-si="${si}" data-sj="${sj}">${ICON_PLUS} Add <span class="caret">▾</span></button>
+                    <button class="add-dd-btn" data-si="${si}" data-sj="${sj}">${ICON_PLUS} Add <span class="caret">${IC.caret}</span></button>
                     <div class="add-dd-menu">
                       <button class="add-dd-item bullet add-bullet" data-si="${si}" data-sj="${sj}"><span class="dd-ico">${ICON_BULLET}</span> Bullet point</button>
                       <button class="add-dd-item note toggle-note" data-si="${si}" data-sj="${sj}"><span class="dd-ico">${ICON_NOTE}</span> ${subj.showNote ? "Hide note" : "Note"}</button>
-                      <button class="add-dd-item cal toggle-sync${syncActive?" active":""}" data-si="${si}" data-sj="${sj}"><span class="dd-ico">${ICON_CAL}</span> ${syncActive ? "Remove from calendar" : "Add to calendar"}${syncActive ? '<span class="dd-check">✓</span>' : ''}</button>
-                      <button class="add-dd-item note add-photo" data-si="${si}" data-sj="${sj}"><span class="dd-ico">📷</span> ${subj.photos && subj.photos.length ? "More photos" : "Photos"}</button>
+                      <button class="add-dd-item cal toggle-sync${syncActive?" active":""}" data-si="${si}" data-sj="${sj}"><span class="dd-ico">${ICON_CAL}</span> ${syncActive ? "Remove from calendar" : "Add to calendar"}${syncActive ? `<span class="dd-check">${IC.check}</span>` : ''}</button>
+                      <button class="add-dd-item note add-photo" data-si="${si}" data-sj="${sj}"><span class="dd-ico">${ICON_CAMERA}</span> ${subj.photos && subj.photos.length ? "More photos" : "Photos"}</button>
+                    </div>
+                  </div>
+                  <div class="add-dd">
+                    <button class="add-dd-btn" data-si="${si}" data-sj="${sj}">${IC.info} Add info <span class="caret">${IC.caret}</span></button>
+                    <div class="add-dd-menu">
+                      ${infoItem("due", IC.cal, "Due date")}
+                      ${infoItem("at", IC.clock, "Send on · คาบ/เวลา")}
+                      ${infoItem("by", IC.upload, "Send by · ส่งทาง")}
                     </div>
                   </div>
                 </div>
@@ -1198,6 +1389,7 @@ function initApp() {
                 </div>
                 ${subj.photos && subj.photos.length ? `<div class="photo-row">${subj.photos.map((ph, pk) => `
                   <div class="photo-field"><img src="${esc(ph.src)}" alt="Attached photo ${pk + 1}" />
+                    <button class="action-btn crop-photo" data-si="${si}" data-sj="${sj}" data-pk="${pk}" title="Crop photo" aria-label="Crop photo">${IC.crop}</button>
                     <button class="action-btn btn-delete icon-only rm-photo" data-si="${si}" data-sj="${sj}" data-pk="${pk}" title="Remove photo" aria-label="Remove photo">${ICON_X}</button>
                     <div class="photo-sizes" role="group" aria-label="Size on the card">${PHOTO_SIZES.map(z =>
                       `<button type="button" class="photo-size${ph.size === z.w ? " active" : ""}" data-si="${si}" data-sj="${sj}" data-pk="${pk}" data-w="${z.w}" title="${z.w}% of the card's width">${z.k}</button>`).join("")}</div>
@@ -1210,7 +1402,7 @@ function initApp() {
 
       div.innerHTML = `
         <div class="section-header">
-          <select class="icon-select sec-icon" data-si="${si}">${iconOpts(sec.icon,SECTION_ICONS)}</select>
+          ${pick("secIcon", sec.icon, SECTION_ICONS.map(iconOpt), { si }, { iconOnly: true, grid: true, title: "Section icon" })}
           <input class="section-title-input sec-title" type="text" placeholder="Section title e.g. การบ้าน"
             value="${esc(sec.title)}" data-si="${si}" />
           <button class="action-btn btn-delete rm-sec" data-si="${si}">${ICON_X} Section</button>
@@ -1239,27 +1431,23 @@ function initApp() {
 
   function bindSectionEvents() {
     const list = document.getElementById("sectionList")
-    list.querySelectorAll(".sec-icon").forEach(el => { el.onchange = () => { sections[+el.dataset.si].icon = el.value; updatePreview(); scheduleSave() } })
     list.querySelectorAll(".sec-title").forEach(el => { el.oninput = () => { sections[+el.dataset.si].title = el.value; updatePreview(); scheduleSave() } })
     list.querySelectorAll(".rm-sec").forEach(el => { el.onclick = () => removeSection(+el.dataset.si) })
-    list.querySelectorAll(".subj-icon").forEach(el => { el.onchange = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].icon = el.value; updatePreview(); scheduleSave() } })
-    list.querySelectorAll(".subj-title").forEach(el => {
-      el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].title = el.value; updatePreview(); scheduleSave() }
-      // Picked or typed: snap to the list's name and show its colour
-      el.onchange = () => { const h = Subj.match(el.value, subjectList); if (h) sections[+el.dataset.si].subjects[+el.dataset.sj].title = h.name; renderSections(); scheduleSave() }
+    // Subject search box — suggestions as you type, list entries only
+    list.querySelectorAll(".subj-search").forEach(el => {
+      const su = sections[+el.dataset.si].subjects[+el.dataset.sj]
+      mountSubjectSearch(el, {
+        items: () => subjectList, value: su.title,
+        onPick: x => { su.title = x.name; if (x.icon) su.icon = x.icon; renderSections(); scheduleSave() },
+        canAdd: () => !!db, onAdd: addSubjectToList,
+      })
     })
     list.querySelectorAll(".subj-note").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].note = el.value; updatePreview(); scheduleSave() } })
     list.querySelectorAll(".subj-dueat").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].dueAt = el.value; updatePreview(); scheduleSave() } })
-    list.querySelectorAll(".subj-send").forEach(el => { el.onchange = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].send = el.value; updatePreview(); scheduleSave() } })
-    list.querySelectorAll(".subj-pick").forEach(el => {
-      el.onchange = () => {
-        const su = sections[+el.dataset.si].subjects[+el.dataset.sj]
-        const h = Subj.match(el.value, subjectList)
-        su.title = h ? h.name : el.value
-        if (h && h.icon) su.icon = h.icon   // the text message's emoji follows the subject
-        renderSections(); scheduleSave()
-      }
-    })
+    list.querySelectorAll(".subj-sendtxt").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].send = el.value; updatePreview(); scheduleSave() } })
+    list.querySelectorAll(".toggle-info").forEach(el => { el.onclick = () => setInfo(+el.dataset.si, +el.dataset.sj, el.dataset.k, !el.classList.contains("active")) })
+    list.querySelectorAll(".info-x").forEach(el => { el.onclick = () => setInfo(+el.dataset.si, +el.dataset.sj, el.dataset.k, false) })
+    list.querySelectorAll(".crop-photo").forEach(el => { el.onclick = () => cropPhoto(+el.dataset.si, +el.dataset.sj, +el.dataset.pk) })
     list.querySelectorAll(".rm-subj").forEach(el => { el.onclick = () => removeSubject(+el.dataset.si, +el.dataset.sj) })
     list.querySelectorAll(".add-bullet").forEach(el => { el.onclick = () => addBullet(+el.dataset.si, +el.dataset.sj) })
     list.querySelectorAll(".toggle-note").forEach(el => { el.onclick = () => toggleNote(+el.dataset.si, +el.dataset.sj) })
@@ -1274,16 +1462,12 @@ function initApp() {
     list.querySelectorAll(".bullet-marker-date").forEach(el => {
       el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].bullets[+el.dataset.bk].markerDate = el.value; updatePreview(); scheduleSave() }
     })
-    list.querySelectorAll(".marker-type-btn").forEach(el => {
-      el.onclick = () => setBulletMarkerType(+el.dataset.si, +el.dataset.sj, +el.dataset.bk, el.dataset.mtype)
-    })
     list.querySelectorAll(".add-photo").forEach(el => { el.onclick = () => pickPhoto(+el.dataset.si, +el.dataset.sj) })
     list.querySelectorAll(".rm-photo").forEach(el => { el.onclick = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].photos.splice(+el.dataset.pk, 1); renderSections(); scheduleSave() } })
     list.querySelectorAll(".photo-size").forEach(el => { el.onclick = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].photos[+el.dataset.pk].size = +el.dataset.w; renderSections(); scheduleSave() } })
     list.querySelectorAll(".add-subj").forEach(el => { el.onclick = () => addSubject(+el.dataset.si) })
     list.querySelectorAll(".cal-start").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskStart = el.value; updatePreview(); scheduleSave() } })
     list.querySelectorAll(".cal-end").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskEnd = el.value; updatePreview(); scheduleSave() } })
-    list.querySelectorAll(".cal-type").forEach(el => { el.onchange = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskType = el.value; updatePreview(); scheduleSave() } })
 
     // "+ Add" dropdown toggle — positioned so it escapes any parent clipping
     list.querySelectorAll(".add-dd-btn").forEach(el => {
@@ -1296,13 +1480,49 @@ function initApp() {
         menu.classList.remove("up")
         if (willOpen) {
           menu.classList.add("open"); el.classList.add("open")
-          // flip upward if it would spill past the viewport bottom
-          const r = menu.getBoundingClientRect()
-          if (r.bottom > window.innerHeight - 8) menu.classList.add("up")
+          // flip upward / leftward if it would spill off the screen
+          // (offset sizes: the open animation starts the menu scaled down)
+          menu.classList.remove("flip")
+          const b = el.getBoundingClientRect()
+          if (b.bottom + 6 + menu.offsetHeight > window.innerHeight - 8) menu.classList.add("up")
+          if (b.left + menu.offsetWidth > window.innerWidth - 8) menu.classList.add("flip")
         }
       }
     })
   }
+
+  function setInfo(si, sj, k, on) {
+    const su = sections[si].subjects[sj]
+    su.info = { ...su.info, [k]: on }
+    if (!on) {                       // × clears what the row held
+      if (k === "due") su.taskEnd = ""
+      if (k === "at")  su.dueAt = ""
+      if (k === "by")  { su.send = ""; su.sendText = false }
+    }
+    if (on) pendingEnter = { sel: `.subject-block[data-si="${si}"][data-sj="${sj}"] .info-rows`, cls: "just-opened" }
+    renderSections(); scheduleSave()
+  }
+  function onPick(kind, v, si, sj, bk) {
+    const su = sections[si]?.subjects[sj], b = su?.bullets[bk]
+    switch (kind) {
+      case "secIcon":  sections[si].icon = v; break
+      case "subjIcon": su.icon = v; break
+      case "kind":     su.dueKind = v; break
+      case "taskType": su.taskType = v; break
+      case "mtype":    b.markerType = v; break
+      case "style":    b.style = v; break
+      case "size":     b.size = v; break
+      case "send":     su.sendText = v === "__type"; su.send = su.sendText ? (SEND[su.send] ? "" : su.send) : v; break
+      default: return
+    }
+    renderSections(); scheduleSave()
+  }
+  document.getElementById("sectionList").addEventListener("click", e => {
+    const it = e.target.closest(".pk-item")
+    if (!it) return
+    const d = it.dataset
+    onPick(d.pk, d.v, +d.si, +d.sj, +d.bk)
+  })
 
   document.getElementById("addSectionBtn").onclick = () => { addSection(); scheduleSave() }
   document.getElementById("fmtDate").oninput     = () => { renderSections(); scheduleSave() }
@@ -1378,11 +1598,12 @@ function initApp() {
     const tasks = []
     sections.forEach(sec => {
       sec.subjects.forEach(subj => {
+        const hitS = Subj.match(subj.title, subjectList)
         subj.bullets.forEach(b => {
           if (!b.markerMode || !b.text.trim()) return
           tasks.push({
-            name:       subj.title.trim() || b.text.trim(),
-            subject:    b.text.trim(),
+            name:       b.text.trim(),
+            subject:    hitS ? hitS.name : (subj.title.trim() || sec.title.trim() || "ไม่ระบุ"),
             type:       "marker",
             markerType: b.markerType || "quiz",
             date:       b.markerDate,
@@ -1399,6 +1620,17 @@ function initApp() {
         // the task name; anything else keeps the old title/section shape.
         const hit   = Subj.match(subj.title, subjectList)
         const work  = subj.bullets.map(b => b.text.trim()).filter(Boolean)
+        const k     = kindOf(subj)
+        // A quiz/exam/event goes on as the calendar's own marker of that kind
+        if (k !== "homework") {
+          const end = dueOf(subj) || today
+          tasks.push({
+            name: work[0] || DUE_KINDS[k].label, subject: hit ? hit.name : (sec.title.trim() || "ไม่ระบุ"),
+            type: "marker", markerType: k, date: end, start: end, end,
+            note: note + (bulletNote ? (note ? "\n" : "") + bulletNote : "")
+          })
+          return
+        }
         tasks.push({
           name:    (hit && work[0]) || subj.title.trim() || "(no name)",
           subject: hit ? hit.name : (sec.title.trim() || "ไม่ระบุ"),
@@ -1471,8 +1703,9 @@ function initApp() {
         const h = Subj.match(su.title, subjectList)
         return { subject: h ? h.name : su.title.trim(), code: h ? h.code : "", teacher: h ? h.teacher : "",
                  send: sendOf(su), dueAt: dueAtOf(su), color: h ? h.color : "#64748b",
-                 icon: (h && h.icon) || su.icon, lines: su.bullets.map(b => b.text.trim()).filter(Boolean),
-                 due: dueOf(su), photos: su.photos || [] }
+                 icon: (h && h.icon) || su.icon, kind: kindOf(su),
+                 lines: su.bullets.map(b => ({ text: b.text, style: b.style, size: b.size })),
+                 due: dueOf(su), photos: (su.photos || []).map(({ src, size }) => ({ src, size })) }
       })
     }))
     return cardModel({ date, name: document.getElementById("fmtReporter").value, sections: cardSections }, localToday())
@@ -1629,18 +1862,18 @@ function initApp() {
   document.getElementById("publishBtn").onclick = async function() {
     const btn = this
     const chosen = Object.keys(actions).filter(k => actions[k])
-    if (!chosen.length) { setStatus("s-info", "ℹ️ Pick at least one action above first."); return }
-    if (!buildFormattedMessage()) { setStatus("s-info", "ℹ️ Nothing to publish yet — fill in the form first."); return }
+    if (!chosen.length) { setStatus("s-info", "Pick at least one action above first."); return }
+    if (!buildFormattedMessage()) { setStatus("s-info", "Nothing to publish yet — fill in the form first."); return }
 
     const tasks = collectCalendarTasks()
     if (actions.calendar && tasks.length === 0) {
-      setStatus("s-info", "ℹ️ No tasks flagged yet. Toggle 📍 on a bullet, or + Add → Add to calendar on a subject.")
+      setStatus("s-info", "No tasks flagged yet. Tap the pin on a bullet, or + Add → Add to calendar on a subject.")
       return
     }
 
     const lines = chosen.map(k => "• " + ACTION_LABELS[k][0].toUpperCase() + ACTION_LABELS[k].slice(1))
     const ok = await openConfirm({
-      icon: "🚀", title: "Publish?",
+      icon: "send", title: "Publish?",
       message: "This will:\n" + lines.join("\n") +
                (actions.discord ? "\n\nEveryone in the Discord channel will see it." : ""),
       okText: "Publish", danger: false,
@@ -1649,7 +1882,7 @@ function initApp() {
 
     btn.disabled = true
     chosen.forEach(k => markChip(k, "busy"))
-    setStatus("s-info", "⏳ Publishing…")
+    setStatus("s-info", "Publishing…")
 
     const done = [], failed = []
     const record = (k, good) => { (good ? done : failed).push(ACTION_LABELS[k]); markChip(k, good ? "done" : "failed") }
@@ -1684,9 +1917,9 @@ function initApp() {
       }
     }
 
-    if (!failed.length)      setStatus("s-success", "✅ Published — " + done.join(", ") + ".")
-    else if (!done.length)   setStatus("s-error",   "❌ Couldn't " + failed.join(", ") + ".")
-    else                     setStatus("s-error",   "⚠️ Did " + done.join(", ") + " — but couldn't " + failed.join(", ") + ".")
+    if (!failed.length)      setStatus("s-success", "Published — " + done.join(", ") + ".")
+    else if (!done.length)   setStatus("s-error",   "Couldn't " + failed.join(", ") + ".")
+    else                     setStatus("s-error",   "Did " + done.join(", ") + " — but couldn't " + failed.join(", ") + ".")
 
     btn.disabled = false
     setTimeout(syncActionChips, 3000)

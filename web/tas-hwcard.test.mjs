@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { duePill, cardModel, fromTasks, MAX_ROWS } from "./tas-hwcard.js"
+import { duePill, cardModel, fromTasks, MAX_ROWS, sendLabel, lineOf } from "./tas-hwcard.js"
 
 const T = "2026-11-10"   // a Tuesday
 
@@ -16,6 +16,13 @@ test("duePill: every branch", () => {
   assert.equal(duePill("2026-11-11", T, " คาบ 3 ").label, "ส่งพรุ่งนี้ · คาบ 3")
   assert.equal(duePill("2026-11-09", T, "คาบ 3").label, "เลยกำหนด")       // past: the period is moot
   assert.deepEqual(duePill("", T, "08:00"), { label: "ส่ง 08:00", tone: "grey" })
+})
+
+test("duePill: quiz/exam say so, in violet when far off", () => {
+  assert.deepEqual(duePill("2026-11-11", T, "", "quiz"), { label: "ควิซพรุ่งนี้", tone: "orange" })
+  assert.deepEqual(duePill("2026-11-13", T, "คาบ 2", "exam"), { label: "สอบวันศุกร์ · คาบ 2", tone: "violet" })
+  assert.deepEqual(duePill("2026-11-09", T, "", "quiz"), { label: "ผ่านไปแล้ว", tone: "grey" })
+  assert.equal(duePill(T, T, "", "nonsense").label, "ส่งวันนี้")
 })
 
 const row = subject => ({ subject, lines: ["x"], due: T })
@@ -58,5 +65,19 @@ test("fromTasks: open only, merged by subject/due, no markers/dailies", () => {
     ["ไทย", "", "x"],
   ])
   assert.deepEqual([rows[1].send, rows[1].dueAt], ["paper", "คาบ 2"])
-  assert.equal(rows[2].send, "")                                         // unknown key dropped
+  assert.equal(rows[2].send, "carrier pigeon")                           // typed text kept
+})
+
+test("sendLabel: key → label, text stays", () => {
+  assert.equal(sendLabel("paper"), "ส่งกระดาษ")
+  assert.equal(sendLabel(" ส่งใน LINE "), "ส่งใน LINE")
+  assert.equal(sendLabel(""), "")
+})
+
+test("lines: strings and objects both become {text, style, size}", () => {
+  assert.deepEqual(lineOf(" a "), { text: "a", style: "pills", size: "m" })
+  assert.deepEqual(lineOf({ text: "b", style: "big", size: "l" }), { text: "b", style: "big", size: "l" })
+  assert.deepEqual(lineOf({ text: "c", style: "neon", size: "xxl" }), { text: "c", style: "pills", size: "m" })
+  const m = cardModel({ date: T, sections: [{ rows: [{ subject: "A", lines: ["x", { text: " ", style: "big" }, { text: "y", style: "plain" }] }] }] })
+  assert.deepEqual(m.sections[0].rows[0].lines.map(l => l.text + ":" + l.style), ["x:pills", "y:plain"])
 })

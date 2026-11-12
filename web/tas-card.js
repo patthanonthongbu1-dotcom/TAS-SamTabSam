@@ -1,4 +1,4 @@
-import { SEND } from "./tas-hwcard.js"
+import { sendLabel, LINE_SIZES } from "./tas-hwcard.js"
 /* ─────────────────────────────────────────────────────────────
    Homework card painter + font-safe PNG export. The model comes from
    tas-hwcard.js; calendar.html and announce.html both paint it here.
@@ -64,13 +64,13 @@ export function embeddedFontCSS(){
    Discord embed uses), kept local so html-to-image can read it. Below it,
    the old card's shape: date, name, then sections with numbered rows. */
 export const HW_WIDTH = 540
-const PILL = { red: ["#fee2e2","#b91c1c"], orange: ["#ffedd5","#c2410c"], grey: ["#eef2f6","#475569"] }
+const PILL = { red: ["#fee2e2","#b91c1c"], orange: ["#ffedd5","#c2410c"], grey: ["#eef2f6","#475569"], violet: ["#ede9fe","#6d28d9"] }
 
 /* The picker emoji, drawn. Emoji look different on every phone (Windows
    shows some as letters), so the card draws its own line icons in the
    subject's colour. Anything not here falls back to the emoji as text. */
 const svg = d => `<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`
-const ICONS = {
+export const ICONS = {
   "📢": svg(`<path d="M3 10v4a1 1 0 0 0 1 1h3l6 4V5L7 9H4a1 1 0 0 0-1 1Z"/><path d="M17 8.5a5 5 0 0 1 0 7"/><path d="M19.5 6a8.5 8.5 0 0 1 0 12"/>`),
   "📚": svg(`<rect x="3.5" y="4" width="4.5" height="16" rx="1"/><rect x="8" y="4" width="4.5" height="16" rx="1"/><path d="m13.5 5.2 4.3-1.1 3.7 14.6-4.3 1.1Z"/>`),
   "💻": svg(`<rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19.5h20"/>`),
@@ -86,6 +86,9 @@ const ICONS = {
   "✏": svg(`<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/><path d="m14.5 5.5 3 3"/>`),
 }
 const SEND_ICO = svg(`<path d="M12 15V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14"/>`)
+// The drawn icon for a picker emoji ("" when there isn't one) — the
+// formatter's own dropdowns use these too.
+export const iconSVG = e => ICONS[String(e || "").replace(/️/g, "").trim()] || ""
 const iconHTML = e => {
   const key = String(e || "").replace(/️/g, "").trim()
   if(!key) return ""
@@ -93,7 +96,7 @@ const iconHTML = e => {
 }
 
 const HW_CSS = `
-.hw{width:${HW_WIDTH}px;font-family:'Kanit',sans-serif;background:#f6f8fb;color:#0f1d3a;line-height:1.35;overflow:hidden}
+.hw{width:${HW_WIDTH}px;font-family:'Kanit',sans-serif;background:#f6f8fb;color:#0f1d3a;line-height:1.35;overflow:hidden;border-radius:26px}
 .hw *{box-sizing:border-box}
 .hw-banner{display:block;width:100%;height:auto}
 .hw-date{padding:18px 24px 16px;background:#fff;border-bottom:1px solid #e6ebf2}
@@ -114,21 +117,46 @@ const HW_CSS = `
 .hw-ico{display:inline-flex;width:19px;height:19px;flex-shrink:0;margin-top:2px}
 .hw-emo{flex-shrink:0}
 .hw-subj-t{min-width:0;overflow-wrap:anywhere}
-.hw-code{font-size:12.5px;font-weight:400;color:#94a3b8;margin-left:6px;white-space:nowrap}
+.hw-code{display:inline-block;font-size:12px;font-weight:600;line-height:1.3;padding:2px 8px;border-radius:99px;margin-left:7px;white-space:nowrap;vertical-align:2px;font-variant-numeric:tabular-nums}
 .hw-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:5px;font-size:13px;color:#64748b;line-height:1.35}
 .hw-meta>span{display:inline-flex;align-items:center;gap:5px}
 .hw-meta svg{width:14px;height:14px;flex-shrink:0}
 .hw-send{color:#1d4ed8;font-weight:500}
 .hw-pill{flex-shrink:0;font-size:12.5px;font-weight:600;line-height:1.35;padding:3px 11px;border-radius:99px;white-space:nowrap;margin-top:1px}
-.hw-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.hw-chip{font-size:13.5px;font-weight:400;line-height:1.35;padding:4px 10px;border-radius:8px;background:#f1f5f9;color:#1e293b;overflow-wrap:anywhere;max-width:100%}
+.hw-lines{margin-top:8px;color:#1e293b;line-height:1.4;display:flex;flex-direction:column;gap:6px}
+.hw-lines *{overflow-wrap:anywhere}
+.hw-pills{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.hw-chip{padding:.25em .65em;border-radius:8px;background:#f1f5f9;max-width:100%}
+.hw-lg{padding:.45em .8em;border-radius:12px;font-weight:500}
+.hw-bul{display:flex;gap:.55em}
+.hw-bul::before{content:"";flex-shrink:0;width:.42em;height:.42em;border-radius:50%;margin-top:.52em;background:var(--c)}
 .hw-photos{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .hw-photo{display:block;border-radius:8px;border:1px solid #e2e8f0;min-width:0}
 .hw-more{text-align:center;font-size:13.5px;color:#64748b;padding:10px 0 0}
 .hw-empty{text-align:center;padding:30px 0 26px;font-size:19px;font-weight:500;color:#64748b}
-.hw-empty b{display:block;font-size:34px;margin-bottom:4px}
+.hw-empty .hw-ico{display:flex;width:40px;height:40px;margin:0 auto 6px;color:#16a34a}
 .hw-foot{height:18px}
 `
+
+// A row's lines, each in its own style and size. Neighbouring pills
+// share one wrapping row; every other style is a line of its own.
+function linesHTML(r, c){
+  if(!r.lines.length) return ""
+  const out = []
+  for(const l of r.lines){
+    const fs = `font-size:${LINE_SIZES[l.size] || LINE_SIZES.m}px`
+    if(l.style === "pills"){
+      const chip = `<span class="hw-chip" style="${fs}">${esc(l.text)}</span>`
+      if(out.at(-1)?.pills) out.at(-1).html.push(chip)
+      else out.push({ pills: true, html: [chip] })
+      continue
+    }
+    out.push({ html: [l.style === "big"
+      ? `<div class="hw-lg" style="${fs};background:${c}1a;color:${c}">${esc(l.text)}</div>`
+      : `<div class="hw-${l.style === "bullets" ? "bul" : "plain"}" style="${fs}">${esc(l.text)}</div>`] })
+  }
+  return `<div class="hw-lines" style="--c:${c}">${out.map(g => g.pills ? `<div class="hw-pills">${g.html.join("")}</div>` : g.html[0]).join("")}</div>`
+}
 
 export function hwCardHTML(m){
   const pill = p => p ? `<span class="hw-pill" style="background:${PILL[p.tone][0]};color:${PILL[p.tone][1]}">${esc(p.label)}</span>` : ""
@@ -137,11 +165,11 @@ export function hwCardHTML(m){
       <div class="hw-strip" style="background:${color(r.color)}"></div>
       <div class="hw-main">
         <div class="hw-head">
-          <div class="hw-subj" style="color:#0f1d3a"><span class="hw-num">${r.n}.</span><span style="color:${color(r.color)};display:contents">${iconHTML(r.icon)}</span><span class="hw-subj-t">${esc(r.subject || "")}${r.code ? `<span class="hw-code">${esc(r.code)}</span>` : ""}</span></div>
+          <div class="hw-subj" style="color:#0f1d3a"><span class="hw-num">${r.n}.</span><span style="color:${color(r.color)};display:contents">${iconHTML(r.icon)}</span><span class="hw-subj-t">${esc(r.subject || "")}${r.code ? `<span class="hw-code" style="background:${color(r.color)}1a;color:${color(r.color)}">${esc(r.code)}</span>` : ""}</span></div>
           ${pill(r.pill)}
         </div>
-        ${r.teacher || SEND[r.send] ? `<div class="hw-meta">${r.teacher ? `<span>${ICO.user}${esc(r.teacher)}</span>` : ""}${SEND[r.send] ? `<span class="hw-send">${SEND_ICO}${esc(SEND[r.send])}</span>` : ""}</div>` : ""}
-        ${r.lines.length ? `<div class="hw-chips">${r.lines.map(l => `<span class="hw-chip">${esc(l)}</span>`).join("")}</div>` : ""}
+        ${r.teacher || sendLabel(r.send) ? `<div class="hw-meta">${r.teacher ? `<span>${ICO.user}${esc(r.teacher)}</span>` : ""}${sendLabel(r.send) ? `<span class="hw-send">${SEND_ICO}${esc(sendLabel(r.send))}</span>` : ""}</div>` : ""}
+        ${linesHTML(r, color(r.color))}
         ${(r.photos || []).length ? `<div class="hw-photos">${r.photos.map(ph =>
           `<img class="hw-photo" src="${esc(ph.src)}" alt="" style="width:calc(${Math.min(100, Math.max(10, Number(ph.size) || 100))}% - 4px)">`).join("")}</div>` : ""}
       </div>
@@ -158,7 +186,7 @@ export function hwCardHTML(m){
       ${m.name ? `<div class="hw-name">${ICO.user}<span>${esc(m.name)}</span></div>` : ""}
     </div>
     <div class="hw-list">
-      ${sections || `<div class="hw-empty"><b>🎉</b>ไม่มีการบ้านวันนี้</div>`}
+      ${sections || `<div class="hw-empty"><span class="hw-ico">${svg(`<circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16.5 9.5"/>`)}</span>ไม่มีการบ้านวันนี้</div>`}
       ${m.more > 0 ? `<div class="hw-more">+${m.more} รายการ</div>` : ""}
     </div>
     <div class="hw-foot"></div>

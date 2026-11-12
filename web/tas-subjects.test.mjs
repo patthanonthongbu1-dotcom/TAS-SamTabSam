@@ -56,3 +56,48 @@ test("timetable: codes settle it, the three Englishes stay apart", () => {
   assert.equal(match("island", tt), null)                   // short "IS" can't swallow it
   assert.equal(label(tt[0]), "ท23102 · ภาษาไทย")
 })
+
+test("listOrTimetable: falls back only when empty", async () => {
+  const S = await import("./tas-subjects.js")
+  assert.equal(S.listOrTimetable(undefined).length, S.TIMETABLE.length)
+  assert.deepEqual(S.listOrTimetable([{ name: "X" }]).map(x => x.name), ["X"])
+})
+
+test("timetable aliases settle the spellings seen on the live calendar", async () => {
+  const S = await import("./tas-subjects.js")
+  const L = S.sanitize(S.TIMETABLE)
+  const code = t => S.match(t, L)?.code ?? null
+  assert.equal(code("Communications"), "อ23204")      // was Computer via "com"
+  assert.equal(code("Communication"), "อ23204")
+  assert.equal(code("Com"), "ว23104")
+  assert.equal(code("Math Core"), "ค23102")
+  assert.equal(code("Math Sup"), "ค23202")
+  assert.equal(code("Health"), "พ23102")
+  assert.equal(code("Science"), "ว23102")
+  assert.equal(code("นาฎศิลป์"), "ศ23102")
+  assert.equal(code("Thai"), "ท23102")
+  assert.equal(code("Reading & Writting"), "อ23212")
+  assert.equal(code("ประวัติสาสตร์"), "ส23104")
+  assert.equal(code("Social (UNIT 1)"), "ส23102")
+  assert.equal(code("คณิตศาสตร์"), null)              // two maths: still asked, never guessed
+  assert.equal(code("Math"), null)
+  assert.equal(code("อังกฤษ"), null)
+})
+
+test("search: every word narrows, best first, one typo forgiven", async () => {
+  const S = await import("./tas-subjects.js")
+  const L = S.sanitize(S.TIMETABLE)
+  const codes = q => S.search(q, L).map(x => x.code)
+  assert.deepEqual(codes("eng").sort(), ["อ23102", "อ23204", "อ23212"])
+  assert.deepEqual(codes("eng core"), ["อ23102"])
+  assert.deepEqual(codes("english > core"), ["อ23102"])
+  assert.deepEqual(codes("คณิต core"), ["ค23102"])
+  assert.deepEqual(codes("คณิต > เพิ่ม"), ["ค23202"])
+  assert.deepEqual(codes("อ232").sort(), ["อ23204", "อ23212"])
+  assert.equal(codes("Englsh core")[0], "อ23102")
+  assert.equal(codes("คนิต").length, 2)
+  assert.equal(codes("thai")[0], "ท23102")               // the exact alias beats Thai Dance
+  assert.equal(codes("allan")[0], "อ23102")               // teacher
+  assert.deepEqual(codes("zzzz"), [])
+  assert.equal(codes("  ").length, L.length)
+})
