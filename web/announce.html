@@ -173,7 +173,6 @@
     .btn:hover { filter: brightness(1.07); transform: translateY(-2px); box-shadow: 0 18px 34px -12px rgba(255,79,163,0.6); }
     .btn:active { transform: translateY(0) scale(0.99); }
     .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
-    .task-count-badge { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 20px; background: rgba(255,255,255,0.25); font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
 
     .action-btn {
       display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px; font-size: 14px; font-weight: 500;
@@ -413,12 +412,6 @@
     .pv-note.show { display: block; }
 
     .link-toggles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-    /* Publish action picker — same chips as the link toggles */
-    .publish-label { font-size: 12px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; color: var(--label); margin-bottom: 8px; }
-    .publish-hint { font-size: 12.5px; font-weight: 300; color: var(--label); line-height: 1.6; margin: -4px 0 12px; min-height: 1px; }
-    .link-chip.busy { opacity: 0.7; }
-    .link-chip.done { background: rgba(29,158,117,0.2); border-color: rgba(29,158,117,0.42); color: var(--green); }
-    .link-chip.failed { background: rgba(192,57,43,0.18); border-color: rgba(192,57,43,0.42); color: #ff9b8a; }
     .link-chip {
       display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; font-size: 14px; font-weight: 500;
       font-family: 'Kanit', sans-serif; border-radius: 999px; border: 1px solid rgba(255,255,255,0.14);
@@ -432,8 +425,104 @@
     .preview-box { background: rgba(0,0,0,0.24); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 1rem 1.1rem; font-size: 15px; line-height: 1.9; white-space: pre-wrap; color: rgba(255,255,255,0.9); font-family: 'Kanit', sans-serif; font-weight: 300; min-height: 80px; word-break: break-word; }
     .divider { height: 1px; background: rgba(255,255,255,0.1); margin: 1.35rem 0; }
 
-    /* ── Merged footer (lives INSIDE the card / body) ───────────── */
-    .footer-row { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 12px; }
+    /* ── Share: quick actions + Publish ─────────────────────────── */
+    .share { position: relative; margin-top: 4px; padding: 14px; border-radius: 20px;
+             background: radial-gradient(120% 90% at 0% 0%, rgba(255,79,163,0.13), transparent 60%),
+                         radial-gradient(110% 90% at 100% 100%, rgba(139,92,246,0.16), transparent 60%),
+                         rgba(255,255,255,0.035);
+             border: 1px solid rgba(255,255,255,0.11); }
+    .share-head { display: flex; align-items: center; gap: 8px; margin: 0 2px 12px; }
+    .share-t { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--label); }
+    .share-head .clear-btn { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px;
+             background: transparent; border: 1px solid transparent; color: var(--label); font: 500 13px 'Kanit', sans-serif; cursor: pointer;
+             transition: color .15s, background .15s, border-color .15s; }
+    .share-head .clear-btn:hover { color: var(--red); background: rgba(192,57,43,0.14); border-color: rgba(192,57,43,0.35); }
+    .share-head .clear-btn svg { width: 14px; height: 14px; }
+
+    .qa-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .qa { --g1: #ff7ab8; --g2: #c02e7e; position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px;
+          padding: 14px 8px 12px; border-radius: 16px; cursor: pointer; touch-action: manipulation;
+          background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.12); color: #fff; font-family: 'Kanit', sans-serif;
+          transition: transform .18s cubic-bezier(.34,1.56,.64,1), background .15s, border-color .2s, box-shadow .2s; }
+    .qa[data-qa="copyImage"] { --g1: #b9a2ff; --g2: #6d3fe0; }
+    .qa[data-qa="saveImage"] { --g1: #7fe6c6; --g2: #138a6a; }
+    .qa:hover { transform: translateY(-3px); background: rgba(255,255,255,0.09); box-shadow: 0 14px 28px -14px var(--g2); }
+    .qa:active { transform: scale(0.96); }
+    .qa-ico { position: relative; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: #fff;
+              background: linear-gradient(145deg, var(--g1), var(--g2)); box-shadow: 0 6px 16px -6px var(--g2), inset 0 1px 0 rgba(255,255,255,0.35); }
+    .qa-ico svg { width: 20px; height: 20px; }
+    .qa-l { font-size: 14.5px; font-weight: 600; line-height: 1.2; text-align: center; }
+    .qa-s { font-size: 12px; font-weight: 300; color: var(--label); line-height: 1.2; text-align: center; }
+    .qa.busy { pointer-events: none; }
+    .qa.busy .qa-ico svg { opacity: 0; }
+    .qa.busy .qa-ico::after { content: ""; position: absolute; inset: 11px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,0.35); border-top-color: #fff; animation: spin .7s linear infinite; }
+    .qa.done { border-color: rgba(111,227,189,0.55); background: rgba(29,158,117,0.16); }
+    .qa.done .qa-ico { background: linear-gradient(145deg, #7fe6c6, #138a6a); animation: popIn .35s cubic-bezier(.34,1.56,.64,1); }
+    .qa.done .qa-s { color: var(--green); font-weight: 500; }
+    .qa.fail { border-color: rgba(255,155,138,0.55); background: rgba(192,57,43,0.16); animation: shake .35s; }
+    .qa.fail .qa-s { color: var(--red); font-weight: 500; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes popIn { from { transform: scale(0.6); } to { transform: none; } }
+    @keyframes shake { 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
+
+    .pub-wrap { position: relative; }
+    .pub-bar { position: relative; overflow: hidden; isolation: isolate; border-radius: 18px; padding: 2px;
+               box-shadow: 0 16px 36px -14px rgba(255,79,163,0.7), 0 10px 30px -18px rgba(139,92,246,0.9); }
+    /* the light that runs round the edge */
+    .pub-bar::before { content: ""; position: absolute; inset: -160% -10%; z-index: -1;
+               background: conic-gradient(from 0deg, transparent 0 55%, #ffd6ea 68%, #ff4fa3 76%, #a78bfa 86%, transparent 95%);
+               animation: spin 3.6s linear infinite; }
+    .pub-bar::after { content: ""; position: absolute; inset: 0; z-index: -1; background: rgba(255,255,255,0.14); }
+    .pub-in { display: flex; align-items: stretch; border-radius: 16px; overflow: hidden;
+              background: linear-gradient(120deg, #ff5fac 0%, #d1338a 45%, #7c3aed 100%); }
+    .pub-go { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 13px 16px;
+              background: none; border: none; color: #fff; font-family: 'Kanit', sans-serif; text-align: left; cursor: pointer; overflow: hidden; touch-action: manipulation; }
+    /* a shine sweeps across on hover */
+    .pub-go::after { content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; transform: skewX(-20deg);
+              background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent); transition: left .6s ease; }
+    .pub-go:hover::after { left: 120%; }
+    .pub-go:active { filter: brightness(0.95); }
+    .pub-go:disabled { cursor: progress; }
+    .pub-ico { flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+               background: rgba(255,255,255,0.2); box-shadow: inset 0 1px 0 rgba(255,255,255,0.35); transition: transform .25s; }
+    .pub-ico svg { width: 20px; height: 20px; }
+    .pub-go:hover .pub-ico { transform: rotate(-12deg) scale(1.06); }
+    .pub-go.busy .pub-ico svg { animation: fly .9s ease-in-out infinite; }
+    @keyframes fly { 50% { transform: translate(3px,-3px); opacity: .55; } }
+    .pub-txt { display: flex; flex-direction: column; min-width: 0; }
+    .pub-l { font-size: 18px; font-weight: 600; line-height: 1.2; }
+    .pub-sum { font-size: 13px; font-weight: 400; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pub-more { flex-shrink: 0; width: 54px; display: grid; place-items: center; background: rgba(0,0,0,0.12); border: none;
+                border-left: 1px solid rgba(255,255,255,0.22); color: #fff; cursor: pointer; transition: background .15s; touch-action: manipulation; }
+    .pub-more:hover, .pub-more.open { background: rgba(0,0,0,0.24); }
+    .pub-more svg { width: 20px; height: 20px; transition: transform .2s; }
+    .pub-more.open svg { transform: rotate(180deg); }
+
+    .pub-menu { left: 0; right: 0; min-width: 0; max-height: none; padding: 8px; transform-origin: top right; }
+    .pub-menu.up { transform-origin: bottom right; }
+    .pub-menu-t { font-size: 11.5px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; color: var(--label); padding: 4px 8px 6px; }
+    .pub-opt { display: flex; align-items: center; gap: 11px; padding: 9px 10px; border: none; border-radius: 10px; background: transparent;
+               color: rgba(255,255,255,0.9); font-family: 'Kanit', sans-serif; text-align: left; cursor: pointer; transition: background .13s; }
+    .pub-opt:hover { background: rgba(255,255,255,0.07); }
+    .po-ico { flex-shrink: 0; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+              background: rgba(255,255,255,0.07); color: var(--label); transition: background .2s, color .2s; }
+    .pub-opt[aria-checked="true"] .po-ico { background: rgba(255,79,163,0.2); color: var(--pink-soft); }
+    .po-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .po-l { font-size: 15px; font-weight: 500; line-height: 1.25; }
+    .po-h { font-size: 12.5px; font-weight: 300; color: var(--label); line-height: 1.3; }
+    .pub-opt.warn .po-h { color: var(--amber); }
+    .pub-opt.done .po-h { color: var(--green); font-weight: 500; }
+    .pub-opt.failed .po-h { color: var(--red); font-weight: 500; }
+    .sw { flex-shrink: 0; position: relative; width: 38px; height: 22px; border-radius: 999px; background: rgba(255,255,255,0.16); transition: background .2s; }
+    .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff;
+                 box-shadow: 0 1px 3px rgba(0,0,0,0.4); transition: transform .22s cubic-bezier(.34,1.56,.64,1); }
+    .pub-opt[aria-checked="true"] .sw { background: linear-gradient(90deg, #ff5fac, #a855f7); }
+    .pub-opt[aria-checked="true"] .sw::after { transform: translateX(16px); }
+    .share .status { margin-top: 12px; border-radius: 14px; }
+    @media (prefers-reduced-motion: reduce) {
+      .pub-bar::before, .pub-go.busy .pub-ico svg { animation: none; }
+      .qa, .qa.fail, .qa.done .qa-ico { animation: none; transition: none; }
+    }
     .empty-hint { text-align: center; color: var(--label); font-size: 14px; font-weight: 300; padding: 18px 12px; border: 1px dashed rgba(255,255,255,0.12); border-radius: 12px; margin-bottom: 10px; }
 
     /* ── Box add / remove animations ────────────────────────────── */
@@ -511,6 +600,12 @@
       .info-row .pk .add-dd-btn { padding: 7px 8px; }
       .info-row .pk .add-dd-btn .caret { display: none; }
       .rm-sec .sec-x-l { display: none; }
+      .share { padding: 11px; border-radius: 18px; }
+      .qa-grid { gap: 8px; }
+      .qa { padding: 12px 4px 10px; gap: 6px; }
+      .qa-l { font-size: 13.5px; }
+      .qa-s { font-size: 11px; }
+      .pub-go { padding: 11px 12px; gap: 10px; }
       .task-fields-row { grid-template-columns: 1fr; }
     }
 
@@ -612,31 +707,38 @@
     </div>
     <div class="preview-box" id="preview">Fill in the form to see preview...</div>
     <div class="preview-card-stage" id="previewCardStage"><div id="previewCardHost"></div></div>
-    <div class="pv-note" id="pvNote">This is exactly what “Card image” downloads (1080px wide, for LINE). Sections become headings and each subject a numbered row. Each bullet picks its own look and size from the button beside it, and the due date and its type (homework, quiz, exam…) set the pill. Notes and links go into the text and Discord message only.</div>
+    <div class="pv-note" id="pvNote">This is exactly what “Save image” downloads (1080px wide, for LINE). Sections become headings and each subject a numbered row. Each bullet picks its own look and size from the button beside it, and the due date and its type (homework, quiz, exam…) set the pill. Notes and links go into the text and Discord message only.</div>
 
     <div class="divider"></div>
 
-    <!-- Merged footer — part of the body now -->
-    <div class="footer-row">
-      <button class="action-btn btn-delete" id="clearBtn">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-        Clear form
-      </button>
-    </div>
-
-    <!-- Pick what Publish does. Remembered per device. -->
-    <div class="publish-label">On publish</div>
-    <div class="link-toggles" id="pvActions" role="group" aria-label="Publish actions">
-      <button class="link-chip" data-act="copyText"  type="button" title="Put the formatted text on your clipboard"><i data-ic="copy"></i> Copy text <span class="chip-check" data-ic="check"></span></button>
-      <button class="link-chip" data-act="copyImage" type="button" title="Put the card image on your clipboard — paste it straight into LINE or Discord"><i data-ic="image"></i> Copy image <span class="chip-check" data-ic="check"></span></button>
-      <button class="link-chip" data-act="saveImage" type="button" title="Download the card as a PNG file"><i data-ic="download"></i> Save image <span class="chip-check" data-ic="check"></span></button>
-      <button class="link-chip" data-act="discord"   type="button" title="Post the announcement to the Discord channel"><i data-ic="chat"></i> Send to Discord <span class="chip-check" data-ic="check"></span></button>
-      <button class="link-chip" data-act="calendar"  type="button" title="Add the flagged tasks to the shared calendar"><i data-ic="cal"></i> Save to calendar <span class="chip-check" data-ic="check"></span></button>
-    </div>
-    <div class="publish-hint" id="publishHint"></div>
-
-    <button class="btn" id="publishBtn"><i data-ic="send"></i> Publish <span class="task-count-badge" id="taskCount">0</span></button>
-    <div class="status" id="status"></div>
+    <!-- Share: the tiles work any time; Publish runs what its menu has on -->
+    <section class="share" aria-label="Share">
+      <div class="share-head">
+        <span class="share-t">Share</span>
+        <button type="button" class="clear-btn" id="clearBtn" title="Empty the whole form"><i data-ic="eraser"></i> Clear form</button>
+      </div>
+      <div class="qa-grid">
+        <button type="button" class="qa" data-qa="copyText" title="Copy the formatted text — paste it into LINE"><span class="qa-ico" data-ic="copy"></span><span class="qa-l">Copy text</span><span class="qa-s">for LINE</span></button>
+        <button type="button" class="qa" data-qa="copyImage" title="Copy the card image — paste it anywhere"><span class="qa-ico" data-ic="image"></span><span class="qa-l">Copy image</span><span class="qa-s">paste anywhere</span></button>
+        <button type="button" class="qa" data-qa="saveImage" title="Download the card as a PNG"><span class="qa-ico" data-ic="download"></span><span class="qa-l">Save image</span><span class="qa-s">PNG · 1080px</span></button>
+      </div>
+      <div class="pub-wrap">
+        <div class="pub-bar"><div class="pub-in">
+          <button type="button" class="pub-go" id="publishBtn"><span class="pub-ico" data-ic="send"></span>
+            <span class="pub-txt"><span class="pub-l">Publish</span><span class="pub-sum" id="pubSum"></span></span></button>
+          <button type="button" class="pub-more" id="pubMore" aria-haspopup="true" aria-expanded="false" aria-controls="pubMenu" title="Choose what Publish does" aria-label="Choose what Publish does" data-ic="caret"></button>
+        </div></div>
+        <div class="add-dd-menu pub-menu" id="pubMenu" role="group" aria-label="What Publish does">
+          <div class="pub-menu-t">Publish will</div>
+          <button type="button" class="pub-opt" role="switch" data-act="discord"><span class="po-ico" data-ic="chat"></span><span class="po-t"><span class="po-l">Send to Discord</span><span class="po-h"></span></span><span class="sw"></span></button>
+          <button type="button" class="pub-opt" role="switch" data-act="calendar"><span class="po-ico" data-ic="cal"></span><span class="po-t"><span class="po-l">Save to calendar</span><span class="po-h"></span></span><span class="sw"></span></button>
+          <button type="button" class="pub-opt" role="switch" data-act="copyText"><span class="po-ico" data-ic="copy"></span><span class="po-t"><span class="po-l">Copy text</span><span class="po-h"></span></span><span class="sw"></span></button>
+          <button type="button" class="pub-opt" role="switch" data-act="copyImage"><span class="po-ico" data-ic="image"></span><span class="po-t"><span class="po-l">Copy image</span><span class="po-h"></span></span><span class="sw"></span></button>
+          <button type="button" class="pub-opt" role="switch" data-act="saveImage"><span class="po-ico" data-ic="download"></span><span class="po-t"><span class="po-l">Save image</span><span class="po-h"></span></span><span class="sw"></span></button>
+        </div>
+      </div>
+      <div class="status" id="status"></div>
+    </section>
   </div>
 </div>
 
@@ -900,8 +1002,8 @@ function openConfirm({ icon = "alert", title, message, okText = "Confirm", dange
 const TOUR_STEPS = [
   { icon:"megaphone", title:"Build your report",      text:"Start with a section for each category — homework, announcements, events. Tap “New section” to add one." },
   { icon:"note",      title:"Add subjects & bullets", text:"Search a subject (“eng core”, “คณิต > เพิ่ม”), then “+ Add” for bullets, a note or photos, and “Add info” for the due date and when and how to send it." },
-  { icon:"pin",       title:"Quizzes & calendar",     text:"Set the due date’s type to Quiz or Exam and the card says so. Tap the pin on a bullet to mark a single event, or “+ Add → Add to calendar” on a subject." },
-  { icon:"send",      title:"Publish",                text:"Pick what Publish does — copy the text or the card, save the image, post to Discord, save to the calendar — then press Publish." },
+  { icon:"pin",       title:"Quizzes & calendar",     text:"Set the due date’s type to Quiz or Exam and the card says so. Open a bullet’s options to pin it to the calendar, or “+ Add → Add to calendar” on a subject." },
+  { icon:"send",      title:"Publish",                text:"Copy the text or the card, or save the image, any time with the Share buttons. Publish runs what its menu has switched on — Discord, the calendar and more." },
 ]
 let tourIdx = 0
 function renderTour() {
@@ -1019,6 +1121,13 @@ function initApp() {
   // Declared up here because updatePreview() reads it, and that runs during
   // draft restore — before the toggle further down would have initialised it.
   let previewMode = "text"
+  // What Publish does, remembered per device. Also read by updatePreview().
+  const ACTIONS_KEY = "tas_fmt_actions"
+  let actions = { copyText: true, copyImage: false, saveImage: false, discord: true, calendar: true }
+  try {
+    const saved = JSON.parse(localStorage.getItem(ACTIONS_KEY) || "null")
+    if (saved) actions = { ...actions, ...saved }
+  } catch(e) {}
   let saveTimer = null
   let pendingEnter = null   // { sel, cls } — the ONE element to animate after a render
 
@@ -1587,7 +1696,7 @@ function initApp() {
   function updatePreview() {
     const msg = buildFormattedMessage() || "Fill in the form to see preview..."
     document.getElementById("preview").textContent = msg
-    document.getElementById("taskCount").textContent = collectCalendarTasks().length
+    syncPublishMenu()
     if (previewMode === "card") renderPreviewCard()
   }
 
@@ -1831,8 +1940,35 @@ function initApp() {
     }
   }
 
-  // ── Publish — runs every action the chips have selected ───────
-  const ACTIONS_KEY = "tas_fmt_actions"
+  // ── Share: quick actions — run now, no confirm, nothing published ─
+  async function quickAction(btn) {
+    const k = btn.dataset.qa, sub = btn.querySelector(".qa-s")
+    sub.dataset.v ??= sub.textContent
+    clearTimeout(btn._t)
+    btn.classList.remove("done", "fail")
+    let good, note
+    if (!buildFormattedMessage()) { good = false; note = "nothing yet" }
+    else {
+      btn.classList.add("busy")
+      if (k === "copyText") good = await Promise.race([copyFormatted(), new Promise(r => setTimeout(() => r(false), 1500))])
+      else if (k === "saveImage") good = await downloadCardImage()
+      else {
+        good = await copyCardImage()
+        // a browser that won't put images on the clipboard still gets the file
+        if (!good && await downloadCardImage()) { good = true; note = "saved instead" }
+      }
+      btn.classList.remove("busy")
+      note ??= good ? (k === "saveImage" ? "saved" : "copied") : "didn't work"
+    }
+    void btn.offsetWidth   // restart the pop / shake
+    btn.classList.add(good ? "done" : "fail")
+    sub.textContent = note
+    if (!buildFormattedMessage()) setStatus("s-info", "Nothing to share yet — fill in the form first.")
+    btn._t = setTimeout(() => { btn.classList.remove("done", "fail"); sub.textContent = sub.dataset.v }, 2200)
+  }
+  document.querySelectorAll(".qa").forEach(b => { b.onclick = () => quickAction(b) })
+
+  // ── Publish — runs every action its menu has switched on ──────
   const ACTION_LABELS = {
     copyText:  "copy the text",
     copyImage: "copy the card image",
@@ -1840,58 +1976,82 @@ function initApp() {
     discord:   "post to Discord",
     calendar:  "save the tasks to the calendar",
   }
-  let actions = { copyText: true, copyImage: false, saveImage: false, discord: true, calendar: true }
-  try {
-    const saved = JSON.parse(localStorage.getItem(ACTIONS_KEY) || "null")
-    if (saved) actions = { ...actions, ...saved }
-  } catch(e) {}
+  const SHORT = { discord: "Discord", calendar: "Calendar", copyText: "Copy text", copyImage: "Copy image", saveImage: "Save image" }
+  const HINT = { discord: "everyone in the channel sees it", copyText: "formatted text, for LINE",
+                 copyImage: "the card, to the clipboard", saveImage: "PNG, 1080px wide" }
+  const RESULT = { busy: "working…", done: "done", failed: "didn't work" }
 
-  function syncActionChips() {
-    document.querySelectorAll("#pvActions .link-chip").forEach(c => {
-      c.classList.toggle("active", !!actions[c.dataset.act])
-      c.classList.remove("done", "failed", "busy")
+  // Called from updatePreview() too, so the calendar count stays live.
+  function syncPublishMenu() {
+    const n = collectCalendarTasks().length
+    document.querySelectorAll(".pub-opt").forEach(o => {
+      const k = o.dataset.act, res = ["busy", "done", "failed"].find(c => o.classList.contains(c))
+      o.setAttribute("aria-checked", String(!!actions[k]))
+      o.classList.toggle("warn", k === "calendar" && !n && !res)
+      o.querySelector(".po-h").textContent = res ? RESULT[res]
+        : k === "calendar" ? (n ? `${n} task${n > 1 ? "s" : ""} flagged` : "nothing flagged yet") : HINT[k]
     })
-    const hint = document.getElementById("publishHint")
-    const on = Object.keys(actions).filter(k => actions[k])
-    hint.textContent = on.length
-      ? "Publish will " + on.map(k => ACTION_LABELS[k]).join(", ").replace(/, ([^,]*)$/, " and $1") + "."
-      : "Nothing selected — pick at least one action above."
+    const on = Object.keys(SHORT).filter(k => actions[k])
+    document.getElementById("pubSum").textContent = on.length
+      ? on.map(k => k === "calendar" ? `Calendar (${n})` : SHORT[k]).join(" · ")
+      : "nothing selected — tap the arrow"
   }
 
-  document.querySelectorAll("#pvActions .link-chip").forEach(chip => {
-    chip.onclick = () => {
-      const act = chip.dataset.act
+  document.querySelectorAll(".pub-opt").forEach(o => {
+    o.onclick = e => {
+      e.stopPropagation()   // keep the menu open while switching
+      const act = o.dataset.act
       actions[act] = !actions[act]
       // The clipboard holds one thing at a time, so copying the image would
       // silently wipe the copied text. Only one of the two can be on.
       if (actions[act] && act === "copyText")  actions.copyImage = false
       if (actions[act] && act === "copyImage") actions.copyText  = false
       try { localStorage.setItem(ACTIONS_KEY, JSON.stringify(actions)) } catch(e) {}
-      syncActionChips()
+      syncPublishMenu()
     }
   })
-  syncActionChips()
+  const pubMenu = document.getElementById("pubMenu"), pubMore = document.getElementById("pubMore")
+  const closePubMenu = () => { pubMenu.classList.remove("open"); pubMore.classList.remove("open"); pubMore.setAttribute("aria-expanded", "false") }
+  pubMore.onclick = e => {
+    e.stopPropagation()
+    if (pubMenu.classList.contains("open")) return closePubMenu()
+    document.querySelectorAll(".add-dd-menu.open").forEach(m => m.classList.remove("open"))
+    pubMenu.classList.add("open"); pubMore.classList.add("open"); pubMore.setAttribute("aria-expanded", "true")
+    // open upward when there isn't room below (it's at the bottom of the page)
+    const b = pubMore.getBoundingClientRect()
+    pubMenu.classList.toggle("up", b.bottom + 6 + pubMenu.offsetHeight > window.innerHeight - 8)
+  }
+  pubMenu.onclick = e => e.stopPropagation()
+  document.addEventListener("click", closePubMenu)
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && pubMenu.classList.contains("open")) { closePubMenu(); pubMore.focus() } })
+  syncPublishMenu()
 
   function markChip(act, cls) {
-    const chip = document.querySelector(`#pvActions .link-chip[data-act="${act}"]`)
-    if (!chip) return
-    chip.classList.remove("busy", "done", "failed")
-    if (cls) chip.classList.add(cls)
+    const o = document.querySelector(`.pub-opt[data-act="${act}"]`)
+    if (!o) return
+    o.classList.remove("busy", "done", "failed")
+    if (cls) o.classList.add(cls)
+    syncPublishMenu()
   }
 
   document.getElementById("publishBtn").onclick = async function() {
     const btn = this
-    const chosen = Object.keys(actions).filter(k => actions[k])
-    if (!chosen.length) { setStatus("s-info", "Pick at least one action above first."); return }
+    closePubMenu()
+    let chosen = Object.keys(actions).filter(k => actions[k])
+    if (!chosen.length) { setStatus("s-info", "Nothing is switched on — tap the arrow beside Publish to pick what it does."); return }
     if (!buildFormattedMessage()) { setStatus("s-info", "Nothing to publish yet — fill in the form first."); return }
 
+    // No flagged tasks: the calendar step is skipped, and the confirm says so.
     const tasks = collectCalendarTasks()
-    if (actions.calendar && tasks.length === 0) {
-      setStatus("s-info", "No tasks flagged yet. Tap the pin on a bullet, or + Add → Add to calendar on a subject.")
+    const skipCal = actions.calendar && tasks.length === 0
+    if (skipCal) chosen = chosen.filter(k => k !== "calendar")
+    if (!chosen.length) {
+      setStatus("s-info", "Nothing is flagged for the calendar yet. Pin a bullet from its options, or + Add → Add to calendar on a subject.")
       return
     }
 
     const lines = chosen.map(k => "• " + ACTION_LABELS[k][0].toUpperCase() + ACTION_LABELS[k].slice(1))
+    if (skipCal) lines.push("• Calendar: nothing flagged, will be skipped")
     const ok = await openConfirm({
       icon: "send", title: "Publish?",
       message: "This will:\n" + lines.join("\n") +
@@ -1900,7 +2060,8 @@ function initApp() {
     })
     if (!ok) return
 
-    btn.disabled = true
+    btn.disabled = true; btn.classList.add("busy")
+    document.getElementById("pubSum").textContent = "Publishing…"
     chosen.forEach(k => markChip(k, "busy"))
     setStatus("s-info", "Publishing…")
 
@@ -1924,7 +2085,7 @@ function initApp() {
     if (actions.saveImage) record("saveImage", await downloadCardImage())
     if (actions.discord)   record("discord", await sendToDiscord())
 
-    if (actions.calendar) {
+    if (actions.calendar && !skipCal) {
       try {
         const results = await syncToFirestore(tasks)
         const okN = results.filter(r => r.ok).length
@@ -1937,12 +2098,14 @@ function initApp() {
       }
     }
 
+    if (skipCal) done.push("skip the calendar (nothing flagged)")
     if (!failed.length)      setStatus("s-success", "Published — " + done.join(", ") + ".")
     else if (!done.length)   setStatus("s-error",   "Couldn't " + failed.join(", ") + ".")
     else                     setStatus("s-error",   "Did " + done.join(", ") + " — but couldn't " + failed.join(", ") + ".")
 
-    btn.disabled = false
-    setTimeout(syncActionChips, 3000)
+    btn.disabled = false; btn.classList.remove("busy")
+    syncPublishMenu()
+    setTimeout(() => chosen.forEach(k => markChip(k, null)), 4000)
   }
 
   // ── Boot ──────────────────────────────────────────────────────
