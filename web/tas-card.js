@@ -163,6 +163,12 @@ const HW_CSS = `
 .hw-qr-t svg{width:11px;height:11px}
 .hw-qr-d{font-size:9.5px;color:#64748b;line-height:1.35}
 .hw-qr-u{font-size:9px;font-weight:500;color:#16305e;padding:1px 7px;border-radius:99px;background:#e8edf6;white-space:nowrap}
+.hw-ft-solo{display:flex;align-items:center;gap:14px;margin:14px 18px 16px;padding:10px 12px 10px 14px;border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(15,29,58,.06),0 0 0 1px #e8edf3}
+.hw-solo-txt{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.hw-ft-solo .hw-qr-t{margin:0}
+.hw-ft-solo .hw-qr-d{text-align:left}
+.hw-ft-solo .hw-qr-u{margin-top:2px}
+.hw-ft-solo .hw-qr-code{width:56px;height:56px;flex-shrink:0}
 `
 
 // A row's lines, each in its own style and size. Neighbouring pills
@@ -236,6 +242,15 @@ function footerHTML(f){
       <div class="hw-qr-d">All homework on<br>the TAS calendar</div>
       ${f.qr.url ? `<div class="hw-qr-u">${esc(f.qr.url.replace(/^https?:\/\/|\/.*$/g, ""))}</div>` : ""}
     </div>` : ""
+  // Nothing due tomorrow: a slim strip, words left and the QR right
+  if(!rem && f.qr) return `<div class="hw-ft-solo">
+      <div class="hw-solo-txt">
+        <div class="hw-qr-t">${ICO.scan}Scan to view</div>
+        <div class="hw-qr-d">All homework &amp; deadlines on the TAS calendar</div>
+        ${f.qr.url ? `<div class="hw-qr-u">${esc(f.qr.url.replace(/^https?:\/\/|\/.*$/g, ""))}</div>` : ""}
+      </div>
+      <div class="hw-qr-code">${f.qr.svg}</div>
+    </div>`
   return `<div class="hw-ft">${rem}${qr}</div>`
 }
 
