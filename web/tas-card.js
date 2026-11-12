@@ -138,27 +138,31 @@ const HW_CSS = `
 .hw-empty{text-align:center;padding:30px 0 26px;font-size:19px;font-weight:500;color:#64748b}
 .hw-empty .hw-ico{display:flex;width:40px;height:40px;margin:0 auto 6px;color:#16a34a}
 .hw-foot{height:18px}
-.hw-ft{display:grid;grid-template-columns:minmax(0,1fr) 128px;gap:16px;padding:4px 18px 20px;align-items:center}
-.hw-rem{margin-top:12px;min-width:0;gap:8px}
+.hw-ft{display:grid;grid-template-columns:minmax(0,1fr) 108px;gap:14px;padding:2px 18px 16px;align-items:center}
+.hw-rem{margin-top:10px;min-width:0;gap:6px}
+.hw-ft .hw-sec-head{font-size:13.5px;gap:6px;padding:0 2px}
+.hw-ft .hw-sec-head .hw-ico{width:15px;height:15px;margin-top:0}
 .hw-sec-head .hw-ico svg{width:100%;height:100%}
-.hw-ft .hw-row{border-radius:12px}
-.hw-ft .hw-main{padding:9px 11px 10px}
-.hw-ft .hw-subj{font-size:14px;gap:6px}
-.hw-ft .hw-ico{width:16px;height:16px;margin-top:1px}
-.hw-ft .hw-code{font-size:10.5px;padding:1px 6px;margin-left:5px;vertical-align:1px}
-.hw-ft .hw-pill{font-size:11px;padding:2px 8px}
-.hw-ft .hw-meta{font-size:11.5px;margin-top:3px;gap:4px 10px}
-.hw-ft .hw-meta svg{width:12px;height:12px}
-.hw-ft .hw-lines{margin-top:6px}
-.hw-ft .hw-chip{font-size:12.5px !important}
-.hw-rem-more{font-size:12px;color:#64748b;padding:0 2px}
-.hw-qr{grid-column:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding-top:12px;min-width:0}
-.hw-qr-code{width:92px;height:92px}
+.hw-ft .hw-row{border-radius:10px}
+.hw-ft .hw-strip{width:4px}
+.hw-ft .hw-main{padding:6px 9px 7px}
+.hw-ft .hw-head{gap:6px}
+.hw-ft .hw-subj{font-size:12px;gap:5px}
+.hw-ft .hw-ico{width:13px;height:13px;margin-top:1px}
+.hw-ft .hw-code{font-size:9px;padding:0 5px;margin-left:4px;vertical-align:1px}
+.hw-ft .hw-pill{font-size:9.5px;padding:1px 7px;margin-top:0}
+.hw-ft .hw-meta{font-size:10px;margin-top:1px;gap:3px 8px}
+.hw-ft .hw-meta svg{width:10px;height:10px}
+.hw-ft .hw-lines{margin-top:4px;gap:4px}
+.hw-ft .hw-chip{font-size:11px !important;border-radius:6px}
+.hw-rem-more{font-size:10.5px;color:#64748b;padding:0 2px}
+.hw-qr{grid-column:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding-top:10px;min-width:0}
+.hw-qr-code{width:68px;height:68px}
 .hw-qr-code svg{display:block;width:100%;height:100%}
-.hw-qr-t{margin-top:2px;font-size:13.5px;font-weight:600;color:#0f1d3a;line-height:1.25;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
-.hw-qr-t svg{width:13px;height:13px}
-.hw-qr-d{font-size:11px;color:#64748b;line-height:1.35}
-.hw-qr-u{font-size:10px;font-weight:500;color:#16305e;padding:2px 8px;border-radius:99px;background:#e8edf6;white-space:nowrap}
+.hw-qr-t{margin-top:2px;font-size:11.5px;font-weight:600;color:#0f1d3a;line-height:1.25;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.hw-qr-t svg{width:11px;height:11px}
+.hw-qr-d{font-size:9.5px;color:#64748b;line-height:1.35}
+.hw-qr-u{font-size:9px;font-weight:500;color:#16305e;padding:1px 7px;border-radius:99px;background:#e8edf6;white-space:nowrap}
 `
 
 // A row's lines, each in its own style and size. Neighbouring pills
