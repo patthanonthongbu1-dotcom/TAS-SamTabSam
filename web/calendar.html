@@ -1194,26 +1194,10 @@
     .dp-chip{display:inline-flex;align-items:center;gap:5px;font-size:13.5px;font-weight:500;padding:3px 10px;border-radius:99px;background:var(--field-bg);border:1px solid var(--field-brd);color:var(--text)}
     .dp-chip .ic{width:13px;height:13px;color:var(--muted)}
     .dp-teacher{color:var(--muted)}
-    /* Day sheet: the detail sheet's look, listing a day's work */
-    .ds-sec{margin-bottom:1.1rem}
-    .ds-sec:last-child{margin-bottom:.4rem}
-    .ds-h{font-size:12.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;display:flex;align-items:center;gap:6px}
-    .ds-h .ic{width:14px;height:14px;color:var(--pink)}
-    .ds-row{display:flex;align-items:stretch;gap:0;width:100%;text-align:left;font-family:'Kanit',sans-serif;cursor:pointer;
-      border:1px solid var(--field-brd);background:var(--field-bg);border-radius:13px;overflow:hidden;margin-bottom:7px;padding:0;color:var(--text);transition:border-color .15s,background .15s}
-    .ds-row:hover{border-color:var(--accent-brd);background:var(--accent-soft)}
-    .ds-strip{width:5px;flex-shrink:0}
-    .ds-main{flex:1;min-width:0;padding:8px 11px 9px}
-    .ds-top{display:flex;align-items:center;gap:8px}
-    .ds-sub{flex:1;min-width:0;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    /* Readable on both themes: tinted fill, mid-tone text */
-    .ds-kind{flex-shrink:0;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:99px;background:rgba(249,115,22,.16);color:#ea580c}
-    .ds-kind.quiz,.ds-kind.exam{background:rgba(139,92,246,.18);color:#8b5cf6}
-    .ds-name{font-size:15.5px;font-weight:500;line-height:1.35;margin-top:1px;overflow-wrap:anywhere}
-    .ds-when{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
-    .ds-when:empty{display:none}
-    .ds-when .dp-chip{font-size:12px;padding:1px 8px}
-    .ds-empty{font-size:14.5px;color:var(--muted);padding:2px 0 6px}
+    /* Back from the Today page: its tasks pulse for a few seconds */
+    .hl-pulse{animation:hlPulse 1.4s ease-in-out 3;border-radius:10px;outline:2.5px solid var(--pink);outline-offset:2px}
+    @keyframes hlPulse{0%,100%{box-shadow:0 0 0 0 transparent}40%{box-shadow:0 0 0 3px var(--pink),0 0 18px 2px var(--accent-ring, rgba(59,130,246,.35))}}
+    .today-dot{position:absolute;top:4px;right:9px;width:8px;height:8px;border-radius:50%;background:#e53e3e;box-shadow:0 0 0 2px rgba(30,48,84,.9)}
     /* Spotify-style countdown: one box per unit */
     .cd-caption{font-size:11.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
     .cd-boxes{display:flex;gap:6px}
@@ -1467,6 +1451,10 @@
     .mt-tab.active{background:var(--accent-grad);border-color:transparent;color:#fff;
       box-shadow:0 6px 18px -8px var(--accent-shadow)}
     .mt-tab.active .pt-count{background:#fff;color:#c02e7e}
+    .mt-ideas-pane{background:none!important;border:none!important;padding:0!important;box-shadow:none!important}
+    /* The My Tasks tab already says "Ideas" */
+    .mt-ideas-pane .tl-head{display:none}
+    .mt-ideas-pane .tl-wrap{padding-left:0;padding-right:0}
     .mt-pane{
       background:var(--glass-2);border:1px solid var(--glass-brd);border-radius:18px;
       padding:16px 18px 14px;display:flex;flex-direction:column;gap:14px;min-width:0;
@@ -2681,6 +2669,7 @@
   </symbol>
   <symbol id="ic-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   <symbol id="ic-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14"/></symbol>
+  <symbol id="ic-today" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><circle cx="12" cy="15" r="2" fill="currentColor"/></symbol>
   <symbol id="ic-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="19" cy="12" r="1.4" fill="currentColor"/></symbol>
   <symbol id="ic-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M12 21.2s6.4-6 6.4-10.6a6.4 6.4 0 1 0-12.8 0C5.6 15.2 12 21.2 12 21.2z"/><circle cx="12" cy="10.4" r="2.4"/>
@@ -2788,6 +2777,11 @@
         <svg class="nav-ic"><use href="#ic-calendar"/></svg>
         <span class="nav-lab">Calendar</span>
       </button>
+      <a class="nav-pill" id="tabToday" href="today.html" style="text-decoration:none" title="Today's homework report">
+        <svg class="nav-ic"><use href="#ic-today"/></svg>
+        <span class="nav-lab">Today</span>
+        <span class="today-dot" id="todayDot" style="display:none"></span>
+      </a>
       <button class="nav-pill" id="tabTodo" onclick="switchView('todo')">
         <svg class="nav-ic"><use href="#ic-check-square"/></svg>
         <span class="nav-lab">To Do</span>
@@ -2798,8 +2792,8 @@
         <span class="nav-lab">My Tasks</span>
         <span class="tab-count" id="ptTopCount" style="display:none"></span>
       </button>
-      <!-- Archive, Ideas and Settings live behind More: seven pills didn't
-           fit a phone's bar and had to scroll sideways. -->
+      <!-- Archive and Settings live behind More (Ideas is a My Tasks tab):
+           seven pills didn't fit a phone's bar and had to scroll sideways. -->
       <button class="nav-pill" id="tabMore" onclick="toggleMoreMenu(event)" aria-haspopup="menu" aria-expanded="false">
         <svg class="nav-ic"><use href="#ic-more"/></svg>
         <span class="nav-lab">More</span>
@@ -2818,10 +2812,6 @@
     <button class="user-dropdown-btn menu more-item" id="tabArchive" role="menuitem" onclick="closeMenus();switchView('archive')">
       <svg class="ic" aria-hidden="true"><use href="#ic-archive"/></svg> Archive
       <span class="tab-count" id="archiveCount" style="display:none"></span>
-    </button>
-    <button class="user-dropdown-btn menu more-item" id="tabIdeas" role="menuitem" onclick="closeMenus();switchView('ideas')">
-      <svg class="ic" aria-hidden="true"><use href="#ic-inbox"/></svg> Ideas
-      <span class="tab-count" id="ideasCount" style="display:none"></span>
     </button>
     <button class="user-dropdown-btn menu more-item" id="tabSettings" role="menuitem" onclick="closeMenus();openSettings()">
       <svg class="ic" aria-hidden="true"><use href="#ic-settings"/></svg> Settings
@@ -2974,16 +2964,6 @@
     <div class="detail-dates" id="dp-dates"></div>
     <button class="detail-edit-btn" id="dp-edit-btn"><svg class="ic" aria-hidden="true"><use href="#ic-pencil"/></svg> Edit task</button>
   </div>
-</div>
-
-<!-- DAY SHEET — what a homework card's QR opens (calendar?date=YYYY-MM-DD) -->
-<div class="detail-popup day-sheet" id="daySheet" role="dialog" aria-labelledby="ds-title">
-  <button class="detail-close" onclick="closeDaySheet()" aria-label="Close">✕</button>
-  <div class="detail-header">
-    <h3 id="ds-title"></h3>
-    <div class="detail-subject">Homework for this day</div>
-  </div>
-  <div class="detail-body" id="ds-body"></div>
 </div>
 
 <!-- PERSONAL TASK PANEL -->
@@ -3235,6 +3215,14 @@
 
       <div class="set-group-label">Tasks</div>
       <div class="set-group">
+        <div class="set-row tap" onclick="toggleTodayAuto(event)">
+          <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-today"/></svg></div>
+          <div class="set-row-text">
+            <div class="set-row-title">Show new homework automatically</div>
+            <div class="set-row-desc">When the class posts or changes homework, the Today report opens once by itself. Off: a red dot on Today instead.</div>
+          </div>
+          <div class="set-switch" id="todayAutoSwitch"></div>
+        </div>
         <div class="set-row tap" onclick="toggleSideQuests(event)">
           <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-moon"/></svg></div>
           <div class="set-row-text">
@@ -3520,7 +3508,7 @@ import { loadIdeas, saveIdeas, adoptGuestIdeas } from "./tas-blocks-store.js"
 import * as Points from "./tas-points.js"
 import * as Subj from "./tas-subjects.js"
 import { mountSubjectSearch } from "./tas-subject-search.js"
-import { cardModel, fromTasks, SEND, sendLabel, dayTasks, weekdayOf, shortThai, DUE_KINDS } from "./tas-hwcard.js"
+import { cardModel, fromTasks, SEND, sendLabel, newestStamp } from "./tas-hwcard.js"
 import { mountHwCard, exportHwCard, HW_WIDTH } from "./tas-card.js"
 import { icsFor } from "./tas-ics.js"
 import {
@@ -4217,8 +4205,7 @@ onAuthStateChanged(auth, async user => {
   widgetFeedExists(db, user.uid).then(on => { widgetFeedOn = on; if(on) queueWidgetFeed() })
   if(notifyReady()) enableCloudPush()   // keep this device's push token fresh
   // First-time visitors get the walkthrough automatically
-  // …but not on top of a card's day sheet; they get it next visit
-  try{ if(!cameFromCard && !localStorage.getItem("tas_cal_tour_seen")) setTimeout(()=>window.openTour(),700) }catch(e){}
+  try{ if(!localStorage.getItem("tas_cal_tour_seen")) setTimeout(()=>window.openTour(),700) }catch(e){}
 })
 
 // ── Signed-out browsing ───────────────────────────────────────
@@ -4374,13 +4361,13 @@ window.toggleMoreMenu = e => {
   closeMenus()
   if(!open){ m.classList.add("open"); document.getElementById("tabMore").setAttribute("aria-expanded","true") }
 }
-// More shows a dot while Archive or Ideas has a count behind it
+// More shows a dot while Archive has a count behind it
 function syncMoreDot(){
   const shown = id => { const b = document.getElementById(id); return b && b.style.display !== "none" && b.textContent.trim() }
   const dot = document.getElementById("moreDot")
-  if(dot) dot.style.display = shown("archiveCount") || shown("ideasCount") ? "block" : "none"
+  if(dot) dot.style.display = shown("archiveCount") ? "block" : "none"
 }
-;["archiveCount","ideasCount"].forEach(id => {
+;["archiveCount"].forEach(id => {
   const b = document.getElementById(id)
   if(b) new MutationObserver(syncMoreDot).observe(b, { attributes:true, childList:true, characterData:true, subtree:true })
 })
@@ -4526,10 +4513,11 @@ function startTasksListener() {
     try{ localStorage.setItem(TASKS_CACHE_KEY, JSON.stringify(tasks)) }catch(e){}
     queueDueReminders()
     updateLatestPill()
+    if (!firstTasksSnap) syncTodayDot()
     if (savingIds.size === 0) {
       renderCurrentView()
     }
-    if (dayFromLink) { const d = dayFromLink; dayFromLink = null; openDaySheet(d) }
+    if (firstTasksSnap) { firstTasksSnap = false; afterFirstTasks() }
   }, err => {
     console.warn("Tasks listener error:", err)
     toast("Lost connection to the task list — trying to reconnect…",{error:true,duration:6000})
@@ -5025,7 +5013,7 @@ function applyStoredRangeToUI(){
 // Which nav pill is lit. Four are real views; "settings" is the last sheet
 // left, and borrows the highlight while it's open, handing it back on close.
 function setActivePill(which){
-  const map = { calendar:"tabCalendar", archive:"tabArchive", todo:"tabTodo", ideas:"tabIdeas", tasks:"tabTasks", settings:"tabSettings" }
+  const map = { calendar:"tabCalendar", archive:"tabArchive", todo:"tabTodo", tasks:"tabTasks", settings:"tabSettings" }
   for(const [key, id] of Object.entries(map)){
     const el = document.getElementById(id)
     if(!el) continue
@@ -5034,7 +5022,7 @@ function setActivePill(which){
     // On a phone the row scrolls; the tab you're on is never left off-screen
     if(key === which) el.scrollIntoView({ block:"nearest", inline:"nearest" })
   }
-  document.getElementById("tabMore")?.classList.toggle("active", ["archive","ideas","settings"].includes(which))
+  document.getElementById("tabMore")?.classList.toggle("active", ["archive","settings"].includes(which))
   syncTabsEdge()
 }
 // Which edge to fade, if the row scrolls at all (see .topnav-tabs.scrolls)
@@ -5051,6 +5039,8 @@ syncTabsEdge()
 window.setActivePill = setActivePill
 
 window.switchView = function(view) {
+  // Ideas is a tab of My Tasks now; old callers (share target…) land there
+  if(view === "ideas"){ switchView("tasks"); mtTab("ideas"); return }
   currentView = view
   animateRows = true
   setActivePill(view)
@@ -5066,20 +5056,19 @@ window.switchView = function(view) {
   // Arriving is the one time the form is rebuilt and reset — every later
   // repaint leaves what's half-typed alone.
   else if (view==="tasks") renderMyTasks(true)
-  else if (view==="ideas") IdeasUI.open()
   else renderArchive()
 }
 
 /* ── Ideas — its own tab ───────────────────────────────────── */
 function initIdeasView(uid){
   IdeasUI.initIdeas({
-    uid, mount: document.getElementById("calWrap"),
+    uid, mount: () => document.getElementById("mtIdeasPane"),
     load: loadIdeas, save: saveIdeas, adopt: adoptGuestIdeas,
     addToDay: BlocksUI.addToDay, removeFromDay: BlocksUI.removeFromDay,
     makeTask: ideaToTask,
     helpers: {
       esc, ico, toast, shortDate,
-      isActive: () => currentView==="ideas",
+      isActive: () => currentView==="tasks" && mtTabName==="ideas",
       onCount: n => {
         const b = document.getElementById("ideasCount")
         if(!b) return
@@ -5090,18 +5079,16 @@ function initIdeasView(uid){
   if(shareArrived){ shareArrived = false; switchView("ideas") }
 }
 
-/* A homework card's QR: calendar?date=YYYY-MM-DD opens that day's sheet
-   once the class tasks have arrived. Read once and wiped from the address
-   bar, so a refresh doesn't pop it open again. */
-let dayFromLink = null, cameFromCard = false
+/* Old card links (calendar?date=…) belong to the Today page now. And the
+   Today page sends people back with ?hl=id,id: those tasks get lit up. */
+let hlFromToday = []
+let firstTasksSnap = true
 {
   const q = new URLSearchParams(location.search)
   const d = q.get("date") || ""
-  if(/^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(parseDate(d))){
-    dayFromLink = d; cameFromCard = true
-    q.delete("date")
-    history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : ""))
-  }
+  if(/^\d{4}-\d{2}-\d{2}$/.test(d)) location.replace("today.html?date=" + d)
+  hlFromToday = (q.get("hl") || "").split(",").filter(id => SAFE_ID.test(id)).slice(0, 40)
+  if(q.has("hl")){ q.delete("hl"); history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : "")) }
 }
 
 /* Shared in from another app via the manifest's share_target. Read once,
@@ -7739,46 +7726,45 @@ function closeDetailOutside(e){
   if(document.getElementById("pointsModal").classList.contains("open"))return
   if(!document.getElementById("detailPopup").contains(e.target))closeDetail()
 }
-// ── Day sheet ───────────────────────────────────────────────
-function dayRowHTML(t, showDay){
-  const h=Subj.match(t.subject,subjectList)
-  const color=(h&&h.color)||subjectColor(t.subject)
-  const kind=t.type==="marker"?t.markerType:"homework"
-  const kindLabel=kind==="homework"?(showDay?EN_DAYS[parseDate(t.end).getDay()].slice(0,3):""):
-    (DUE_KINDS[kind]?.label||"")+(showDay?" "+EN_DAYS[parseDate(t.end).getDay()].slice(0,3):"")
-  return `<button class="ds-row" onclick="closeDaySheet();showDetail(event,'${esc(t.id)}')">
-    <span class="ds-strip" style="background:${esc(color)}"></span>
-    <span class="ds-main">
-      <span class="ds-top"><span class="ds-sub">${subjLineHTML(t.subject)}</span>${kindLabel?`<span class="ds-kind ${esc(kind)}">${esc(kindLabel)}</span>`:""}</span>
-      <span class="ds-name" style="display:block">${esc(t.name||"")}</span>
-      <span class="ds-when">${whenChipsHTML(t)}</span>
-    </span>
-  </button>`
+// ── Today page: opens by itself once per new homework, lights up on return ──
+const TODAY_SEEN_KEY = "tas_today_seen", TODAY_AUTO_KEY = "tas_today_auto"
+const todayAuto = () => { try{ return localStorage.getItem(TODAY_AUTO_KEY) !== "0" }catch(e){ return true } }
+function syncTodayDot(){
+  let seen = 0
+  try{ seen = Number(localStorage.getItem(TODAY_SEEN_KEY)) || 0 }catch(e){}
+  const dot = document.getElementById("todayDot")
+  if(dot) dot.style.display = tasks.length && newestStamp(tasks) > seen ? "block" : "none"
 }
-window.openDaySheet=function(date){
-  // Show the calendar itself on that date behind the sheet
-  if(currentView!=="calendar") switchView("calendar")
-  if(calMode==="grid"){ const d=parseDate(date); gridMonth=new Date(d.getFullYear(),d.getMonth(),1); renderCurrentView() }
-  const { due, upcoming, week } = dayTasks(tasks, date)
-  document.getElementById("ds-title").textContent=`วัน${weekdayOf(date)} ${shortThai(date)}`
-  const sec=(icon,title,list,showDay,empty)=>`<div class="ds-sec"><div class="ds-h">${ico(icon)} ${title}</div>${
-    list.length?list.map(t=>dayRowHTML(t,showDay)).join(""):`<div class="ds-empty">${empty}</div>`}</div>`
-  document.getElementById("ds-body").innerHTML=
-    sec("calendar-grid","Due this day",due,false,"Nothing due this day 🎉")+
-    sec("pin",week?"Due next week":"Due tomorrow",upcoming,week,week?"Nothing due next week.":"Nothing due tomorrow.")
-  const sh=document.getElementById("daySheet")
-  sh.classList.remove("closing"); sh.style.display="block"
-  void sh.offsetWidth
-  sh.classList.add("open"); sh.scrollTop=0
-  setTimeout(()=>document.addEventListener("click",closeDaySheetOutside),0)
+function afterFirstTasks(){
+  if(hlFromToday.length) setTimeout(highlightTasks, 450, hlFromToday)
+  let seen = null
+  try{ seen = localStorage.getItem(TODAY_SEEN_KEY) }catch(e){}
+  const newest = newestStamp(tasks)
+  // First visit ever: nothing is "new" yet — remember where we are
+  if(seen === null){ try{ localStorage.setItem(TODAY_SEEN_KEY, String(newest)) }catch(e){}; return syncTodayDot() }
+  // Not straight back from Today, not mid-share, and only for something newer
+  if(todayAuto() && !hlFromToday.length && !shareArrived && newest > Number(seen)){ location.href = "today.html"; return }
+  syncTodayDot()
 }
-function closeDaySheetOutside(e){ if(!document.getElementById("daySheet").contains(e.target)) closeDaySheet() }
-window.closeDaySheet=function(){
-  const sh=document.getElementById("daySheet")
-  document.removeEventListener("click",closeDaySheetOutside)
-  if(!sh.classList.contains("open")) return
-  sh.classList.remove("open"); sh.classList.add("closing")
-  setTimeout(()=>{ if(!sh.classList.contains("open")){ sh.classList.remove("closing"); sh.style.display="none" } },300)
+// Lights up these tasks wherever the current view draws them, and brings
+// the first one into view
+function highlightTasks(ids){
+  const els = []
+  for(const id of ids){
+    // Whatever opens the task (label, bar, grid chip) — not the whole track
+    document.querySelectorAll(`[onclick*="'${id}'"]:not(.out-indicator)`).forEach(el => els.push(el))
+  }
+  if(!els.length) return
+  els[0].scrollIntoView({ block:"center", inline:"center", behavior:"smooth" })
+  els.forEach(el => { el.classList.remove("hl-pulse"); void el.offsetWidth; el.classList.add("hl-pulse") })
+  setTimeout(() => els.forEach(el => el.classList.remove("hl-pulse")), 4200)
+}
+document.getElementById("todayAutoSwitch")?.classList.toggle("on", todayAuto())
+window.toggleTodayAuto = function(e){
+  e?.stopPropagation?.()
+  const on = !todayAuto()
+  try{ localStorage.setItem(TODAY_AUTO_KEY, on ? "1" : "0") }catch(err){}
+  document.getElementById("todayAutoSwitch")?.classList.toggle("on", on)
 }
 
 window.closeDetail=function(){
@@ -8046,6 +8032,8 @@ function myTasksHTML(){
         <button class="mt-tab active" id="mtTabAdd" onclick="mtTab('add')">${ico("plus")} Add</button>
         <button class="mt-tab" id="mtTabList" onclick="mtTab('list')">${ico("clipboard")} My list
           <span class="pt-count" id="ptCount" style="display:none"></span></button>
+        <button class="mt-tab" id="mtTabIdeas" onclick="mtTab('ideas')">${ico("inbox")} Ideas
+          <span class="pt-count" id="ideasCount" style="display:none"></span></button>
       </div>
     </div>
 
@@ -8186,6 +8174,7 @@ function myTasksHTML(){
       </div>
     </section>
 
+    <section class="mt-pane mt-ideas-pane" id="mtIdeasPane" style="display:none"></section>
     <section class="mt-pane" id="mtListPane" style="display:none">
       <div id="ptListContent"></div>
     </section>
@@ -8199,6 +8188,8 @@ function renderMyTasks(rebuild){
   if(rebuild || !wrap.querySelector(".mt-page")){
     wrap.innerHTML = myTasksHTML()
     wireMyTasks()
+    const ic = document.getElementById("ideasCount"), n = IdeasUI.ideaCount()
+    if(ic){ ic.textContent = n; ic.style.display = n ? "inline-block" : "none" }
     resetPtForm()
     mtTab("add")
   }
@@ -8239,7 +8230,10 @@ window.mtTab = function(tab){
   document.getElementById("mtTabList").classList.toggle("active", tab === "list")
   document.getElementById("mtAddPane").style.display  = tab === "add"  ? "flex" : "none"
   document.getElementById("mtListPane").style.display = tab === "list" ? "flex" : "none"
+  document.getElementById("mtTabIdeas").classList.toggle("active", tab === "ideas")
+  document.getElementById("mtIdeasPane").style.display = tab === "ideas" ? "block" : "none"
   if(tab === "list") renderPtList()
+  if(tab === "ideas") IdeasUI.open()
 }
 
 /* ── The steps ──────────────────────────────────────────────── */
@@ -8685,7 +8679,6 @@ document.addEventListener("keydown",e=>{
   if(open("settingsOverlay")) return closeSettings()
   if(open("tourOverlay"))     return closeTour()
   if(open("userDropdown")||open("moreMenu")) return closeMenus()
-  if(open("daySheet")) return closeDaySheet()
   if(open("configSheet")) closeFabs()
 })
 

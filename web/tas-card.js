@@ -139,6 +139,7 @@ const HW_CSS = `
 .hw-empty .hw-ico{display:flex;width:40px;height:40px;margin:0 auto 6px;color:#16a34a}
 .hw-foot{height:18px}
 .hw-ft{display:grid;grid-template-columns:minmax(0,1fr) 108px;gap:14px;margin:20px 18px 0;padding:14px 0 16px;border-top:1px solid #e2e8f0;align-items:start}
+.hw-ft-noqr{grid-template-columns:1fr}
 .hw-rem{margin-top:0;min-width:0;gap:6px}
 .hw-ft .hw-sec-head{font-size:13.5px;gap:6px;padding:0 2px}
 .hw-ft .hw-sec-head .hw-ico{width:15px;height:15px;margin-top:0}
@@ -156,7 +157,7 @@ const HW_CSS = `
 .hw-ft .hw-lines{margin-top:4px;gap:4px}
 .hw-ft .hw-chip{font-size:11px !important;border-radius:6px}
 .hw-rem-more{font-size:10.5px;color:#64748b;padding:0 2px}
-.hw-qr{grid-column:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding-top:2px;min-width:0}
+.hw-qr{grid-column:2;align-self:end;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;min-width:0}
 .hw-qr-code{width:68px;height:68px}
 .hw-qr-code svg{display:block;width:100%;height:100%}
 .hw-qr-t{margin-top:2px;font-size:11.5px;font-weight:600;color:#0f1d3a;line-height:1.25;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
@@ -239,19 +240,19 @@ function footerHTML(f){
   const qr = f.qr ? `<div class="hw-qr">
       <div class="hw-qr-code">${f.qr.svg}</div>
       <div class="hw-qr-t">${ICO.scan}Scan to view</div>
-      <div class="hw-qr-d">All homework on<br>the TAS calendar</div>
+      <div class="hw-qr-d">This day's homework<br>report on TAS</div>
       ${f.qr.url ? `<div class="hw-qr-u">${esc(f.qr.url.replace(/^https?:\/\/|\/.*$/g, ""))}</div>` : ""}
     </div>` : ""
   // Nothing due tomorrow: a slim strip, words left and the QR right
   if(!rem && f.qr) return `<div class="hw-ft-solo">
       <div class="hw-solo-txt">
         <div class="hw-qr-t">${ICO.scan}Scan to view</div>
-        <div class="hw-qr-d">All homework &amp; deadlines on the TAS calendar</div>
+        <div class="hw-qr-d">This day's homework report, live on TAS</div>
         ${f.qr.url ? `<div class="hw-qr-u">${esc(f.qr.url.replace(/^https?:\/\/|\/.*$/g, ""))}</div>` : ""}
       </div>
       <div class="hw-qr-code">${f.qr.svg}</div>
     </div>`
-  return `<div class="hw-ft">${rem}${qr}</div>`
+  return `<div class="hw-ft${qr ? "" : " hw-ft-noqr"}">${rem}${qr}</div>`
 }
 
 export function mountHwCard(container, model){

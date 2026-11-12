@@ -167,3 +167,24 @@ export function dayTasks(tasks, date){
     week: win.week,
   }
 }
+
+// The local calendar date (YYYY-MM-DD) a millisecond stamp falls on
+const stampDay = ms => ms ? localKey(new Date(ms)) : ""
+// When a task last changed: posted or edited, whichever is later
+export const taskStamp = t => Math.max(Number(t?.createdAt) || 0, Number(t?.updatedAt) || 0)
+/** Newest change across the class tasks (0 when there are none) */
+export const newestStamp = tasks => (tasks || []).reduce((m, t) => Math.max(m, taskStamp(t)), 0)
+
+/**
+ * The Today page's report for `date`: what was posted that day, what's due
+ * that day, and what's due next (tomorrow, or the week ahead on a Friday).
+ * Read-only — the same rules as dayTasks for what counts.
+ */
+export function reportFor(tasks, date){
+  const { due, upcoming, week } = dayTasks(tasks, date)
+  const posted = (tasks || [])
+    .filter(t => t && !t.daily && t.createdAt && stampDay(t.createdAt) === date &&
+      (t.type !== "marker" || ["quiz", "exam"].includes(t.markerType)))
+    .sort((a, b) => (a.end || "9999").localeCompare(b.end || "9999") || String(a.subject || "").localeCompare(String(b.subject || ""), "th"))
+  return { posted, due, upcoming, week }
+}

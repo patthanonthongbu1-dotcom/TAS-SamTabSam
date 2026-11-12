@@ -906,6 +906,8 @@ const DISCORD_BANNER_URL = "https://i.ibb.co/V08nTBMD/banner.png"
 
 // The class calendar: the card footer's QR and the message's link.
 const LINK_CALENDAR_URL = "https://tas-33.netlify.app/calendar"
+// What the card's QR opens: that day's homework report (today.html)
+const LINK_TODAY_URL = "https://tas-33.netlify.app/today"
 
 const app  = initializeApp(firebaseConfig)
 const auth = getAuth(app)
@@ -1492,15 +1494,14 @@ function initApp() {
   // whole box; each chip hides one task (remembered by task id).
   let footPrefs = { on: true, hidden: [] }
   let qrSVG = ""
-  // The QR opens the calendar on the card's own day (calendar.html reads
-  // ?date= and shows that day's sheet). Rebuilt when the date changes; the
+  // The QR opens the Today report for the card's own day (today.html?date=). Rebuilt when the date changes; the
   // last one stays on the card while the new one renders.
   let qrFor = ""
   function makeQR() {
     const date = document.getElementById("fmtDate").value || localToday()
     if (date === qrFor) return
     qrFor = date
-    QRCode.toString(LINK_CALENDAR_URL + "?date=" + date, { type: "svg", errorCorrectionLevel: "H", margin: 0, color: { dark: "#0f1d3a", light: "#ffffff00" } })
+    QRCode.toString(LINK_TODAY_URL + "?date=" + date, { type: "svg", errorCorrectionLevel: "H", margin: 0, color: { dark: "#0f1d3a", light: "#ffffff00" } })
       .then(svg => { if (qrFor === date) { qrSVG = svg; updatePreview() } })
       .catch(e => console.warn("Could not make the QR:", e))
   }

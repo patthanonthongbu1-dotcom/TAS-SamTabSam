@@ -102,7 +102,7 @@ export function ageLabel(at, now = Date.now()) {
 }
 
 /* ── The view ────────────────────────────────────────────── */
-let uid = null, mount = null, H = {}, io = {}
+let uid = null, mount = null, getMount = () => null, H = {}, io = {}
 let ideas = []            // as drawn
 let lastSaved = []        // what the store confirmed — the rollback target
 let loaded = false, loading = false, loadFailed = false
@@ -117,7 +117,10 @@ const SWIPE = 90          // px a row has to travel before a swipe counts
 
 export function initIdeas(opts) {
   uid = opts.uid || null
-  mount = opts.mount
+  // A getter, because the host can rebuild the element (My Tasks redraws its
+  // panes); a plain element still works.
+  getMount = typeof opts.mount === "function" ? opts.mount : () => opts.mount
+  mount = getMount()
   H = opts.helpers
   io = { load: opts.load, save: opts.save, adopt: opts.adopt, addToDay: opts.addToDay, removeFromDay: opts.removeFromDay, makeTask: opts.makeTask }
   ideas = []; lastSaved = []; loaded = false; loadFailed = false; editingId = null
@@ -191,6 +194,7 @@ async function commit(next) {
 }
 
 export function render() {
+  mount = getMount()
   if (!mount) return
   ensureLoaded()
   // Keep the keyboard up while typing idea after idea, but don't pop it

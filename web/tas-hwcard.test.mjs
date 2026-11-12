@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { duePill, cardModel, fromTasks, MAX_ROWS, sendLabel, lineOf, footerModel, addDays, MAX_REMINDERS, reminderWindow, dayTasks } from "./tas-hwcard.js"
+import { duePill, cardModel, fromTasks, MAX_ROWS, sendLabel, lineOf, footerModel, addDays, MAX_REMINDERS, reminderWindow, dayTasks, reportFor, newestStamp } from "./tas-hwcard.js"
 
 const T = "2026-11-10"   // a Tuesday
 
@@ -134,4 +134,20 @@ test("dayTasks: due that day, then tomorrow (or next week on Fridays)", () => {
   assert.deepEqual(fri.due.map(t => t.id), ["b", "c"])
   assert.deepEqual(fri.upcoming.map(t => t.id), ["f"])
   assert.equal(fri.week, true)
+})
+
+test("reportFor: posted that day + due + upcoming; newestStamp", () => {
+  const at = (d, h = 9) => new Date(d + "T0" + h + ":00:00").getTime()   // local time
+  const ts = [
+    { id: "a", name: "A", subject: "Math", end: "2026-11-13", createdAt: at("2026-11-12") },
+    { id: "b", name: "B", subject: "Eng", end: "2026-11-20", createdAt: at("2026-11-12"), updatedAt: at("2026-11-12", 8) },
+    { id: "c", name: "C", subject: "Sci", end: "2026-11-12", createdAt: at("2026-11-10") },
+    { id: "d", name: "D", subject: "PE", end: "2026-11-12", createdAt: at("2026-11-12"), daily: true },
+  ]
+  const r = reportFor(ts, "2026-11-12")
+  assert.deepEqual(r.posted.map(t => t.id), ["a", "b"])
+  assert.deepEqual(r.due.map(t => t.id), ["c"])
+  assert.deepEqual(r.upcoming.map(t => t.id), ["a"])
+  assert.equal(newestStamp(ts), at("2026-11-12"))
+  assert.equal(newestStamp([]), 0)
 })
