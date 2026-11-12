@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { duePill, cardModel, fromTasks, MAX_ROWS, sendLabel, lineOf } from "./tas-hwcard.js"
+import { duePill, cardModel, fromTasks, MAX_ROWS, sendLabel, lineOf, footerModel, addDays, MAX_REMINDERS } from "./tas-hwcard.js"
 
 const T = "2026-11-10"   // a Tuesday
 
@@ -80,4 +80,24 @@ test("lines: strings and objects both become {text, style, size}", () => {
   assert.deepEqual(lineOf({ text: "c", style: "neon", size: "xxl" }), { text: "c", style: "pills", size: "m" })
   const m = cardModel({ date: T, sections: [{ rows: [{ subject: "A", lines: ["x", { text: " ", style: "big" }, { text: "y", style: "plain" }] }] }] })
   assert.deepEqual(m.sections[0].rows[0].lines.map(l => l.text + ":" + l.style), ["x:pills", "y:plain"])
+})
+
+test("footer: reminders capped, kinds checked, empty → null", () => {
+  assert.equal(footerModel(null), null)
+  assert.equal(footerModel({ reminders: [] }), null)
+  const rs = Array.from({ length: 6 }, (_, i) => ({ subject: "S" + i, name: "w", kind: i ? "quiz" : "bogus" }))
+  const f = footerModel({ reminders: rs, qr: { svg: "<svg/>", url: "u" } })
+  assert.equal(f.reminders.length, MAX_REMINDERS)
+  assert.equal(f.moreReminders, 6 - MAX_REMINDERS)
+  assert.equal(f.reminders[0].kind, "homework")
+  assert.equal(f.reminders[1].kind, "quiz")
+  assert.deepEqual(footerModel({ qr: { svg: "<svg/>" } }).reminders, [])
+  assert.equal(cardModel({ date: T }).footer, null)
+  assert.equal(cardModel({ date: T, footer: { qr: { svg: "<svg/>" } } }).footer.qr.svg, "<svg/>")
+})
+
+test("addDays: across months and years", () => {
+  assert.equal(addDays("2026-11-30", 1), "2026-12-01")
+  assert.equal(addDays("2026-12-31", 1), "2027-01-01")
+  assert.equal(addDays("junk", 1), "")
 })

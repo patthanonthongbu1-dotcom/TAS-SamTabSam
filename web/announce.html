@@ -422,6 +422,23 @@
     .link-chip .chip-check { display: none; font-weight: 600; }
     .link-chip.active { background: rgba(255,79,163,0.16); border-color: rgba(255,79,163,0.42); color: var(--pink-soft); }
     .link-chip.active .chip-check { display: inline-flex; }
+    .foot-box { margin: 0 0 12px; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
+    .foot-head { display: flex; align-items: center; gap: 10px; }
+    .foot-t { flex: 1; display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 14px; font-weight: 500; }
+    .foot-t i { display: inline-flex; }
+    .foot-h { font-size: 12px; opacity: .6; font-weight: 400; }
+    .foot-sw { flex-shrink: 0; width: 40px; height: 22px; border-radius: 99px; border: none; padding: 2px; cursor: pointer; background: rgba(255,255,255,0.18); transition: background .2s; }
+    .foot-sw span { display: block; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .2s; }
+    .foot-sw[aria-checked="true"] { background: var(--pink, #ff4fa3); }
+    .foot-sw[aria-checked="true"] span { transform: translateX(18px); }
+    .foot-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .foot-chips:empty { display: none; }
+    .foot-box.off .foot-chips { opacity: .4; pointer-events: none; }
+    .foot-empty { font-size: 12.5px; opacity: .6; }
+    .foot-chip .fc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .foot-chip .fc-k { font-size: 11px; opacity: .75; }
+    .dueat-sync { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; opacity: .75; white-space: nowrap; }
+    .dueat-sync.saving { color: #fbbf24; } .dueat-sync.saved { color: #4ade80; } .dueat-sync.err { color: #f87171; }
     .preview-box { background: rgba(0,0,0,0.24); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 1rem 1.1rem; font-size: 15px; line-height: 1.9; white-space: pre-wrap; color: rgba(255,255,255,0.9); font-family: 'Kanit', sans-serif; font-weight: 300; min-height: 80px; word-break: break-word; }
     .divider { height: 1px; background: rgba(255,255,255,0.1); margin: 1.35rem 0; }
 
@@ -705,9 +722,16 @@
       <button class="link-chip" id="lnkClassroom" title="Append the Google Classroom link to the message"><i data-ic="link"></i> Classroom link <span class="chip-check" data-ic="check"></span></button>
       <button class="link-chip" id="lnkCalendar" title="Append the TAS calendar link to the message"><i data-ic="cal"></i> Calendar link <span class="chip-check" data-ic="check"></span></button>
     </div>
+    <div class="foot-box" id="footBox">
+      <div class="foot-head">
+        <span class="foot-t"><i data-ic="bell"></i> เตือนงานพรุ่งนี้ <span class="foot-h">card footer · QR stays on the right</span></span>
+        <button type="button" class="foot-sw" id="footSw" role="switch" aria-checked="true" title="Show the due-tomorrow reminder on the card"><span></span></button>
+      </div>
+      <div class="foot-chips" id="footChips"></div>
+    </div>
     <div class="preview-box" id="preview">Fill in the form to see preview...</div>
     <div class="preview-card-stage" id="previewCardStage"><div id="previewCardHost"></div></div>
-    <div class="pv-note" id="pvNote">This is exactly what “Save image” downloads (1080px wide, for LINE). Sections become headings and each subject a numbered row. Each bullet picks its own look and size from the button beside it, and the due date and its type (homework, quiz, exam…) set the pill. Notes and links go into the text and Discord message only.</div>
+    <div class="pv-note" id="pvNote">This is exactly what “Save image” downloads (1620px wide, sharp in LINE and Discord). Sections become headings and each subject a numbered row. Each bullet picks its own look and size from the button beside it, and the due date and its type (homework, quiz, exam…) set the pill. Notes and links go into the text and Discord message only.</div>
 
     <div class="divider"></div>
 
@@ -791,9 +815,9 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js"
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
-import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
+import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 import { mountHwCard, exportHwCard, HW_WIDTH, iconSVG } from "./tas-card.js"
-import { cardModel, shortThai, SEND, DUE_KINDS, LINE_STYLES } from "./tas-hwcard.js"
+import { cardModel, shortThai, addDays, SEND, DUE_KINDS, LINE_STYLES } from "./tas-hwcard.js"
 import * as Subj from "./tas-subjects.js"
 import { mountSubjectSearch } from "./tas-subject-search.js"
 // The page navigator — the glass dot bottom-right, shared with the
@@ -802,6 +826,7 @@ import { mountNav } from "./tas-nav.js"
 import { promptSignIn } from "./tas-signin.js"
 import { startTimeTracking, stopTimeTracking } from "./tas-time.js"
 import { toBlob } from "https://esm.sh/html-to-image@1.11.13"
+import QRCode from "https://esm.sh/qrcode@1.5.4"
 
 // Today as a local calendar date. NOT toISOString(): that formats in UTC, so
 // anywhere east of it the early hours still read as yesterday — Thailand is
@@ -837,6 +862,7 @@ const IC = {
   clock:    sv(`<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>`),
   upload:   sv(`<path d="M12 15V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14"/>`),
   check:    sv(`<path d="m5 12.5 4.5 4.5L19 7.5"/>`),
+  bell:     sv(`<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15Z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>`),
   caret:    sv(`<path d="m6 9 6 6 6-6"/>`),
   info:     sv(`<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/>`),
   book:     sv(`<path d="M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2Z"/><path d="M4 20a2 2 0 0 0 2 1h13v-3"/>`),
@@ -875,6 +901,9 @@ const DISCORD_SERVER_URL = "https://tas-samtabsam.onrender.com"
 // card used. Discord renders embed images full-width at the BOTTOM of the card
 // (there is no top-hero slot in embeds like LINE had). Must be a public URL.
 const DISCORD_BANNER_URL = "https://i.ibb.co/V08nTBMD/banner.png"
+
+// The class calendar: the card footer's QR and the message's link.
+const LINK_CALENDAR_URL = "https://tas-33.netlify.app/calendar"
 
 const app  = initializeApp(firebaseConfig)
 const auth = getAuth(app)
@@ -1063,10 +1092,16 @@ function initApp() {
   let sections = []
   // The class's calendar, read once: a subject that already has a task
   // there takes its due date from it, so the card and calendar agree.
+  // Live: an edit on the calendar page (a new task, a changed ส่งตอน)
+  // shows up here without a reload.
   let calTasks = []
-  if (db) getDocs(collection(db, "tasks"))
-    .then(snap => { calTasks = snap.docs.map(d => d.data()); renderSections() })
-    .catch(e => console.warn("Could not read the calendar:", e))
+  if (db) onSnapshot(collection(db, "tasks"), snap => {
+    calTasks = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    // Redrawing the form while someone types in ส่งตอน would steal the
+    // caret; the card preview and footer can still refresh.
+    if (document.activeElement?.classList.contains("subj-dueat")) { renderFootChips(); updatePreview() }
+    else { renderSections(); renderFootChips(); updatePreview() }
+  }, e => console.warn("Could not read the calendar:", e))
   // The soonest open calendar task for this subject (one whose name is a
   // bullet's text wins), or null when the subject has none.
   // A quiz looks for the calendar's quiz markers; homework for its tasks.
@@ -1091,7 +1126,13 @@ function initApp() {
   const dueOf = su => infoOff(su, "due") ? "" : calendarDue(su) || su.taskEnd || ""
   // Typed here wins; otherwise whatever the calendar task says
   const sendOf  = su => infoOff(su, "by") ? "" : (su.send || "").trim() || calendarTask(su)?.send || ""
-  const dueAtOf = su => infoOff(su, "at") ? "" : (su.dueAt || "").trim() || calendarTask(su)?.dueAt || ""
+  // ส่งตอน is shared with the calendar: when this subject has a calendar
+  // task, that task's dueAt IS the value (edits here are written to it).
+  const dueAtOf = su => {
+    if (infoOff(su, "at")) return ""
+    const t = calendarTask(su)
+    return t ? (t.dueAt || "").trim() : (su.dueAt || "").trim()
+  }
 
   // The class subject list (subjects/list) — subjects are picked from it
   let subjectList = Subj.listOrTimetable()
@@ -1145,6 +1186,7 @@ function initApp() {
       date:     document.getElementById("fmtDate").value,
       reporter: document.getElementById("fmtReporter").value,
       links:    { ...linkPrefs },
+      footer:   { ...footPrefs },
       sections: JSON.parse(JSON.stringify(sections)),
     }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(draft)) } catch(e) {}
@@ -1174,6 +1216,7 @@ function initApp() {
       linkPrefs = { classroom: draft.links.classroom !== false, calendar: draft.links.calendar !== false }
       syncLinkChips()
     }
+    if (draft.footer) footPrefs = { on: draft.footer.on !== false, hidden: Array.isArray(draft.footer.hidden) ? draft.footer.hidden : [] }
     if (draft.sections && draft.sections.length > 0) {
       sections = draft.sections.map(sec => ({
         ...sec,
@@ -1318,14 +1361,14 @@ function initApp() {
       const url = URL.createObjectURL(file)
       const img = new Image()
       img.onload = () => {
-        const k = Math.min(1, 1024 / Math.max(img.naturalWidth, img.naturalHeight))
+        const k = Math.min(1, 1440 / Math.max(img.naturalWidth, img.naturalHeight))
         const c = document.createElement("canvas")
         c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k)
         const ctx = c.getContext("2d")
         ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height)   // transparent PNGs → white, not black
         ctx.drawImage(img, 0, 0, c.width, c.height)
         URL.revokeObjectURL(url)
-        resolve(c.toDataURL("image/jpeg", 0.8))
+        resolve(c.toDataURL("image/jpeg", 0.88))
       }
       img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("not an image")) }
       img.src = url
@@ -1387,7 +1430,7 @@ function initApp() {
       c.width = Math.round(r.w * k); c.height = Math.round(r.h * k)
       c.getContext("2d").drawImage(img, r.x * k, r.y * k, r.w * k, r.h * k, 0, 0, c.width, c.height)
       ph.orig ??= ph.src
-      ph.src = c.toDataURL("image/jpeg", 0.85)
+      ph.src = c.toDataURL("image/jpeg", 0.9)
       done(true)
     }
   }
@@ -1403,9 +1446,11 @@ function initApp() {
         ${cd ? `<span class="cal-due" title="From this subject's ${esc(DUE_KINDS[kindOf(subj)].label.toLowerCase())} on the calendar">${IC.cal} จากปฏิทิน · ${esc(shortThai(cd))}</span>`
              : `<input type="date" value="${esc(subj.taskEnd)}" class="cal-end" ${d} aria-label="Due date" />`}
         ${x("due")}</div>`)
-    if (infoShown(subj, "at", (subj.dueAt || "").trim())) rows.push(`<div class="info-row">
+    const ct = calendarTask(subj)
+    if (infoShown(subj, "at", ct ? ct.dueAt : (subj.dueAt || "").trim())) rows.push(`<div class="info-row">
         <span class="info-l">${IC.clock} ส่งตอน</span>
-        <input type="text" class="subj-dueat" maxlength="16" placeholder="${esc(calendarTask(subj)?.dueAt || "คาบ 3 · 08:00")}" value="${esc(subj.dueAt || "")}" ${d} aria-label="Send on: period or time" />
+        <input type="text" class="subj-dueat" maxlength="16" placeholder="คาบ 3 · 08:00" value="${esc(ct ? ct.dueAt || "" : subj.dueAt || "")}" ${d} aria-label="Send on: period or time" />
+        ${ct ? `<span class="dueat-sync" data-tid="${esc(ct.id)}" title="Synced with “${esc(ct.name || "")}” on the calendar">${IC.cal} ปฏิทิน</span>` : ""}
         ${x("at")}</div>`)
     const typed = subj.sendText || (subj.send && !SEND[subj.send])
     if (infoShown(subj, "by", subj.send || subj.sendText)) rows.push(`<div class="info-row">
@@ -1415,6 +1460,75 @@ function initApp() {
           : `<div class="span2">${pick("send", subj.send || calendarTask(subj)?.send || "", SEND_OPTS, { si, sj }, { title: "Send by" })}</div>`}
         ${x("by")}</div>`)
     return rows.length ? `<div class="info-rows">${rows.join("")}</div>` : ""
+  }
+
+  // ส่งตอน → the calendar task, debounced per task. The snapshot then
+  // echoes it back, so every open formatter and calendar agrees.
+  const dueAtTimers = {}
+  function pushDueAt(t, badge) {
+    if (!db || !t.id) return
+    const mark = cls => { if (badge) badge.className = "dueat-sync " + cls }
+    mark("saving")
+    clearTimeout(dueAtTimers[t.id])
+    dueAtTimers[t.id] = setTimeout(async () => {
+      const value = t.dueAt || ""
+      try {
+        await updateDoc(doc(db, "tasks", t.id), { dueAt: value })
+        mark("saved")
+        const by = auth.currentUser ? (auth.currentUser.displayName || auth.currentUser.email || "") : ""
+        addDoc(collection(db, "taskHistory"), {
+          taskId: t.id, name: t.name || "", subject: t.subject || "",
+          action: "edited", detail: "ส่งตอน → " + (value || "(blank)") + " from the formatter", by, at: Date.now()
+        }).catch(e => console.warn("Could not log the change:", e))
+      } catch(e) { console.warn("Could not sync ส่งตอน:", e); mark("err") }
+    }, 700)
+  }
+
+  // ── Card footer: "due tomorrow" reminder + TAS QR ─────────────
+  // Suggestions are the calendar's tasks/quizzes ending the day after the
+  // card's date that aren't already rows on it. The switch hides the
+  // whole box; each chip hides one task (remembered by task id).
+  let footPrefs = { on: true, hidden: [] }
+  let qrSVG = ""
+  QRCode.toString(LINK_CALENDAR_URL, { type: "svg", errorCorrectionLevel: "H", margin: 0, color: { dark: "#0f1d3a", light: "#ffffff" } })
+    .then(svg => { qrSVG = svg; updatePreview() })
+    .catch(e => console.warn("Could not make the QR:", e))
+  function tomorrowTasks() {
+    const tmrw = addDays(document.getElementById("fmtDate").value || localToday(), 1)
+    const onCard = new Set()
+    sections.forEach(sec => sec.subjects.forEach(su => su.bullets.forEach(b => b.text.trim() && onCard.add(b.text.trim()))))
+    return calTasks
+      .filter(t => t.end === tmrw && !t.daily && (t.type !== "marker" || ["quiz", "exam"].includes(t.markerType)))
+      .filter(t => !onCard.has((t.name || "").trim()))
+      .map(t => {
+        const h = Subj.match(t.subject, subjectList)
+        return { id: t.id, subject: h ? h.name : (t.subject || ""), name: t.name || "", color: h ? h.color : "#64748b",
+                 kind: t.type === "marker" ? t.markerType : "homework" }
+      })
+      .sort((a, b) => a.subject.localeCompare(b.subject, "th"))
+  }
+  function renderFootChips() {
+    const box = document.getElementById("footBox"), sw = document.getElementById("footSw")
+    if (!box) return
+    box.classList.toggle("off", !footPrefs.on)
+    sw.setAttribute("aria-checked", String(footPrefs.on))
+    const list = tomorrowTasks()
+    document.getElementById("footChips").innerHTML = list.length
+      ? list.map(t => `<button type="button" class="link-chip foot-chip${footPrefs.hidden.includes(t.id) ? "" : " active"}" data-id="${esc(t.id)}" title="Show on the card">
+          <span class="fc-dot" style="background:${esc(t.color)}"></span>${esc(t.subject)} · ${esc(t.name)}${t.kind !== "homework" ? ` <span class="fc-k">${esc(DUE_KINDS[t.kind].label)}</span>` : ""}
+          <span class="chip-check">${IC.check}</span></button>`).join("")
+      : `<span class="foot-empty">ไม่มีงานส่งพรุ่งนี้ในปฏิทิน · nothing due tomorrow</span>`
+    document.querySelectorAll(".foot-chip").forEach(b => b.onclick = () => {
+      const id = b.dataset.id
+      footPrefs.hidden = footPrefs.hidden.includes(id) ? footPrefs.hidden.filter(x => x !== id) : [...footPrefs.hidden, id]
+      renderFootChips(); updatePreview(); scheduleSave()
+    })
+  }
+  document.getElementById("footSw").onclick = () => { footPrefs.on = !footPrefs.on; renderFootChips(); updatePreview(); scheduleSave() }
+  document.getElementById("fmtDate").addEventListener("input", () => { renderFootChips(); updatePreview() })
+  function footerModel() {
+    const reminders = footPrefs.on ? tomorrowTasks().filter(t => !footPrefs.hidden.includes(t.id)) : []
+    return { reminders, qr: qrSVG ? { svg: qrSVG, url: LINK_CALENDAR_URL } : null }
   }
 
   function renderSections() {
@@ -1572,7 +1686,13 @@ function initApp() {
       })
     })
     list.querySelectorAll(".subj-note").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].note = el.value; updatePreview(); scheduleSave() } })
-    list.querySelectorAll(".subj-dueat").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].dueAt = el.value; updatePreview(); scheduleSave() } })
+    list.querySelectorAll(".subj-dueat").forEach(el => { el.oninput = () => {
+      const su = sections[+el.dataset.si].subjects[+el.dataset.sj]
+      su.dueAt = el.value
+      const t = calendarTask(su)
+      if (t) { t.dueAt = el.value.trim(); pushDueAt(t, el.closest(".info-row")?.querySelector(".dueat-sync")) }
+      updatePreview(); scheduleSave()
+    } })
     list.querySelectorAll(".subj-sendtxt").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].send = el.value; updatePreview(); scheduleSave() } })
     list.querySelectorAll(".toggle-info").forEach(el => { el.onclick = () => setInfo(+el.dataset.si, +el.dataset.sj, el.dataset.k, !el.classList.contains("active")) })
     list.querySelectorAll(".info-x").forEach(el => { el.onclick = () => setInfo(+el.dataset.si, +el.dataset.sj, el.dataset.k, false) })
@@ -1658,7 +1778,7 @@ function initApp() {
   document.getElementById("fmtReporter").oninput = () => { updatePreview(); scheduleSave() }
 
   const LINK_CLASSROOM = "https://classroom.google.com"   // ← replace with the class's own Classroom link if you have one
-  const LINK_CALENDAR  = "https://tas-33.netlify.app/calendar"
+  const LINK_CALENDAR  = LINK_CALENDAR_URL
   let linkPrefs = { classroom: true, calendar: true }
 
   function syncLinkChips() {
@@ -1837,7 +1957,7 @@ function initApp() {
                  due: dueOf(su), photos: (su.photos || []).map(({ src, size }) => ({ src, size })) }
       })
     }))
-    return cardModel({ date, name: document.getElementById("fmtReporter").value, sections: cardSections }, localToday())
+    return cardModel({ date, name: document.getElementById("fmtReporter").value, sections: cardSections, footer: footerModel() }, localToday())
   }
 
   // Rasterise the card once; both "Copy image" and "Save image" reuse this.
@@ -2126,6 +2246,7 @@ function initApp() {
     dateInput.value = today
     updatePreview()
   }
+  renderFootChips()
 
 } // end initApp
 </script>

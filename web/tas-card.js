@@ -1,4 +1,4 @@
-import { sendLabel, LINE_SIZES } from "./tas-hwcard.js"
+import { sendLabel, LINE_SIZES, DUE_KINDS } from "./tas-hwcard.js"
 /* ─────────────────────────────────────────────────────────────
    Homework card painter + font-safe PNG export. The model comes from
    tas-hwcard.js; calendar.html and announce.html both paint it here.
@@ -19,6 +19,8 @@ function esc(s){
 }
 
 const ICO = {
+  bell: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15Z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>`,
+  scan: `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/></svg>`,
   user: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>`,
 }
 
@@ -59,8 +61,8 @@ export function embeddedFontCSS(){
 
 /* ── Homework card, design A ──────────────────────────────────
    Paints a model from tas-hwcard.js (cardModel). Laid out at 540 CSS px
-   and exported at pixelRatio 2, so the PNG is 1080 px wide — LINE's
-   full-width size. The header is the class banner itself (same image the
+   and exported at pixelRatio 3, so the PNG is 1620 px wide — sharp
+   even after chat apps recompress it. The header is the class banner itself (same image the
    Discord embed uses), kept local so html-to-image can read it. Below it,
    the old card's shape: date, name, then sections with numbered rows. */
 export const HW_WIDTH = 540
@@ -136,6 +138,31 @@ const HW_CSS = `
 .hw-empty{text-align:center;padding:30px 0 26px;font-size:19px;font-weight:500;color:#64748b}
 .hw-empty .hw-ico{display:flex;width:40px;height:40px;margin:0 auto 6px;color:#16a34a}
 .hw-foot{height:18px}
+.hw-ft{display:grid;grid-template-columns:3fr 2fr;gap:10px;padding:14px 18px 18px;align-items:stretch}
+.hw-rem{background:#fff;border-radius:16px;padding:12px 13px 12px;box-shadow:0 1px 2px rgba(15,29,58,.06),0 0 0 1px #e8edf3;display:flex;flex-direction:column;gap:7px;min-width:0}
+.hw-rem-h{display:flex;align-items:center;gap:6px;font-size:14.5px;font-weight:600;color:#d92d5e;line-height:1.3}
+.hw-rem-h svg{flex-shrink:0}
+.hw-rem-sub{font-size:11.5px;color:#94a3b8;font-weight:400;margin-left:auto;white-space:nowrap}
+.hw-ri{display:flex;align-items:stretch;gap:8px;background:#f8fafc;border-radius:10px;overflow:hidden;min-width:0}
+.hw-ri-s{width:4px;flex-shrink:0}
+.hw-ri-b{flex:1;min-width:0;padding:5px 8px 6px 0;line-height:1.3}
+.hw-ri-t{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600}
+.hw-ri-t span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hw-ri-k{flex-shrink:0;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:99px;margin-left:auto}
+.hw-ri-n{font-size:12.5px;color:#334155;overflow-wrap:anywhere}
+.hw-rem-more{font-size:11.5px;color:#64748b;text-align:center}
+.hw-qr{grid-column:2;background:linear-gradient(155deg,#16305e 0%,#0f1d3a 70%);color:#fff;border-radius:16px;padding:12px 12px 11px;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;position:relative;overflow:hidden}
+.hw-qr::after{content:"";position:absolute;right:-30px;top:-30px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(219,39,119,.45),transparent 70%)}
+.hw-qr-top{display:flex;align-items:center;gap:7px;align-self:stretch;position:relative;z-index:1}
+.hw-qr-logo{width:26px;height:26px;border-radius:8px;background:#fff;object-fit:contain;padding:2px;flex-shrink:0}
+.hw-qr-name{font-size:14px;font-weight:600;line-height:1.15;text-align:left}
+.hw-qr-name small{display:block;font-size:10.5px;font-weight:400;color:#c7d2fe}
+.hw-qr-plate{position:relative;z-index:1;background:#fff;border-radius:12px;padding:7px;width:100%;max-width:150px;aspect-ratio:1}
+.hw-qr-plate svg{display:block;width:100%;height:100%}
+.hw-qr-mid{position:absolute;left:50%;top:50%;width:24%;height:24%;transform:translate(-50%,-50%);background:#fff;border-radius:7px;padding:2px;box-shadow:0 0 0 2px #fff}
+.hw-qr-mid img{display:block;width:100%;height:100%;object-fit:contain}
+.hw-qr-d{position:relative;z-index:1;display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;line-height:1.3}
+.hw-qr-u{position:relative;z-index:1;font-size:10px;color:#a5b4fc;letter-spacing:.2px}
 `
 
 // A row's lines, each in its own style and size. Neighbouring pills
@@ -189,8 +216,28 @@ export function hwCardHTML(m){
       ${sections || `<div class="hw-empty"><span class="hw-ico">${svg(`<circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16.5 9.5"/>`)}</span>ไม่มีการบ้านวันนี้</div>`}
       ${m.more > 0 ? `<div class="hw-more">+${m.more} รายการ</div>` : ""}
     </div>
-    <div class="hw-foot"></div>
+    ${footerHTML(m.footer, color)}
   </div>`
+}
+
+// Footer: "due tomorrow" reminders on the left 60%, the TAS QR on the right 40%
+function footerHTML(f, color){
+  if(!f) return `<div class="hw-foot"></div>`
+  const kindTone = k => k === "homework" ? PILL.orange : PILL.violet
+  const rem = f.reminders.length ? `<div class="hw-rem">
+      <div class="hw-rem-h">${ICO.bell}<span>อย่าลืม! พรุ่งนี้</span><span class="hw-rem-sub">เตือนล่วงหน้า</span></div>
+      ${f.reminders.map(r => `<div class="hw-ri"><div class="hw-ri-s" style="background:${color(r.color)}"></div><div class="hw-ri-b">
+        <div class="hw-ri-t"><span style="color:${color(r.color)}">${esc(r.subject || "งาน")}</span><span class="hw-ri-k" style="background:${kindTone(r.kind)[0]};color:${kindTone(r.kind)[1]}">${esc(DUE_KINDS[r.kind].verb)}</span></div>
+        ${r.name ? `<div class="hw-ri-n">${esc(r.name)}</div>` : ""}</div></div>`).join("")}
+      ${f.moreReminders > 0 ? `<div class="hw-rem-more">+${f.moreReminders} งาน · ดูในปฏิทิน</div>` : ""}
+    </div>` : ""
+  const qr = f.qr ? `<div class="hw-qr">
+      <div class="hw-qr-top"><img class="hw-qr-logo" src="TASLogo.png" alt=""><div class="hw-qr-name">TAS<small>ปฏิทินการบ้านห้องเรา</small></div></div>
+      <div class="hw-qr-plate">${f.qr.svg}<div class="hw-qr-mid"><img src="TASLogo.png" alt=""></div></div>
+      <div class="hw-qr-d">${ICO.scan}สแกนดูงานทั้งหมด</div>
+      ${f.qr.url ? `<div class="hw-qr-u">${esc(f.qr.url.replace(/^https?:\/\//, ""))}</div>` : ""}
+    </div>` : ""
+  return `<div class="hw-ft">${rem}${qr}</div>`
 }
 
 export function mountHwCard(container, model){
@@ -216,7 +263,8 @@ export async function exportHwCard(node, toBlob){
   }
   await Promise.all([...node.querySelectorAll("img")].map(i => i.decode ? i.decode().catch(() => {}) : null))
   const fontEmbedCSS = await embeddedFontCSS()
-  const opts = { pixelRatio: 2, backgroundColor: "#f6f8fb", ...(fontEmbedCSS ? { fontEmbedCSS } : { skipFonts: true }) }
+  // 3× = a 1620 px PNG: crisp text even after LINE/Discord recompress it
+  const opts = { pixelRatio: 3, backgroundColor: "#f6f8fb", ...(fontEmbedCSS ? { fontEmbedCSS } : { skipFonts: true }) }
   if(!warmed){ await toBlob(node, opts).catch(() => {}); warmed = true }
   const blob = await toBlob(node, opts)
   if(!blob) throw new Error("empty card image")

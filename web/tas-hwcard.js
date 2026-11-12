@@ -8,6 +8,7 @@
 // A section: { icon, title, rows:[row] } — rows are numbered 1, 2… inside it
 
 export const MAX_ROWS = 12          // past this the card says "+N รายการ"
+export const MAX_REMINDERS = 4      // the footer's "due tomorrow" box, then "+N"
 
 // How the work is handed in. Tasks store the key; the card shows the label.
 export const SEND = {
@@ -70,7 +71,7 @@ export const lineOf = l => {
 }
 
 /** Everything the painter needs. Empty rows and sections drop out. */
-export function cardModel({ date, name = "", sections = [] }, today = date){
+export function cardModel({ date, name = "", sections = [], footer = null }, today = date){
   let left = MAX_ROWS, total = 0
   const out = []
   for(const sec of sections){
@@ -83,7 +84,30 @@ export function cardModel({ date, name = "", sections = [] }, today = date){
     if(shown.length) out.push({ icon: sec.icon || "", title: (sec.title || "").trim(), rows: shown })
   }
   const shownCount = out.reduce((n, s) => n + s.rows.length, 0)
-  return { date, weekday: weekdayOf(date), name: (name || "").trim(), sections: out, more: total - shownCount }
+  return { date, weekday: weekdayOf(date), name: (name || "").trim(), sections: out, more: total - shownCount,
+           footer: footerModel(footer) }
+}
+
+/** The footer: a "due tomorrow" reminder box and the TAS QR. Either half
+    may be missing; with neither there is no footer. */
+export function footerModel(f){
+  if(!f) return null
+  const all = (f.reminders || [])
+    .map(r => ({ subject: String(r?.subject || "").trim(), name: String(r?.name || "").trim(),
+                 color: r?.color || "", kind: DUE_KINDS[r?.kind] ? r.kind : "homework" }))
+    .filter(r => r.subject || r.name)
+  const reminders = all.slice(0, MAX_REMINDERS)
+  const qr = f.qr && f.qr.svg ? { svg: f.qr.svg, url: String(f.qr.url || "") } : null
+  if(!reminders.length && !qr) return null
+  return { reminders, moreReminders: all.length - reminders.length, qr }
+}
+
+/** YYYY-MM-DD plus n days (calendar dates, no time zone involved). */
+export const addDays = (s, n) => {
+  const t = ymd(s)
+  if(isNaN(t)) return ""
+  const d = new Date(t + n * 864e5)
+  return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + String(d.getUTCDate()).padStart(2, "0")
 }
 
 /**
