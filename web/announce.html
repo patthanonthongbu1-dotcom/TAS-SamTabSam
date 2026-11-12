@@ -1492,9 +1492,19 @@ function initApp() {
   // whole box; each chip hides one task (remembered by task id).
   let footPrefs = { on: true, hidden: [] }
   let qrSVG = ""
-  QRCode.toString(LINK_CALENDAR_URL, { type: "svg", errorCorrectionLevel: "H", margin: 0, color: { dark: "#0f1d3a", light: "#ffffff00" } })
-    .then(svg => { qrSVG = svg; updatePreview() })
-    .catch(e => console.warn("Could not make the QR:", e))
+  // The QR opens the calendar on the card's own day (calendar.html reads
+  // ?date= and shows that day's sheet). Rebuilt when the date changes; the
+  // last one stays on the card while the new one renders.
+  let qrFor = ""
+  function makeQR() {
+    const date = document.getElementById("fmtDate").value || localToday()
+    if (date === qrFor) return
+    qrFor = date
+    QRCode.toString(LINK_CALENDAR_URL + "?date=" + date, { type: "svg", errorCorrectionLevel: "H", margin: 0, color: { dark: "#0f1d3a", light: "#ffffff00" } })
+      .then(svg => { if (qrFor === date) { qrSVG = svg; updatePreview() } })
+      .catch(e => console.warn("Could not make the QR:", e))
+  }
+  makeQR()
   function tomorrowTasks() {
     const win = reminderWindow(document.getElementById("fmtDate").value || localToday())
     const onCard = new Set()
@@ -1531,7 +1541,7 @@ function initApp() {
     })
   }
   document.getElementById("footSw").onclick = () => { footPrefs.on = !footPrefs.on; renderFootChips(); updatePreview(); scheduleSave() }
-  document.getElementById("fmtDate").addEventListener("input", () => { renderFootChips(); updatePreview() })
+  document.getElementById("fmtDate").addEventListener("input", () => { makeQR(); renderFootChips(); updatePreview() })
   function footerModel() {
     const reminders = footPrefs.on ? tomorrowTasks().filter(t => !footPrefs.hidden.includes(t.id)) : []
     const week = reminderWindow(document.getElementById("fmtDate").value || localToday()).week
@@ -2253,6 +2263,7 @@ function initApp() {
     dateInput.value = today
     updatePreview()
   }
+  makeQR()
   renderFootChips()
 
 } // end initApp

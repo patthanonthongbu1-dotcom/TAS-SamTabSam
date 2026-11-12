@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { duePill, cardModel, fromTasks, MAX_ROWS, sendLabel, lineOf, footerModel, addDays, MAX_REMINDERS, reminderWindow } from "./tas-hwcard.js"
+import { duePill, cardModel, fromTasks, MAX_ROWS, sendLabel, lineOf, footerModel, addDays, MAX_REMINDERS, reminderWindow, dayTasks } from "./tas-hwcard.js"
 
 const T = "2026-11-10"   // a Tuesday
 
@@ -115,4 +115,23 @@ test("Friday cards look at next week; other days at tomorrow", () => {
   assert.equal(f.reminders[0].pill.label, "Due Mon")
   assert.equal(f.reminders[1].pill.label, "Quiz Wed · คาบ 2")
   assert.equal(footerModel({ reminders: [{ subject: "S", name: "w" }] }).title, "Due tomorrow")
+})
+
+test("dayTasks: due that day, then tomorrow (or next week on Fridays)", () => {
+  const ts = [
+    { id: "a", name: "A", subject: "Math", end: "2026-11-12" },
+    { id: "b", name: "B", subject: "Eng", end: "2026-11-13" },
+    { id: "c", name: "C", subject: "Sci", end: "2026-11-13", type: "marker", markerType: "quiz" },
+    { id: "d", name: "D", subject: "Art", end: "2026-11-13", type: "marker", markerType: "event" },   // not a test: off
+    { id: "e", name: "E", subject: "PE", end: "2026-11-13", daily: true },                          // daily: off
+    { id: "f", name: "F", subject: "Thai", end: "2026-11-18" },
+  ]
+  const thu = dayTasks(ts, "2026-11-12")
+  assert.deepEqual(thu.due.map(t => t.id), ["a"])
+  assert.deepEqual(thu.upcoming.map(t => t.id), ["b", "c"])
+  assert.equal(thu.week, false)
+  const fri = dayTasks(ts, "2026-11-13")
+  assert.deepEqual(fri.due.map(t => t.id), ["b", "c"])
+  assert.deepEqual(fri.upcoming.map(t => t.id), ["f"])
+  assert.equal(fri.week, true)
 })

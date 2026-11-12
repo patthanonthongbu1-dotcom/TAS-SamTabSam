@@ -149,3 +149,21 @@ export function fromTasks(tasks, doneMap, subjectOf){
   return [...rows.values()].sort((a, b) =>
     (a.due || "9999").localeCompare(b.due || "9999") || a.subject.localeCompare(b.subject, "th"))
 }
+
+/**
+ * What a day sheet shows for `date` (the QR on a card opens one): the class
+ * tasks due that day, and what's due next — tomorrow, or on a Friday the
+ * week ahead — the same window as the card's footer. Dailies and markers
+ * other than quizzes/exams stay off. Sorted by date, then subject.
+ */
+export function dayTasks(tasks, date){
+  const counts = t => t && !t.daily && t.end && (t.type !== "marker" || ["quiz", "exam"].includes(t.markerType))
+  const sort = (a, b) => a.end.localeCompare(b.end) || String(a.subject || "").localeCompare(String(b.subject || ""), "th")
+  const win = reminderWindow(date)
+  const list = (tasks || []).filter(counts)
+  return {
+    due: list.filter(t => t.end === date).sort(sort),
+    upcoming: list.filter(t => t.end >= win.from && t.end <= win.to).sort(sort),
+    week: win.week,
+  }
+}
