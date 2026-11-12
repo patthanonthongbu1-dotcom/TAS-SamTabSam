@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { duePill, cardModel, fromTasks, MAX_ROWS, sendLabel, lineOf, footerModel, addDays, MAX_REMINDERS } from "./tas-hwcard.js"
+import { duePill, cardModel, fromTasks, MAX_ROWS, sendLabel, lineOf, footerModel, addDays, MAX_REMINDERS, reminderWindow } from "./tas-hwcard.js"
 
 const T = "2026-11-10"   // a Tuesday
 
@@ -105,4 +105,14 @@ test("addDays: across months and years", () => {
   assert.equal(addDays("2026-11-30", 1), "2026-12-01")
   assert.equal(addDays("2026-12-31", 1), "2027-01-01")
   assert.equal(addDays("junk", 1), "")
+})
+
+test("Friday cards look at next week; other days at tomorrow", () => {
+  assert.deepEqual(reminderWindow("2026-11-13"), { from: "2026-11-14", to: "2026-11-20", week: true })   // Friday
+  assert.deepEqual(reminderWindow("2026-11-12"), { from: "2026-11-13", to: "2026-11-13", week: false })  // Thursday
+  const f = footerModel({ week: true, reminders: [{ subject: "S", name: "w", due: "2026-11-16" }, { subject: "Q", name: "q", kind: "quiz", due: "2026-11-18", dueAt: "คาบ 2" }] })
+  assert.equal(f.title, "Due next week")
+  assert.equal(f.reminders[0].pill.label, "Due Mon")
+  assert.equal(f.reminders[1].pill.label, "Quiz Wed · คาบ 2")
+  assert.equal(footerModel({ reminders: [{ subject: "S", name: "w" }] }).title, "Due tomorrow")
 })

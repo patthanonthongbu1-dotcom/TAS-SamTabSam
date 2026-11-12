@@ -726,7 +726,7 @@
     </div>
     <div class="foot-box" id="footBox">
       <div class="foot-head">
-        <span class="foot-t"><i data-ic="bell"></i> Due tomorrow <span class="foot-h">card footer reminder · QR on the right</span></span>
+        <span class="foot-t"><i data-ic="bell"></i> <span id="footTitle">Due tomorrow</span> <span class="foot-h">card footer reminder · QR on the right</span></span>
         <button type="button" class="foot-sw" id="footSw" role="switch" aria-checked="true" title="Show the due-tomorrow reminder on the card"><span></span></button>
       </div>
       <div class="foot-chips" id="footChips"></div>
@@ -819,7 +819,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/fireba
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
 import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 import { mountHwCard, exportHwCard, HW_WIDTH, iconSVG } from "./tas-card.js"
-import { cardModel, shortThai, addDays, SEND, DUE_KINDS, LINE_STYLES } from "./tas-hwcard.js"
+import { cardModel, shortThai, addDays, reminderWindow, SEND, DUE_KINDS, LINE_STYLES } from "./tas-hwcard.js"
 import * as Subj from "./tas-subjects.js"
 import { mountSubjectSearch } from "./tas-subject-search.js"
 // The page navigator — the glass dot bottom-right, shared with the
@@ -1496,19 +1496,19 @@ function initApp() {
     .then(svg => { qrSVG = svg; updatePreview() })
     .catch(e => console.warn("Could not make the QR:", e))
   function tomorrowTasks() {
-    const tmrw = addDays(document.getElementById("fmtDate").value || localToday(), 1)
+    const win = reminderWindow(document.getElementById("fmtDate").value || localToday())
     const onCard = new Set()
     sections.forEach(sec => sec.subjects.forEach(su => su.bullets.forEach(b => b.text.trim() && onCard.add(b.text.trim()))))
     return calTasks
-      .filter(t => t.end === tmrw && !t.daily && (t.type !== "marker" || ["quiz", "exam"].includes(t.markerType)))
+      .filter(t => t.end >= win.from && t.end <= win.to && !t.daily && (t.type !== "marker" || ["quiz", "exam"].includes(t.markerType)))
       .filter(t => !onCard.has((t.name || "").trim()))
       .map(t => {
         const h = Subj.match(t.subject, subjectList)
         return { id: t.id, subject: h ? h.name : (t.subject || ""), code: h ? h.code : "", teacher: h ? h.teacher : "",
                  icon: h ? h.icon : "", dueAt: t.dueAt || "", send: t.send || "", name: t.name || "", color: h ? h.color : "#64748b",
-                 kind: t.type === "marker" ? t.markerType : "homework" }
+                 kind: t.type === "marker" ? t.markerType : "homework", due: t.end }
       })
-      .sort((a, b) => a.subject.localeCompare(b.subject, "th"))
+      .sort((a, b) => a.due.localeCompare(b.due) || a.subject.localeCompare(b.subject, "th"))
   }
   function renderFootChips() {
     const box = document.getElementById("footBox"), sw = document.getElementById("footSw")
@@ -1516,11 +1516,14 @@ function initApp() {
     box.classList.toggle("off", !footPrefs.on)
     sw.setAttribute("aria-checked", String(footPrefs.on))
     const list = tomorrowTasks()
+    const week = reminderWindow(document.getElementById("fmtDate").value || localToday()).week
+    document.getElementById("footTitle").textContent = week ? "Due next week" : "Due tomorrow"
+    const dayOf = d => ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date(d + "T00:00:00").getDay()]
     document.getElementById("footChips").innerHTML = list.length
       ? list.map(t => `<button type="button" class="link-chip foot-chip${footPrefs.hidden.includes(t.id) ? "" : " active"}" data-id="${esc(t.id)}" title="Show on the card">
-          <span class="fc-dot" style="background:${esc(t.color)}"></span>${esc(t.subject)} · ${esc(t.name)}${t.kind !== "homework" ? ` <span class="fc-k">${esc(DUE_KINDS[t.kind].label)}</span>` : ""}
+          <span class="fc-dot" style="background:${esc(t.color)}"></span>${week ? `<span class="fc-k">${dayOf(t.due)}</span> ` : ""}${esc(t.subject)} · ${esc(t.name)}${t.kind !== "homework" ? ` <span class="fc-k">${esc(DUE_KINDS[t.kind].label)}</span>` : ""}
           <span class="chip-check">${IC.check}</span></button>`).join("")
-      : `<span class="foot-empty">Nothing on the calendar is due tomorrow.</span>`
+      : `<span class="foot-empty">Nothing on the calendar is due ${week ? "next week" : "tomorrow"}.</span>`
     document.querySelectorAll(".foot-chip").forEach(b => b.onclick = () => {
       const id = b.dataset.id
       footPrefs.hidden = footPrefs.hidden.includes(id) ? footPrefs.hidden.filter(x => x !== id) : [...footPrefs.hidden, id]
@@ -1531,7 +1534,8 @@ function initApp() {
   document.getElementById("fmtDate").addEventListener("input", () => { renderFootChips(); updatePreview() })
   function footerModel() {
     const reminders = footPrefs.on ? tomorrowTasks().filter(t => !footPrefs.hidden.includes(t.id)) : []
-    return { reminders, qr: qrSVG ? { svg: qrSVG, url: LINK_CALENDAR_URL } : null }
+    const week = reminderWindow(document.getElementById("fmtDate").value || localToday()).week
+    return { week, reminders, qr: qrSVG ? { svg: qrSVG, url: LINK_CALENDAR_URL } : null }
   }
 
   function renderSections() {

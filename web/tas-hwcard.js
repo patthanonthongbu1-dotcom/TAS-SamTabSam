@@ -88,26 +88,36 @@ export function cardModel({ date, name = "", sections = [], footer = null }, tod
            footer: footerModel(footer) }
 }
 
-/** The footer: a "due tomorrow" reminder box and the TAS QR. Either half
+// A Friday card looks past the weekend: its footer lists what's due from
+// tomorrow through next Friday instead of just tomorrow.
+const WEEKDAYS_EN = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
+export const reminderWindow = date => {
+  const friday = new Date(ymd(date)).getUTCDay() === 5
+  return { from: addDays(date, 1), to: addDays(date, friday ? 7 : 1), week: friday }
+}
+
+/** The footer: a "due tomorrow" (or, on Fridays, "due next week") reminder box and the TAS QR. Either half
     may be missing; with neither there is no footer. */
 export function footerModel(f){
   if(!f) return null
+  const week = !!f.week
   const str = (v, n = 80) => String(v ?? "").trim().slice(0, n)
   const all = (f.reminders || [])
     .map(r => {
       const kind = DUE_KINDS[r?.kind] ? r.kind : "homework"
-      const name = str(r?.name), dueAt = str(r?.dueAt, 16)
+      const name = str(r?.name), dueAt = str(r?.dueAt, 16), due = isNaN(ymd(r?.due)) ? "" : r.due
+      const when = week && due ? WEEKDAYS_EN[new Date(ymd(due)).getUTCDay()] : "tomorrow"
       return { subject: str(r?.subject), code: str(r?.code, 12), teacher: str(r?.teacher, 40),
                color: r?.color || "", icon: r?.icon || "", send: str(r?.send, 40), dueAt, kind, name,
                lines: name ? [lineOf(name)] : [],
-               pill: { label: (kind === "homework" ? "Due" : DUE_KINDS[kind].label) + " tomorrow" + (dueAt ? " · " + dueAt : ""),
+               due, pill: { label: (kind === "homework" ? "Due" : DUE_KINDS[kind].label) + " " + when + (dueAt ? " · " + dueAt : ""),
                        tone: kind === "homework" ? "orange" : "violet" } }
     })
     .filter(r => r.subject || r.name)
   const reminders = all.slice(0, MAX_REMINDERS).map((r, i) => ({ ...r, n: i + 1 }))
   const qr = f.qr && f.qr.svg ? { svg: f.qr.svg, url: String(f.qr.url || "") } : null
   if(!reminders.length && !qr) return null
-  return { reminders, moreReminders: all.length - reminders.length, qr }
+  return { title: week ? "Due next week" : "Due tomorrow", reminders, moreReminders: all.length - reminders.length, qr }
 }
 
 /** YYYY-MM-DD plus n days (calendar dates, no time zone involved). */

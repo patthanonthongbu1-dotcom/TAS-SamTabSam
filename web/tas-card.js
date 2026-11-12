@@ -138,8 +138,8 @@ const HW_CSS = `
 .hw-empty{text-align:center;padding:30px 0 26px;font-size:19px;font-weight:500;color:#64748b}
 .hw-empty .hw-ico{display:flex;width:40px;height:40px;margin:0 auto 6px;color:#16a34a}
 .hw-foot{height:18px}
-.hw-ft{display:grid;grid-template-columns:minmax(0,1fr) 108px;gap:14px;padding:2px 18px 16px;align-items:center}
-.hw-rem{margin-top:10px;min-width:0;gap:6px}
+.hw-ft{display:grid;grid-template-columns:minmax(0,1fr) 108px;gap:14px;margin:20px 18px 0;padding:14px 0 16px;border-top:1px solid #e2e8f0;align-items:start}
+.hw-rem{margin-top:0;min-width:0;gap:6px}
 .hw-ft .hw-sec-head{font-size:13.5px;gap:6px;padding:0 2px}
 .hw-ft .hw-sec-head .hw-ico{width:15px;height:15px;margin-top:0}
 .hw-sec-head .hw-ico svg{width:100%;height:100%}
@@ -156,14 +156,14 @@ const HW_CSS = `
 .hw-ft .hw-lines{margin-top:4px;gap:4px}
 .hw-ft .hw-chip{font-size:11px !important;border-radius:6px}
 .hw-rem-more{font-size:10.5px;color:#64748b;padding:0 2px}
-.hw-qr{grid-column:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding-top:10px;min-width:0}
+.hw-qr{grid-column:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding-top:2px;min-width:0}
 .hw-qr-code{width:68px;height:68px}
 .hw-qr-code svg{display:block;width:100%;height:100%}
 .hw-qr-t{margin-top:2px;font-size:11.5px;font-weight:600;color:#0f1d3a;line-height:1.25;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .hw-qr-t svg{width:11px;height:11px}
 .hw-qr-d{font-size:9.5px;color:#64748b;line-height:1.35}
 .hw-qr-u{font-size:9px;font-weight:500;color:#16305e;padding:1px 7px;border-radius:99px;background:#e8edf6;white-space:nowrap}
-.hw-ft-solo{display:flex;align-items:center;gap:14px;margin:14px 18px 16px;padding:10px 12px 10px 14px;border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(15,29,58,.06),0 0 0 1px #e8edf3}
+.hw-ft-solo{display:flex;align-items:center;gap:14px;margin:22px 18px 16px;padding:10px 12px 10px 14px;border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(15,29,58,.06),0 0 0 1px #e8edf3}
 .hw-solo-txt{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
 .hw-ft-solo .hw-qr-t{margin:0}
 .hw-ft-solo .hw-qr-d{text-align:left}
@@ -232,7 +232,7 @@ export function hwCardHTML(m){
 function footerHTML(f){
   if(!f) return `<div class="hw-foot"></div>`
   const rem = f.reminders.length ? `<div class="hw-sec hw-rem">
-      <div class="hw-sec-head"><span class="hw-ico">${ICO.bell}</span><span>Due tomorrow</span></div>
+      <div class="hw-sec-head"><span class="hw-ico">${ICO.bell}</span><span>${esc(f.title || "Due tomorrow")}</span></div>
       ${f.reminders.map(rowHTML).join("")}
       ${f.moreReminders > 0 ? `<div class="hw-rem-more">+${f.moreReminders} more on the calendar</div>` : ""}
     </div>` : ""
