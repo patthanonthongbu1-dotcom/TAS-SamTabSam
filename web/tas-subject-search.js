@@ -85,7 +85,7 @@ export function mountSubjectSearch(host, opts){
     chip.classList.toggle("warn", !!v && !hit)
     chip.innerHTML = hit
       ? `<span class="ss-dot" style="background:${HEX(hit.color)}"></span><span class="ss-t"><span class="ss-nm">${esc(hit.name)}</span>${hit.code || hit.teacher ? `<span class="ss-sub">${hit.code ? `<b style="color:${HEX(hit.color)};font-weight:600">${esc(hit.code)}</b>` : ""}${hit.code && hit.teacher ? " · " : ""}${esc(hit.teacher)}</span>` : ""}</span>${I.caret.replace("<svg", '<svg class="ss-c"')}`
-      : v ? `<span class="ss-w">${I.warn}</span><span class="ss-t">${esc(v)} <span class="ss-ph">· ไม่อยู่ในรายการ</span></span>${I.caret.replace("<svg", '<svg class="ss-c"')}`
+      : v ? `<span class="ss-w">${I.warn}</span><span class="ss-t"><span class="ss-nm">${esc(v)}</span><span class="ss-sub">ไม่อยู่ในรายการ — แตะเพื่อเลือก</span></span>${I.caret.replace("<svg", '<svg class="ss-c"')}`
       : `<span class="ss-t ss-ph">เลือกวิชา… พิมพ์ค้นหาได้</span>${I.caret.replace("<svg", '<svg class="ss-c"')}`
   }
 
