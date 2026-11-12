@@ -138,28 +138,27 @@ const HW_CSS = `
 .hw-empty{text-align:center;padding:30px 0 26px;font-size:19px;font-weight:500;color:#64748b}
 .hw-empty .hw-ico{display:flex;width:40px;height:40px;margin:0 auto 6px;color:#16a34a}
 .hw-foot{height:18px}
-.hw-ft{display:grid;grid-template-columns:3fr 2fr;gap:14px;padding:16px 18px 20px;align-items:center}
-.hw-rem{display:flex;flex-direction:column;gap:8px;min-width:0}
-.hw-rem-h{display:flex;align-items:baseline;gap:8px;padding:0 2px;line-height:1.3}
-.hw-rem-h b{display:inline-flex;align-items:center;gap:6px;font-size:15px;font-weight:600;color:#d92d5e}
-.hw-rem-h b svg{width:16px;height:16px;align-self:center}
-.hw-rem-h span{font-size:12px;color:#94a3b8;margin-left:auto;white-space:nowrap}
-.hw-ri{display:flex;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(15,29,58,.06),0 0 0 1px #e8edf3;min-width:0}
-.hw-ri-s{width:5px;flex-shrink:0}
-.hw-ri-b{flex:1;min-width:0;padding:8px 10px 9px}
-.hw-ri-t{display:flex;align-items:center;gap:6px;line-height:1.3}
-.hw-ri-sub{min-width:0;font-size:13.5px;font-weight:600;color:#0f1d3a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hw-ri-code{flex-shrink:0;font-size:10.5px;font-weight:600;padding:1px 6px;border-radius:99px}
-.hw-ri-k{flex-shrink:0;margin-left:auto;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px}
-.hw-ri-n{margin-top:3px;font-size:12.5px;color:#475569;line-height:1.35;overflow-wrap:anywhere}
+.hw-ft{display:grid;grid-template-columns:minmax(0,1fr) 128px;gap:16px;padding:4px 18px 20px;align-items:center}
+.hw-rem{margin-top:12px;min-width:0;gap:8px}
+.hw-sec-head .hw-ico svg{width:100%;height:100%}
+.hw-ft .hw-row{border-radius:12px}
+.hw-ft .hw-main{padding:9px 11px 10px}
+.hw-ft .hw-subj{font-size:14px;gap:6px}
+.hw-ft .hw-ico{width:16px;height:16px;margin-top:1px}
+.hw-ft .hw-code{font-size:10.5px;padding:1px 6px;margin-left:5px;vertical-align:1px}
+.hw-ft .hw-pill{font-size:11px;padding:2px 8px}
+.hw-ft .hw-meta{font-size:11.5px;margin-top:3px;gap:4px 10px}
+.hw-ft .hw-meta svg{width:12px;height:12px}
+.hw-ft .hw-lines{margin-top:6px}
+.hw-ft .hw-chip{font-size:12.5px !important}
 .hw-rem-more{font-size:12px;color:#64748b;padding:0 2px}
-.hw-qr{grid-column:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:4px 0}
-.hw-qr-code{width:132px;height:132px}
+.hw-qr{grid-column:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding-top:12px;min-width:0}
+.hw-qr-code{width:92px;height:92px}
 .hw-qr-code svg{display:block;width:100%;height:100%}
-.hw-qr-t{font-size:15px;font-weight:600;color:#0f1d3a;line-height:1.25;display:inline-flex;align-items:center;gap:6px}
-.hw-qr-t svg{width:15px;height:15px}
-.hw-qr-d{font-size:12px;color:#64748b;line-height:1.35;margin-top:-4px}
-.hw-qr-u{font-size:11px;font-weight:500;color:#16305e;letter-spacing:.2px;padding:3px 10px;border-radius:99px;background:#e8edf6}
+.hw-qr-t{margin-top:2px;font-size:13.5px;font-weight:600;color:#0f1d3a;line-height:1.25;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.hw-qr-t svg{width:13px;height:13px}
+.hw-qr-d{font-size:11px;color:#64748b;line-height:1.35}
+.hw-qr-u{font-size:10px;font-weight:500;color:#16305e;padding:2px 8px;border-radius:99px;background:#e8edf6;white-space:nowrap}
 `
 
 // A row's lines, each in its own style and size. Neighbouring pills
@@ -182,22 +181,24 @@ function linesHTML(r, c){
   return `<div class="hw-lines" style="--c:${c}">${out.map(g => g.pills ? `<div class="hw-pills">${g.html.join("")}</div>` : g.html[0]).join("")}</div>`
 }
 
-export function hwCardHTML(m){
-  const pill = p => p ? `<span class="hw-pill" style="background:${PILL[p.tone][0]};color:${PILL[p.tone][1]}">${esc(p.label)}</span>` : ""
-  const color = c => /^#[0-9a-f]{6}$/i.test(c || "") ? c : "#64748b"
-  const rowHTML = r => `<div class="hw-row">
-      <div class="hw-strip" style="background:${color(r.color)}"></div>
+// One numbered row: the main list and the footer reminders both paint with it
+const pillHTML = p => p ? `<span class="hw-pill" style="background:${PILL[p.tone][0]};color:${PILL[p.tone][1]}">${esc(p.label)}</span>` : ""
+const colorOf = c => /^#[0-9a-f]{6}$/i.test(c || "") ? c : "#64748b"
+function rowHTML(r){ return  `<div class="hw-row">
+      <div class="hw-strip" style="background:${colorOf(r.color)}"></div>
       <div class="hw-main">
         <div class="hw-head">
-          <div class="hw-subj" style="color:#0f1d3a"><span class="hw-num">${r.n}.</span><span style="color:${color(r.color)};display:contents">${iconHTML(r.icon)}</span><span class="hw-subj-t">${esc(r.subject || "")}${r.code ? `<span class="hw-code" style="background:${color(r.color)}1a;color:${color(r.color)}">${esc(r.code)}</span>` : ""}</span></div>
-          ${pill(r.pill)}
+          <div class="hw-subj" style="color:#0f1d3a"><span class="hw-num">${r.n}.</span><span style="color:${colorOf(r.color)};display:contents">${iconHTML(r.icon)}</span><span class="hw-subj-t">${esc(r.subject || "")}${r.code ? `<span class="hw-code" style="background:${colorOf(r.color)}1a;color:${colorOf(r.color)}">${esc(r.code)}</span>` : ""}</span></div>
+          ${pillHTML(r.pill)}
         </div>
         ${r.teacher || sendLabel(r.send) ? `<div class="hw-meta">${r.teacher ? `<span>${ICO.user}${esc(r.teacher)}</span>` : ""}${sendLabel(r.send) ? `<span class="hw-send">${SEND_ICO}${esc(sendLabel(r.send))}</span>` : ""}</div>` : ""}
-        ${linesHTML(r, color(r.color))}
+        ${linesHTML(r, colorOf(r.color))}
         ${(r.photos || []).length ? `<div class="hw-photos">${r.photos.map(ph =>
           `<img class="hw-photo" src="${esc(ph.src)}" alt="" style="width:calc(${Math.min(100, Math.max(10, Number(ph.size) || 100))}% - 4px)">`).join("")}</div>` : ""}
       </div>
-    </div>`
+    </div>` }
+
+export function hwCardHTML(m){
   const sections = m.sections.map(s => `<div class="hw-sec">
       ${s.title ? `<div class="hw-sec-head">${iconHTML(s.icon)}<span>${esc(s.title)}</span></div>` : ""}
       ${s.rows.map(rowHTML).join("")}
@@ -213,27 +214,23 @@ export function hwCardHTML(m){
       ${sections || `<div class="hw-empty"><span class="hw-ico">${svg(`<circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16.5 9.5"/>`)}</span>ไม่มีการบ้านวันนี้</div>`}
       ${m.more > 0 ? `<div class="hw-more">+${m.more} รายการ</div>` : ""}
     </div>
-    ${footerHTML(m.footer, color)}
+    ${footerHTML(m.footer)}
   </div>`
 }
 
 // Footer: "due tomorrow" reminders on the left 60%, the TAS QR on the right 40%
-function footerHTML(f, color){
+function footerHTML(f){
   if(!f) return `<div class="hw-foot"></div>`
-  const kindTone = k => k === "homework" ? PILL.orange : PILL.violet
-  const rem = f.reminders.length ? `<div class="hw-rem">
-      <div class="hw-rem-h"><b>${ICO.bell}Due tomorrow</b><span>Reminder</span></div>
-      ${f.reminders.map(r => { const c = color(r.color), t = kindTone(r.kind)
-        return `<div class="hw-ri"><div class="hw-ri-s" style="background:${c}"></div><div class="hw-ri-b">
-        <div class="hw-ri-t"><span class="hw-ri-sub">${esc(r.subject || "Task")}</span>${r.code ? `<span class="hw-ri-code" style="background:${c}1a;color:${c}">${esc(r.code)}</span>` : ""}<span class="hw-ri-k" style="background:${t[0]};color:${t[1]}">${esc(DUE_KINDS[r.kind].label)}</span></div>
-        ${r.name ? `<div class="hw-ri-n">${esc(r.name)}</div>` : ""}</div></div>` }).join("")}
+  const rem = f.reminders.length ? `<div class="hw-sec hw-rem">
+      <div class="hw-sec-head"><span class="hw-ico">${ICO.bell}</span><span>Due tomorrow</span></div>
+      ${f.reminders.map(rowHTML).join("")}
       ${f.moreReminders > 0 ? `<div class="hw-rem-more">+${f.moreReminders} more on the calendar</div>` : ""}
     </div>` : ""
   const qr = f.qr ? `<div class="hw-qr">
       <div class="hw-qr-code">${f.qr.svg}</div>
       <div class="hw-qr-t">${ICO.scan}Scan to view</div>
-      <div class="hw-qr-d">All homework &amp; deadlines<br>on the TAS calendar</div>
-      ${f.qr.url ? `<div class="hw-qr-u">${esc(f.qr.url.replace(/^https?:\/\//, ""))}</div>` : ""}
+      <div class="hw-qr-d">All homework on<br>the TAS calendar</div>
+      ${f.qr.url ? `<div class="hw-qr-u">${esc(f.qr.url.replace(/^https?:\/\/|\/.*$/g, ""))}</div>` : ""}
     </div>` : ""
   return `<div class="hw-ft">${rem}${qr}</div>`
 }

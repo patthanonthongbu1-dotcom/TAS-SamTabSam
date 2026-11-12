@@ -1504,7 +1504,8 @@ function initApp() {
       .filter(t => !onCard.has((t.name || "").trim()))
       .map(t => {
         const h = Subj.match(t.subject, subjectList)
-        return { id: t.id, subject: h ? h.name : (t.subject || ""), code: h ? h.code : "", name: t.name || "", color: h ? h.color : "#64748b",
+        return { id: t.id, subject: h ? h.name : (t.subject || ""), code: h ? h.code : "", teacher: h ? h.teacher : "",
+                 icon: h ? h.icon : "", dueAt: t.dueAt || "", send: t.send || "", name: t.name || "", color: h ? h.color : "#64748b",
                  kind: t.type === "marker" ? t.markerType : "homework" }
       })
       .sort((a, b) => a.subject.localeCompare(b.subject, "th"))

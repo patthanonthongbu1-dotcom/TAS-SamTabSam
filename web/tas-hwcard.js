@@ -92,11 +92,19 @@ export function cardModel({ date, name = "", sections = [], footer = null }, tod
     may be missing; with neither there is no footer. */
 export function footerModel(f){
   if(!f) return null
+  const str = (v, n = 80) => String(v ?? "").trim().slice(0, n)
   const all = (f.reminders || [])
-    .map(r => ({ subject: String(r?.subject || "").trim(), code: String(r?.code || "").trim(), name: String(r?.name || "").trim(),
-                 color: r?.color || "", kind: DUE_KINDS[r?.kind] ? r.kind : "homework" }))
+    .map(r => {
+      const kind = DUE_KINDS[r?.kind] ? r.kind : "homework"
+      const name = str(r?.name), dueAt = str(r?.dueAt, 16)
+      return { subject: str(r?.subject), code: str(r?.code, 12), teacher: str(r?.teacher, 40),
+               color: r?.color || "", icon: r?.icon || "", send: str(r?.send, 40), dueAt, kind, name,
+               lines: name ? [lineOf(name)] : [],
+               pill: { label: (kind === "homework" ? "Due" : DUE_KINDS[kind].label) + " tomorrow" + (dueAt ? " · " + dueAt : ""),
+                       tone: kind === "homework" ? "orange" : "violet" } }
+    })
     .filter(r => r.subject || r.name)
-  const reminders = all.slice(0, MAX_REMINDERS)
+  const reminders = all.slice(0, MAX_REMINDERS).map((r, i) => ({ ...r, n: i + 1 }))
   const qr = f.qr && f.qr.svg ? { svg: f.qr.svg, url: String(f.qr.url || "") } : null
   if(!reminders.length && !qr) return null
   return { reminders, moreReminders: all.length - reminders.length, qr }

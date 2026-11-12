@@ -91,6 +91,11 @@ test("footer: reminders capped, kinds checked, empty → null", () => {
   assert.equal(f.moreReminders, 6 - MAX_REMINDERS)
   assert.equal(f.reminders[0].kind, "homework")
   assert.equal(f.reminders[1].kind, "quiz")
+  assert.deepEqual(f.reminders[0].pill, { label: "Due tomorrow", tone: "orange" })
+  assert.equal(f.reminders[1].n, 2)
+  assert.deepEqual(footerModel({ reminders: [{ subject: "S", name: "w", kind: "exam", dueAt: "คาบ 2" }] }).reminders[0].pill,
+    { label: "Exam tomorrow · คาบ 2", tone: "violet" })
+  assert.deepEqual(f.reminders[0].lines, [{ text: "w", style: "pills", size: "m" }])
   assert.deepEqual(footerModel({ qr: { svg: "<svg/>" } }).reminders, [])
   assert.equal(cardModel({ date: T }).footer, null)
   assert.equal(cardModel({ date: T, footer: { qr: { svg: "<svg/>" } } }).footer.qr.svg, "<svg/>")
