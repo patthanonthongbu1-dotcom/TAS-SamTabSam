@@ -437,7 +437,9 @@
     .foot-empty { font-size: 12.5px; opacity: .6; }
     .foot-chip .fc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
     .foot-chip .fc-k { font-size: 11px; opacity: .75; }
-    .dueat-sync { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; opacity: .75; white-space: nowrap; }
+    .dueat-wrap { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .dueat-wrap input { flex: 1; }
+    .dueat-sync { flex-shrink: 0; color: #8fd3ff; display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; opacity: .75; white-space: nowrap; }
     .dueat-sync.saving { color: #fbbf24; } .dueat-sync.saved { color: #4ade80; } .dueat-sync.err { color: #f87171; }
     .preview-box { background: rgba(0,0,0,0.24); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 1rem 1.1rem; font-size: 15px; line-height: 1.9; white-space: pre-wrap; color: rgba(255,255,255,0.9); font-family: 'Kanit', sans-serif; font-weight: 300; min-height: 80px; word-break: break-word; }
     .divider { height: 1px; background: rgba(255,255,255,0.1); margin: 1.35rem 0; }
@@ -1449,8 +1451,8 @@ function initApp() {
     const ct = calendarTask(subj)
     if (infoShown(subj, "at", ct ? ct.dueAt : (subj.dueAt || "").trim())) rows.push(`<div class="info-row">
         <span class="info-l">${IC.clock} ส่งตอน</span>
-        <input type="text" class="subj-dueat" maxlength="16" placeholder="คาบ 3 · 08:00" value="${esc(ct ? ct.dueAt || "" : subj.dueAt || "")}" ${d} aria-label="Send on: period or time" />
-        ${ct ? `<span class="dueat-sync" data-tid="${esc(ct.id)}" title="Synced with “${esc(ct.name || "")}” on the calendar">${IC.cal} ปฏิทิน</span>` : ""}
+        <div class="dueat-wrap"><input type="text" class="subj-dueat" maxlength="16" placeholder="คาบ 3 · 08:00" value="${esc(ct ? ct.dueAt || "" : subj.dueAt || "")}" ${d} aria-label="Send on: period or time" />
+        ${ct ? `<span class="dueat-sync" data-tid="${esc(ct.id)}" title="Synced with “${esc(ct.name || "")}” on the calendar">${IC.cal}</span>` : ""}</div>
         ${x("at")}</div>`)
     const typed = subj.sendText || (subj.send && !SEND[subj.send])
     if (infoShown(subj, "by", subj.send || subj.sendText)) rows.push(`<div class="info-row">
