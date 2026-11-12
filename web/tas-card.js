@@ -138,31 +138,28 @@ const HW_CSS = `
 .hw-empty{text-align:center;padding:30px 0 26px;font-size:19px;font-weight:500;color:#64748b}
 .hw-empty .hw-ico{display:flex;width:40px;height:40px;margin:0 auto 6px;color:#16a34a}
 .hw-foot{height:18px}
-.hw-ft{display:grid;grid-template-columns:3fr 2fr;gap:10px;padding:14px 18px 18px;align-items:stretch}
-.hw-rem{background:#fff;border-radius:16px;padding:12px 13px 12px;box-shadow:0 1px 2px rgba(15,29,58,.06),0 0 0 1px #e8edf3;display:flex;flex-direction:column;gap:7px;min-width:0}
-.hw-rem-h{display:flex;align-items:center;gap:6px;font-size:14.5px;font-weight:600;color:#d92d5e;line-height:1.3}
-.hw-rem-h svg{flex-shrink:0}
-.hw-rem-sub{font-size:11.5px;color:#94a3b8;font-weight:400;margin-left:auto;white-space:nowrap}
-.hw-ri{display:flex;align-items:stretch;gap:8px;background:#f8fafc;border-radius:10px;overflow:hidden;min-width:0}
-.hw-ri-s{width:4px;flex-shrink:0}
-.hw-ri-b{flex:1;min-width:0;padding:5px 8px 6px 0;line-height:1.3}
-.hw-ri-t{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600}
-.hw-ri-t span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hw-ri-k{flex-shrink:0;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:99px;margin-left:auto}
-.hw-ri-n{font-size:12.5px;color:#334155;overflow-wrap:anywhere}
-.hw-rem-more{font-size:11.5px;color:#64748b;text-align:center}
-.hw-qr{grid-column:2;background:linear-gradient(155deg,#16305e 0%,#0f1d3a 70%);color:#fff;border-radius:16px;padding:12px 12px 11px;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;position:relative;overflow:hidden}
-.hw-qr::after{content:"";position:absolute;right:-30px;top:-30px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(219,39,119,.45),transparent 70%)}
-.hw-qr-top{display:flex;align-items:center;gap:7px;align-self:stretch;position:relative;z-index:1}
-.hw-qr-logo{width:26px;height:26px;border-radius:8px;background:#fff;object-fit:contain;padding:2px;flex-shrink:0}
-.hw-qr-name{font-size:14px;font-weight:600;line-height:1.15;text-align:left}
-.hw-qr-name small{display:block;font-size:10.5px;font-weight:400;color:#c7d2fe}
-.hw-qr-plate{position:relative;z-index:1;background:#fff;border-radius:12px;padding:7px;width:100%;max-width:150px;aspect-ratio:1}
-.hw-qr-plate svg{display:block;width:100%;height:100%}
-.hw-qr-mid{position:absolute;left:50%;top:50%;width:24%;height:24%;transform:translate(-50%,-50%);background:#fff;border-radius:7px;padding:2px;box-shadow:0 0 0 2px #fff}
-.hw-qr-mid img{display:block;width:100%;height:100%;object-fit:contain}
-.hw-qr-d{position:relative;z-index:1;display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;line-height:1.3}
-.hw-qr-u{position:relative;z-index:1;font-size:10px;color:#a5b4fc;letter-spacing:.2px}
+.hw-ft{display:grid;grid-template-columns:3fr 2fr;gap:14px;padding:16px 18px 20px;align-items:center}
+.hw-rem{display:flex;flex-direction:column;gap:8px;min-width:0}
+.hw-rem-h{display:flex;align-items:baseline;gap:8px;padding:0 2px;line-height:1.3}
+.hw-rem-h b{display:inline-flex;align-items:center;gap:6px;font-size:15px;font-weight:600;color:#d92d5e}
+.hw-rem-h b svg{width:16px;height:16px;align-self:center}
+.hw-rem-h span{font-size:12px;color:#94a3b8;margin-left:auto;white-space:nowrap}
+.hw-ri{display:flex;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(15,29,58,.06),0 0 0 1px #e8edf3;min-width:0}
+.hw-ri-s{width:5px;flex-shrink:0}
+.hw-ri-b{flex:1;min-width:0;padding:8px 10px 9px}
+.hw-ri-t{display:flex;align-items:center;gap:6px;line-height:1.3}
+.hw-ri-sub{min-width:0;font-size:13.5px;font-weight:600;color:#0f1d3a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hw-ri-code{flex-shrink:0;font-size:10.5px;font-weight:600;padding:1px 6px;border-radius:99px}
+.hw-ri-k{flex-shrink:0;margin-left:auto;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px}
+.hw-ri-n{margin-top:3px;font-size:12.5px;color:#475569;line-height:1.35;overflow-wrap:anywhere}
+.hw-rem-more{font-size:12px;color:#64748b;padding:0 2px}
+.hw-qr{grid-column:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:4px 0}
+.hw-qr-code{width:132px;height:132px}
+.hw-qr-code svg{display:block;width:100%;height:100%}
+.hw-qr-t{font-size:15px;font-weight:600;color:#0f1d3a;line-height:1.25;display:inline-flex;align-items:center;gap:6px}
+.hw-qr-t svg{width:15px;height:15px}
+.hw-qr-d{font-size:12px;color:#64748b;line-height:1.35;margin-top:-4px}
+.hw-qr-u{font-size:11px;font-weight:500;color:#16305e;letter-spacing:.2px;padding:3px 10px;border-radius:99px;background:#e8edf6}
 `
 
 // A row's lines, each in its own style and size. Neighbouring pills
@@ -225,16 +222,17 @@ function footerHTML(f, color){
   if(!f) return `<div class="hw-foot"></div>`
   const kindTone = k => k === "homework" ? PILL.orange : PILL.violet
   const rem = f.reminders.length ? `<div class="hw-rem">
-      <div class="hw-rem-h">${ICO.bell}<span>อย่าลืม! พรุ่งนี้</span><span class="hw-rem-sub">เตือนล่วงหน้า</span></div>
-      ${f.reminders.map(r => `<div class="hw-ri"><div class="hw-ri-s" style="background:${color(r.color)}"></div><div class="hw-ri-b">
-        <div class="hw-ri-t"><span style="color:${color(r.color)}">${esc(r.subject || "งาน")}</span><span class="hw-ri-k" style="background:${kindTone(r.kind)[0]};color:${kindTone(r.kind)[1]}">${esc(DUE_KINDS[r.kind].verb)}</span></div>
-        ${r.name ? `<div class="hw-ri-n">${esc(r.name)}</div>` : ""}</div></div>`).join("")}
-      ${f.moreReminders > 0 ? `<div class="hw-rem-more">+${f.moreReminders} งาน · ดูในปฏิทิน</div>` : ""}
+      <div class="hw-rem-h"><b>${ICO.bell}Due tomorrow</b><span>Reminder</span></div>
+      ${f.reminders.map(r => { const c = color(r.color), t = kindTone(r.kind)
+        return `<div class="hw-ri"><div class="hw-ri-s" style="background:${c}"></div><div class="hw-ri-b">
+        <div class="hw-ri-t"><span class="hw-ri-sub">${esc(r.subject || "Task")}</span>${r.code ? `<span class="hw-ri-code" style="background:${c}1a;color:${c}">${esc(r.code)}</span>` : ""}<span class="hw-ri-k" style="background:${t[0]};color:${t[1]}">${esc(DUE_KINDS[r.kind].label)}</span></div>
+        ${r.name ? `<div class="hw-ri-n">${esc(r.name)}</div>` : ""}</div></div>` }).join("")}
+      ${f.moreReminders > 0 ? `<div class="hw-rem-more">+${f.moreReminders} more on the calendar</div>` : ""}
     </div>` : ""
   const qr = f.qr ? `<div class="hw-qr">
-      <div class="hw-qr-top"><img class="hw-qr-logo" src="TASLogo.png" alt=""><div class="hw-qr-name">TAS<small>ปฏิทินการบ้านห้องเรา</small></div></div>
-      <div class="hw-qr-plate">${f.qr.svg}<div class="hw-qr-mid"><img src="TASLogo.png" alt=""></div></div>
-      <div class="hw-qr-d">${ICO.scan}สแกนดูงานทั้งหมด</div>
+      <div class="hw-qr-code">${f.qr.svg}</div>
+      <div class="hw-qr-t">${ICO.scan}Scan to view</div>
+      <div class="hw-qr-d">All homework &amp; deadlines<br>on the TAS calendar</div>
       ${f.qr.url ? `<div class="hw-qr-u">${esc(f.qr.url.replace(/^https?:\/\//, ""))}</div>` : ""}
     </div>` : ""
   return `<div class="hw-ft">${rem}${qr}</div>`

@@ -726,7 +726,7 @@
     </div>
     <div class="foot-box" id="footBox">
       <div class="foot-head">
-        <span class="foot-t"><i data-ic="bell"></i> เตือนงานพรุ่งนี้ <span class="foot-h">card footer · QR stays on the right</span></span>
+        <span class="foot-t"><i data-ic="bell"></i> Due tomorrow <span class="foot-h">card footer reminder · QR on the right</span></span>
         <button type="button" class="foot-sw" id="footSw" role="switch" aria-checked="true" title="Show the due-tomorrow reminder on the card"><span></span></button>
       </div>
       <div class="foot-chips" id="footChips"></div>
@@ -1492,7 +1492,7 @@ function initApp() {
   // whole box; each chip hides one task (remembered by task id).
   let footPrefs = { on: true, hidden: [] }
   let qrSVG = ""
-  QRCode.toString(LINK_CALENDAR_URL, { type: "svg", errorCorrectionLevel: "H", margin: 0, color: { dark: "#0f1d3a", light: "#ffffff" } })
+  QRCode.toString(LINK_CALENDAR_URL, { type: "svg", errorCorrectionLevel: "H", margin: 0, color: { dark: "#0f1d3a", light: "#ffffff00" } })
     .then(svg => { qrSVG = svg; updatePreview() })
     .catch(e => console.warn("Could not make the QR:", e))
   function tomorrowTasks() {
@@ -1504,7 +1504,7 @@ function initApp() {
       .filter(t => !onCard.has((t.name || "").trim()))
       .map(t => {
         const h = Subj.match(t.subject, subjectList)
-        return { id: t.id, subject: h ? h.name : (t.subject || ""), name: t.name || "", color: h ? h.color : "#64748b",
+        return { id: t.id, subject: h ? h.name : (t.subject || ""), code: h ? h.code : "", name: t.name || "", color: h ? h.color : "#64748b",
                  kind: t.type === "marker" ? t.markerType : "homework" }
       })
       .sort((a, b) => a.subject.localeCompare(b.subject, "th"))
@@ -1519,7 +1519,7 @@ function initApp() {
       ? list.map(t => `<button type="button" class="link-chip foot-chip${footPrefs.hidden.includes(t.id) ? "" : " active"}" data-id="${esc(t.id)}" title="Show on the card">
           <span class="fc-dot" style="background:${esc(t.color)}"></span>${esc(t.subject)} · ${esc(t.name)}${t.kind !== "homework" ? ` <span class="fc-k">${esc(DUE_KINDS[t.kind].label)}</span>` : ""}
           <span class="chip-check">${IC.check}</span></button>`).join("")
-      : `<span class="foot-empty">ไม่มีงานส่งพรุ่งนี้ในปฏิทิน · nothing due tomorrow</span>`
+      : `<span class="foot-empty">Nothing on the calendar is due tomorrow.</span>`
     document.querySelectorAll(".foot-chip").forEach(b => b.onclick = () => {
       const id = b.dataset.id
       footPrefs.hidden = footPrefs.hidden.includes(id) ? footPrefs.hidden.filter(x => x !== id) : [...footPrefs.hidden, id]

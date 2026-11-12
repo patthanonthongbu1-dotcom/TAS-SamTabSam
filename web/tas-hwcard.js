@@ -93,7 +93,7 @@ export function cardModel({ date, name = "", sections = [], footer = null }, tod
 export function footerModel(f){
   if(!f) return null
   const all = (f.reminders || [])
-    .map(r => ({ subject: String(r?.subject || "").trim(), name: String(r?.name || "").trim(),
+    .map(r => ({ subject: String(r?.subject || "").trim(), code: String(r?.code || "").trim(), name: String(r?.name || "").trim(),
                  color: r?.color || "", kind: DUE_KINDS[r?.kind] ? r.kind : "homework" }))
     .filter(r => r.subject || r.name)
   const reminders = all.slice(0, MAX_REMINDERS)
