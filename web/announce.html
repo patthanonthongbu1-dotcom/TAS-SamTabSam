@@ -820,7 +820,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/fireba
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
 import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 import { mountHwCard, exportHwCard, HW_WIDTH, iconSVG } from "./tas-card.js"
-import { cardModel, shortThai, addDays, reminderWindow, fitPhotos, SEND, DUE_KINDS, LINE_STYLES } from "./tas-hwcard.js"
+import { cardModel, shortThai, addDays, reminderWindow, fitPhotos, weekdayOf, SEND, DUE_KINDS, LINE_STYLES } from "./tas-hwcard.js"
 import * as Subj from "./tas-subjects.js"
 import { mountSubjectSearch } from "./tas-subject-search.js"
 // The page navigator — the glass dot bottom-right, shared with the
@@ -1282,7 +1282,7 @@ function initApp() {
     const cur = options.find(o => o.v === value) || options[0]
     const attrs = Object.entries(data).map(([k, v]) => `data-${k}="${v}"`).join(" ")
     return `<div class="add-dd pk${iconOnly ? " icon" : ""}${right ? " right" : ""}${cls ? " " + cls : ""}">
-      <button type="button" class="add-dd-btn pk-btn" ${attrs} title="${esc(title || cur.label)}" aria-label="${esc(title || cur.label)}">${cur.icon ? `<span class="dd-ico">${cur.icon}</span>` : ""}${badge}${iconOnly ? "" : `<span>${esc(cur.label)}</span>`}<span class="caret">${IC.caret}</span></button>
+      <button type="button" class="add-dd-btn pk-btn" ${attrs} title="${esc(title || cur.label)}" aria-label="${esc(title || cur.label)}">${cur.icon ? `<span class="dd-ico">${cur.icon}</span>` : ""}${badge}${iconOnly ? "" : `<span>${esc(cur.short || cur.label)}</span>`}<span class="caret">${IC.caret}</span></button>
       <div class="add-dd-menu${grid ? " pk-grid" : ""}">${options.map(o =>
         `<button type="button" class="add-dd-item pk-item${o.v === cur.v ? " active" : ""}" data-pk="${kind}" data-v="${esc(o.v)}" ${attrs} title="${esc(o.label)}">${o.icon ? `<span class="dd-ico">${o.icon}</span>` : ""}${grid ? "" : esc(o.label)}${o.v === cur.v ? `<span class="dd-check">${IC.check}</span>` : ""}</button>`).join("")}${extra}</div>
     </div>`
@@ -1446,6 +1446,23 @@ function initApp() {
   }
 
   // The rows "Add info" puts under a subject
+  // The period(s) this subject meets on the day it's due, as card labels
+  function suggestedPeriods(su) {
+    const h = Subj.match(su.title, subjectList)
+    const due = calendarDue(su) || su.taskEnd || ""
+    return h && due ? Subj.classPeriods(h.code, due).map(Subj.periodLabel) : []
+  }
+  function dueAtOptions(su, sug) {
+    const due = calendarDue(su) || su.taskEnd || ""
+    return [
+      { v: "", label: "ส่งตอน…", icon: IC.clock },
+      ...sug.map(v => ({ v, short: v, label: `${v} · คาบวิชานี้วัน${weekdayOf(due)}`, icon: IC.star })),
+      ...Subj.PERIODS.map((p, n) => p && { v: Subj.periodLabel(n), short: Subj.periodLabel(n), label: `คาบ ${n} · ${p.start}–${p.end}`, icon: IC.clock }).filter(Boolean)
+        .filter(o => !sug.includes(o.v)),
+      { v: "__type", label: "พิมพ์เอง", icon: IC.type },
+    ]
+  }
+
   function infoRowsHTML(subj, si, sj) {
     const d = `data-si="${si}" data-sj="${sj}"`
     const x = k => `<button type="button" class="action-btn btn-delete icon-only info-x" data-k="${k}" ${d} title="Remove" aria-label="Remove">${ICON_X}</button>`
@@ -1457,9 +1474,19 @@ function initApp() {
              : `<input type="date" value="${esc(subj.taskEnd)}" class="cal-end" ${d} aria-label="Due date" />`}
         ${x("due")}</div>`)
     const ct = calendarTask(subj)
-    if (infoShown(subj, "at", ct ? ct.dueAt : (subj.dueAt || "").trim())) rows.push(`<div class="info-row">
+    // ส่งตอน: the class's periods, the subject's own one first; free text
+    // for anything else. A fresh subject with a due date gets its period.
+    const sug = suggestedPeriods(subj)
+    if (!ct && !subj.dueAtTyped && !subj.dueAtCleared && !(subj.dueAt || "").trim() && sug.length && !infoOff(subj, "at")) { subj.dueAt = sug[0]; scheduleSave() }
+    const atVal = String(ct ? ct.dueAt || "" : subj.dueAt || "").trim()
+    const atOpts = dueAtOptions(subj, sug)
+    const atTyped = subj.dueAtTyped || (atVal && !atOpts.some(o => o.v === atVal))
+    if (infoShown(subj, "at", atVal)) rows.push(`<div class="info-row">
         <span class="info-l">${IC.clock} ส่งตอน</span>
-        <div class="dueat-wrap"><input type="text" class="subj-dueat" maxlength="16" placeholder="คาบ 3 · 08:00" value="${esc(ct ? ct.dueAt || "" : subj.dueAt || "")}" ${d} aria-label="Send on: period or time" />
+        <div class="dueat-wrap">${atTyped
+          ? `${pick("dueat", "__type", atOpts, { si, sj }, { title: "Send on", iconOnly: true })}
+             <input type="text" class="subj-dueat" maxlength="20" placeholder="คาบ 3 · 10:00, หลังเลิกเรียน…" value="${esc(atVal)}" ${d} aria-label="Send on: period or time" />`
+          : pick("dueat", atVal, atOpts, { si, sj }, { title: "Send on" })}
         ${ct ? syncBadge(ct, "ส่งตอน") : ""}</div>
         ${x("at")}</div>`)
     const sendVal = ct ? String(ct.send || "") : (subj.send || "")
@@ -1764,7 +1791,10 @@ function initApp() {
     list.querySelectorAll(".photo-size").forEach(el => { el.onclick = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].photos[+el.dataset.pk].size = +el.dataset.w; renderSections(); scheduleSave() } })
     list.querySelectorAll(".add-subj").forEach(el => { el.onclick = () => addSubject(+el.dataset.si) })
     list.querySelectorAll(".cal-start").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskStart = el.value; updatePreview(); scheduleSave() } })
-    list.querySelectorAll(".cal-end").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskEnd = el.value; updatePreview(); scheduleSave() } })
+    list.querySelectorAll(".cal-end").forEach(el => {
+      el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].taskEnd = el.value; updatePreview(); scheduleSave() }
+      el.onchange = () => renderSections()     // the ส่งตอน suggestion follows the new day
+    })
 
     // "+ Add" dropdown toggle — positioned so it escapes any parent clipping
     list.querySelectorAll(".add-dd-btn").forEach(el => {
@@ -1809,6 +1839,16 @@ function initApp() {
       case "mtype":    b.markerType = v; break
       case "style":    b.style = v; break
       case "size":     b.size = v; break
+      case "dueat": {
+        su.dueAtTyped = v === "__type"
+        su.dueAtCleared = v === ""      // blank on purpose: don't refill it
+        if (!su.dueAtTyped) {
+          su.dueAt = v
+          const t = calendarTask(su)
+          if (t) { t.dueAt = v; pushDueAt(t, null) }
+        }
+        break
+      }
       case "send": {
         su.sendText = v === "__type"; su.send = su.sendText ? (SEND[su.send] ? "" : su.send) : v
         const t = calendarTask(su)

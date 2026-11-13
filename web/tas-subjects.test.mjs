@@ -101,3 +101,17 @@ test("search: every word narrows, best first, one typo forgiven", async () => {
   assert.deepEqual(codes("zzzz"), [])
   assert.equal(codes("  ").length, L.length)
 })
+
+import { classPeriods, periodLabel } from "./tas-subjects.js"
+
+test("timetable: a subject's period on a given day", () => {
+  assert.deepEqual(classPeriods("ค23102", "2026-11-17"), [3])     // Tuesday, a 3–4 block
+  assert.deepEqual(classPeriods("อ23212", "2026-11-20"), [7])     // Friday
+  assert.deepEqual(classPeriods("อ23212", "2026-11-16"), [3])     // Monday
+  assert.deepEqual(classPeriods("อ23102", "2026-11-18"), [7])     // Wednesday
+  assert.deepEqual(classPeriods("ว23210", "2026-11-16"), [1])     // the shared EP Com block
+  assert.deepEqual(classPeriods("ค23102", "2026-11-14"), [])      // Saturday
+  assert.deepEqual(classPeriods("ค23102", "junk"), [])
+  assert.equal(periodLabel(7), "คาบ 7 · 13:20")
+  assert.equal(periodLabel(11), "")
+})

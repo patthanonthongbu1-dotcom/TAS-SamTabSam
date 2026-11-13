@@ -144,3 +144,40 @@ export const TIMETABLE = [
 // The saved list, or the timetable while nobody has saved one — so codes
 // and colours show from day one instead of waiting on Settings → Subjects.
 export const listOrTimetable = items => { const l = sanitize(items); return l.length ? l : sanitize(TIMETABLE) }
+
+/* ── The class timetable: when each subject meets ─────────────
+   ภาคเรียนที่ 2/2569, ม.3/3 ห้อง 168. Periods and their times, then each
+   weekday's periods → subject code (a code may span two periods; both are
+   listed, and the first of a block is "when it starts"). Non-subject slots
+   (lunch, homeroom, clubs, assemblies) are left out. Used to suggest
+   ส่งตอน: "the subject's own period on the day it's due". */
+export const PERIODS = [
+  null,
+  { start: "08:20", end: "09:10" }, { start: "09:10", end: "10:00" }, { start: "10:00", end: "10:50" },
+  { start: "10:50", end: "11:40" }, { start: "11:40", end: "12:30" }, { start: "12:30", end: "13:20" },
+  { start: "13:20", end: "14:10" }, { start: "14:10", end: "15:00" }, { start: "15:00", end: "15:50" },
+  { start: "15:50", end: "16:40" },
+]
+// weekday (1 = Monday … 5 = Friday) → { period: [codes] }
+export const WEEK = {
+  1: { 1: ["ว23104", "ว23210"], 2: ["ว23104", "ว23210"], 3: ["อ23212"], 4: ["ศ23102"], 5: ["ศ23102"], 7: ["อ23102"], 8: ["ท23102"], 9: ["พ23102"] },
+  2: { 1: ["ส23102"], 2: ["I23202"], 3: ["ค23102"], 4: ["ค23102"], 6: ["ค23202"], 7: ["ค23202"], 8: ["ว23206"], 9: ["ว23206"] },
+  3: { 1: ["ว23102"], 2: ["ว23102"], 4: ["อ23204"], 5: ["ส23102"], 7: ["อ23102"], 8: ["ท23102"] },
+  4: { 1: ["ท23102"], 2: ["ส23104"], 3: ["ก23902"], 5: ["ส23102"], 6: ["อ23204"], 9: ["ว23208"], 10: ["ว23208"] },
+  5: { 2: ["อ23102"], 3: ["ค23102"], 4: ["ง23102"], 6: ["ว23102"], 7: ["อ23212"] },
+}
+// "คาบ 3 · 10:00" — the label a card shows
+export const periodLabel = n => PERIODS[n] ? `คาบ ${n} · ${PERIODS[n].start}` : ""
+const weekdayOfYmd = ymd => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd || "")
+  return m ? new Date(Date.UTC(+m[1], m[2] - 1, +m[3])).getUTCDay() : -1
+}
+/** The periods `code` starts in on date `ymd` — one per block; [] when it doesn't meet */
+export function classPeriods(code, ymd){
+  const day = WEEK[weekdayOfYmd(ymd)]
+  if (!day || !code) return []
+  const c = norm(code), hit = p => (day[p] || []).some(x => norm(x) === c)
+  const out = []
+  for (let p = 1; p < PERIODS.length; p++) if (hit(p) && !hit(p - 1)) out.push(p)
+  return out
+}

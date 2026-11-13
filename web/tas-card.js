@@ -110,7 +110,7 @@ const HW_CSS = `
 .hw-sec{margin-top:12px;display:flex;flex-direction:column;gap:10px}
 .hw-sec-head{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:600;color:#d92d5e;line-height:1.4;padding:2px 2px 0}
 .hw-sec-head .hw-ico{width:20px;height:20px}
-.hw-row{display:flex;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(15,29,58,.06),0 0 0 1px #e8edf3}
+.hw-row{display:flex;background:#fff;border-radius:14px;overflow:hidden;border:1px solid #e3e9f1}
 .hw-strip{width:6px;flex-shrink:0}
 .hw-main{flex:1;min-width:0;padding:11px 14px 12px}
 .hw-head{display:flex;align-items:flex-start;gap:10px}
@@ -119,7 +119,7 @@ const HW_CSS = `
 .hw-ico{display:inline-flex;width:19px;height:19px;flex-shrink:0;margin-top:2px}
 .hw-emo{flex-shrink:0}
 .hw-subj-t{min-width:0;overflow-wrap:anywhere}
-.hw-code{display:inline-block;font-size:12px;font-weight:600;line-height:1.3;padding:2px 8px;border-radius:99px;margin-left:7px;white-space:nowrap;vertical-align:2px;font-variant-numeric:tabular-nums}
+.hw-code{display:inline-block;font-size:12px;font-weight:600;line-height:1.3;padding:1px 8px;border-radius:99px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .hw-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:5px;font-size:13px;color:#64748b;line-height:1.35}
 .hw-meta>span{display:inline-flex;align-items:center;gap:5px}
 .hw-meta svg{width:14px;height:14px;flex-shrink:0}
@@ -150,7 +150,7 @@ const HW_CSS = `
 .hw-ft .hw-head{gap:6px}
 .hw-ft .hw-subj{font-size:12px;gap:5px}
 .hw-ft .hw-ico{width:13px;height:13px;margin-top:1px}
-.hw-ft .hw-code{font-size:9px;padding:0 5px;margin-left:4px;vertical-align:1px}
+.hw-ft .hw-code{font-size:9.5px;padding:0 6px}
 .hw-ft .hw-pill{font-size:9.5px;padding:1px 7px;margin-top:0}
 .hw-ft .hw-meta{font-size:10px;margin-top:1px;gap:3px 8px}
 .hw-ft .hw-meta svg{width:10px;height:10px}
@@ -164,7 +164,7 @@ const HW_CSS = `
 .hw-qr-t svg{width:11px;height:11px}
 .hw-qr-d{font-size:9.5px;color:#64748b;line-height:1.35}
 .hw-qr-u{font-size:9px;font-weight:500;color:#16305e;padding:1px 7px;border-radius:99px;background:#e8edf6;white-space:nowrap}
-.hw-ft-solo{display:flex;align-items:center;gap:14px;margin:22px 18px 16px;padding:10px 12px 10px 14px;border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(15,29,58,.06),0 0 0 1px #e8edf3}
+.hw-ft-solo{display:flex;align-items:center;gap:14px;margin:22px 18px 16px;padding:10px 12px 10px 14px;border-radius:12px;background:#fff;border:1px solid #e3e9f1}
 .hw-solo-txt{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
 .hw-ft-solo .hw-qr-t{margin:0}
 .hw-ft-solo .hw-qr-d{text-align:left}
@@ -199,10 +199,10 @@ function rowHTML(r){ return  `<div class="hw-row">
       <div class="hw-strip" style="background:${colorOf(r.color)}"></div>
       <div class="hw-main">
         <div class="hw-head">
-          <div class="hw-subj" style="color:#0f1d3a"><span class="hw-num">${r.n}.</span><span style="color:${colorOf(r.color)};display:contents">${iconHTML(r.icon)}</span><span class="hw-subj-t">${esc(r.subject || "")}${r.code ? `<span class="hw-code" style="background:${colorOf(r.color)}1a;color:${colorOf(r.color)}">${esc(r.code)}</span>` : ""}</span></div>
+          <div class="hw-subj" style="color:#0f1d3a"><span class="hw-num">${r.n}.</span><span style="color:${colorOf(r.color)};display:contents">${iconHTML(r.icon)}</span><span class="hw-subj-t">${esc(r.subject || "")}</span></div>
           ${pillHTML(r.pill)}
         </div>
-        ${r.teacher || sendLabel(r.send) ? `<div class="hw-meta">${r.teacher ? `<span>${ICO.user}${esc(r.teacher)}</span>` : ""}${sendLabel(r.send) ? `<span class="hw-send">${SEND_ICO}${esc(sendLabel(r.send))}</span>` : ""}</div>` : ""}
+        ${r.code || r.teacher || sendLabel(r.send) ? `<div class="hw-meta">${r.code ? `<span class="hw-code" style="background:${colorOf(r.color)}1a;color:${colorOf(r.color)}">${esc(r.code)}</span>` : ""}${r.teacher ? `<span>${ICO.user}${esc(r.teacher)}</span>` : ""}${sendLabel(r.send) ? `<span class="hw-send">${SEND_ICO}${esc(sendLabel(r.send))}</span>` : ""}</div>` : ""}
         ${linesHTML(r, colorOf(r.color))}
         ${(r.photos || []).length ? `<div class="hw-photos">${r.photos.map(ph =>
           `<img class="hw-photo" src="${esc(ph.src)}" alt="" style="width:calc(${Math.min(100, Math.max(10, Number(ph.size) || 100))}% - 4px)">`).join("")}</div>` : ""}
