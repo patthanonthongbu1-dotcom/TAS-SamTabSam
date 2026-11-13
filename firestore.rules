@@ -43,6 +43,18 @@ service cloud.firestore {
                    && request.resource.data.items.size() <= 60;
     }
 
+    // ── Photos attached to a class task ───────────────────────
+    // One doc per task, its photos as small JPEG data URLs (no Storage
+    // bucket on this plan). Anyone can see them, like the tasks; only
+    // moderators attach or remove them.
+    match /taskPhotos/{taskId} {
+      allow read: if true;
+      allow create, update: if isMod()
+                            && request.resource.data.photos is list
+                            && request.resource.data.photos.size() <= 6;
+      allow delete: if isMod();
+    }
+
     // ── Change history for class tasks ────────────────────────
     // One document per add / edit / delete / restore, written by the
     // moderator who did it. Append-only: a log that can be edited after

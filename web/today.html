@@ -95,12 +95,30 @@ try { subjects = Subj.listOrTimetable(JSON.parse(localStorage.getItem("tas_subje
 let shownIds = []
 let lastModel = null     // what's on screen, reused by Save image
 
+// Photos attached on publish (taskPhotos/{id}); fetched once per task, then
+// the report redraws with them
+const photos = new Map()     // id → [{src}] | "loading"
+function photosFor(t) {
+  if (!t.photoCount) return []
+  const got = photos.get(t.id)
+  if (Array.isArray(got)) return got
+  if (!got) {
+    photos.set(t.id, "loading")
+    getDoc(doc(db, "taskPhotos", t.id))
+      .then(s => { photos.set(t.id, s.exists() ? (s.data().photos || []).filter(p => /^data:image\/(jpeg|png|webp);base64,/.test(p?.src || "")) : []); render() })
+      .catch(() => photos.set(t.id, []))
+  }
+  return []
+}
+
 const rowOf = t => {
+  const ph = photosFor(t)
   const h = Subj.match(t.subject, subjects)
   return { subject: h ? h.name : (t.subject || "").trim(), code: h ? h.code : "", teacher: h ? h.teacher : "",
            color: h ? h.color : "#64748b", icon: (h && h.icon) || "📝",
            kind: t.type === "marker" ? t.markerType : "homework",
-           lines: [t.name || ""], due: t.end || "", dueAt: t.dueAt || "", send: t.send || "" }
+           lines: [t.name || ""], due: t.end || "", dueAt: t.dueAt || "", send: t.send || "",
+           photos: ph.map(p => ({ src: p.src, size: ph.length > 1 ? 50 : 100 })) }
 }
 
 function render() {

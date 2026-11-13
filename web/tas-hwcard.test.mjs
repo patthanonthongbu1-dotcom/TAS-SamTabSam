@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { duePill, cardModel, fromTasks, MAX_ROWS, sendLabel, lineOf, footerModel, addDays, MAX_REMINDERS, reminderWindow, dayTasks, reportFor, newestStamp } from "./tas-hwcard.js"
+import { duePill, cardModel, fromTasks, MAX_ROWS, sendLabel, lineOf, footerModel, addDays, MAX_REMINDERS, reminderWindow, dayTasks, reportFor, newestStamp, fitPhotos } from "./tas-hwcard.js"
 
 const T = "2026-11-10"   // a Tuesday
 
@@ -150,4 +150,13 @@ test("reportFor: posted that day + due + upcoming; newestStamp", () => {
   assert.deepEqual(r.upcoming.map(t => t.id), ["a"])
   assert.equal(newestStamp(ts), at("2026-11-12"))
   assert.equal(newestStamp([]), 0)
+})
+
+test("fitPhotos: keeps what fits, in order, at most max", () => {
+  const ph = n => ({ src: "x".repeat(n) })
+  const r = fitPhotos([ph(400), ph(500), ph(300), ph(0)], 800, 6)
+  assert.deepEqual(r.kept.map(p => p.src.length), [400, 300])
+  assert.equal(r.dropped, 2)
+  assert.equal(fitPhotos(Array.from({ length: 9 }, () => ph(10)), 1e6, 6).kept.length, 6)
+  assert.deepEqual(fitPhotos(null).kept, [])
 })

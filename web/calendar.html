@@ -1194,6 +1194,20 @@
     .dp-chip{display:inline-flex;align-items:center;gap:5px;font-size:13.5px;font-weight:500;padding:3px 10px;border-radius:99px;background:var(--field-bg);border:1px solid var(--field-brd);color:var(--text)}
     .dp-chip .ic{width:13px;height:13px;color:var(--muted)}
     .dp-teacher{color:var(--muted)}
+    /* A task's photos (taskPhotos/{id}), under its description */
+    .dp-photos{margin-bottom:1rem}
+    .dp-photos-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scroll-snap-type:x proximity}
+    .dp-thumb{flex-shrink:0;width:96px;height:96px;border-radius:12px;overflow:hidden;border:1px solid var(--field-brd);padding:0;background:var(--field-bg);cursor:zoom-in;scroll-snap-align:start}
+    .dp-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .dp-photos-note{font-size:13.5px;color:var(--muted)}
+    .photo-viewer{position:fixed;inset:0;z-index:2000;background:rgba(5,10,22,.92);display:none;align-items:center;justify-content:center;padding:56px 12px 44px;touch-action:pan-y}
+    .photo-viewer.open{display:flex;animation:pvIn .18s ease}
+    @keyframes pvIn{from{opacity:0}to{opacity:1}}
+    .photo-viewer img{max-width:100%;max-height:100%;border-radius:10px;box-shadow:0 20px 60px -20px #000;user-select:none}
+    .pv-x{z-index:2;position:absolute;top:12px;right:14px;width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.14);color:#fff;font-size:18px;cursor:pointer}
+    .pv-nav{z-index:2;position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:none;background:rgba(255,255,255,.14);color:#fff;font-size:26px;line-height:1;cursor:pointer}
+    .pv-nav.prev{left:10px}.pv-nav.next{right:10px}
+    .pv-count{position:absolute;bottom:14px;left:0;right:0;text-align:center;color:rgba(255,255,255,.75);font-size:13.5px}
     /* Back from the Today page: its tasks pulse for a few seconds */
     .hl-pulse{animation:hlPulse 1.4s ease-in-out 3;border-radius:10px;outline:2.5px solid var(--pink);outline-offset:2px}
     @keyframes hlPulse{0%,100%{box-shadow:0 0 0 0 transparent}40%{box-shadow:0 0 0 3px var(--pink),0 0 18px 2px var(--accent-ring, rgba(59,130,246,.35))}}
@@ -2670,6 +2684,7 @@
   <symbol id="ic-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   <symbol id="ic-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14"/></symbol>
   <symbol id="ic-today" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><circle cx="12" cy="15" r="2" fill="currentColor"/></symbol>
+  <symbol id="ic-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4Z"/><circle cx="12" cy="13" r="3.5"/></symbol>
   <symbol id="ic-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="19" cy="12" r="1.4" fill="currentColor"/></symbol>
   <symbol id="ic-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M12 21.2s6.4-6 6.4-10.6a6.4 6.4 0 1 0-12.8 0C5.6 15.2 12 21.2 12 21.2z"/><circle cx="12" cy="10.4" r="2.4"/>
@@ -2936,6 +2951,7 @@
       <div class="detail-note-label"><svg class="ic" aria-hidden="true"><use href="#ic-tack"/></svg> Description</div>
       <div class="detail-note" id="dp-note"></div>
     </div>
+    <div class="dp-photos" id="dp-photos" style="display:none"></div>
     <div id="dp-progress-section" style="display:none"></div>
     <!-- How heavy this task is. Hidden for markers, which are dates rather
          than work. The weight saved here is this reader's own. -->
@@ -2964,6 +2980,15 @@
     <div class="detail-dates" id="dp-dates"></div>
     <button class="detail-edit-btn" id="dp-edit-btn"><svg class="ic" aria-hidden="true"><use href="#ic-pencil"/></svg> Edit task</button>
   </div>
+</div>
+
+<!-- PHOTO VIEWER — a task's photos, full screen -->
+<div class="photo-viewer" id="photoViewer" role="dialog" aria-label="Photo" onclick="if(event.target===this)closePhotoViewer()">
+  <button class="pv-x" onclick="closePhotoViewer()" aria-label="Close">✕</button>
+  <button class="pv-nav prev" onclick="stepPhoto(-1)" aria-label="Previous photo">‹</button>
+  <img id="pvImg" alt="">
+  <button class="pv-nav next" onclick="stepPhoto(1)" aria-label="Next photo">›</button>
+  <div class="pv-count" id="pvCount"></div>
 </div>
 
 <!-- PERSONAL TASK PANEL -->
@@ -3587,6 +3612,51 @@ function gcalUrl(t){
 
 // The small print under a task's dates: who posted it, who last changed it,
 // and a way to put it on your own calendar.
+// ── Task photos ─────────────────────────────────────────────
+// Kept in taskPhotos/{id} (the formatter attaches them on publish), read
+// only when a task with photoCount is opened, and cached for the visit.
+const photoCache=new Map()
+function loadTaskPhotos(id){
+  if(!photoCache.has(id)) photoCache.set(id,
+    getDoc(doc(db,"taskPhotos",id)).then(s=>s.exists()?(s.data().photos||[]).filter(p=>/^data:image\/(jpeg|png|webp);base64,/.test(p?.src||"")):[])
+      .catch(e=>{ photoCache.delete(id); throw e }))
+  return photoCache.get(id)
+}
+function renderDetailPhotos(t){
+  const box=document.getElementById("dp-photos")
+  if(!t.photoCount||t._personal){ box.style.display="none"; box.innerHTML=""; return }
+  box.style.display="block"
+  box.innerHTML=`<div class="detail-note-label">${ico("camera")} Photos</div><div class="dp-photos-note">Loading photos…</div>`
+  const id=t.id
+  loadTaskPhotos(id).then(ph=>{
+    if(detailTaskId!==id) return
+    if(!ph.length){ box.style.display="none"; return }
+    box.innerHTML=`<div class="detail-note-label">${ico("camera")} Photos · ${ph.length}</div><div class="dp-photos-row">${
+      ph.map((p,i)=>`<button class="dp-thumb" onclick="openPhotoViewer(event,'${esc(id)}',${i})" aria-label="Photo ${i+1}"><img src="${p.src}" alt="" loading="lazy"></button>`).join("")}</div>`
+  }).catch(()=>{ const n=box.querySelector(".dp-photos-note"); if(detailTaskId===id&&n) n.textContent="Couldn't load the photos." })
+}
+let pvList=[], pvAt=0
+function showPhoto(){
+  document.getElementById("pvImg").src=pvList[pvAt]?.src||""
+  document.getElementById("pvCount").textContent=pvList.length>1?`${pvAt+1} / ${pvList.length}`:""
+  document.querySelectorAll("#photoViewer .pv-nav").forEach(b=>b.style.display=pvList.length>1?"":"none")
+}
+window.openPhotoViewer=async function(e,id,i){
+  e?.stopPropagation()
+  pvList=await loadTaskPhotos(id).catch(()=>[]); pvAt=i||0
+  if(!pvList.length) return
+  showPhoto(); document.getElementById("photoViewer").classList.add("open")
+}
+window.stepPhoto=function(d){ if(!pvList.length)return; pvAt=(pvAt+d+pvList.length)%pvList.length; showPhoto() }
+window.closePhotoViewer=function(){ document.getElementById("photoViewer").classList.remove("open") }
+// Swipe between photos on a phone
+{
+  let x0=null
+  const pv=document.getElementById("photoViewer")
+  pv.addEventListener("touchstart",e=>{ x0=e.touches[0].clientX },{passive:true})
+  pv.addEventListener("touchend",e=>{ if(x0===null)return; const dx=e.changedTouches[0].clientX-x0; x0=null; if(Math.abs(dx)>50) stepPhoto(dx<0?1:-1) })
+}
+
 // Subject line for a task: code · subject, then the teacher when the
 // shared subject list knows one.
 function subjLineHTML(s){
@@ -7501,7 +7571,11 @@ async function deleteSharedTask(id){
   if(!t){toast("Task deleted");return}
   logHistory("deleted",t)
   const {id:_id,...data}=t
+  // Its photos go once Undo has had its chance, so Undo brings them back too
+  let undone=false
+  if(t.photoCount) setTimeout(()=>{ if(!undone){ photoCache.delete(id); deleteDoc(doc(db,"taskPhotos",id)).catch(e=>console.warn("Could not remove the task's photos:",e)) } },7600)
   toast("Task deleted",{action:"Undo",duration:7000,onAction:async()=>{
+    undone=true
     try{await setDoc(doc(db,"tasks",id),data);logHistory("restored",t)}
     catch(e){console.warn("Could not restore task:",e);saveFailToast()}
   }})
@@ -7611,7 +7685,7 @@ window.showDetail=function(e,id){
 
     document.getElementById("dp-name").textContent=t.name
     document.getElementById("dp-subject").innerHTML=`${subjLineHTML(t.subject)} · <span class="type-badge badge-marker">${ico(info.icon)} ${info.label}</span>`
-    document.getElementById("dp-when").innerHTML=whenChipsHTML(t)
+    document.getElementById("dp-when").innerHTML=whenChipsHTML(t);renderDetailPhotos(t)
     document.getElementById("dp-due-label").innerHTML=ico("pin")+" Date"
     const dd=document.getElementById("dp-due-date")
     dd.textContent=longDate(markerDate)
@@ -7656,7 +7730,7 @@ window.showDetail=function(e,id){
   // Normalised so the pre-rename type spellings still get a badge and a label
   const badgeType=taskType(t)
   document.getElementById("dp-subject").innerHTML=`${subjLineHTML(t.subject)} · <span class="type-badge badge-${badgeType}">${TYPE_LABEL[badgeType]||esc(badgeType)}</span>`
-  document.getElementById("dp-when").innerHTML=whenChipsHTML(t)
+  document.getElementById("dp-when").innerHTML=whenChipsHTML(t);renderDetailPhotos(t)
   // Big takeaway date first, boxed countdown under it
   document.getElementById("dp-due-label").innerHTML=ico("calendar-grid")+" Due"
   const dd=document.getElementById("dp-due-date")
@@ -7717,6 +7791,7 @@ function _positionAndShowDetail(e){
 }
 
 function closeDetailOutside(e){
+  if(document.getElementById("photoViewer").contains(e.target))return
   // Clicks inside the delete-confirmation dialog must not dismiss the popup
   if(document.getElementById("confirmOverlay").classList.contains("open"))return
   // Same for the progress sheet, which can be opened from inside the popup —
@@ -8670,6 +8745,7 @@ document.addEventListener("keydown",e=>{
 document.addEventListener("keydown",e=>{
   if(e.key!=="Escape")return
   const open=id=>document.getElementById(id).classList.contains("open")
+  if(open("photoViewer")) return closePhotoViewer()
   if(open("confirmOverlay")) return resolveConfirm(false)
   if(open("pointsModal"))   return closePointsSheet()
   if(open("progressModal")) return closeProgressSheet()

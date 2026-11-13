@@ -819,7 +819,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/fireba
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
 import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 import { mountHwCard, exportHwCard, HW_WIDTH, iconSVG } from "./tas-card.js"
-import { cardModel, shortThai, addDays, reminderWindow, SEND, DUE_KINDS, LINE_STYLES } from "./tas-hwcard.js"
+import { cardModel, shortThai, addDays, reminderWindow, fitPhotos, SEND, DUE_KINDS, LINE_STYLES } from "./tas-hwcard.js"
 import * as Subj from "./tas-subjects.js"
 import { mountSubjectSearch } from "./tas-subject-search.js"
 // The page navigator — the glass dot bottom-right, shared with the
@@ -1894,7 +1894,8 @@ function initApp() {
           tasks.push({
             name: work[0] || DUE_KINDS[k].label, subject: hit ? hit.name : (sec.title.trim() || "ไม่ระบุ"),
             type: "marker", markerType: k, date: end, start: end, end,
-            note: note + (bulletNote ? (note ? "\n" : "") + bulletNote : "")
+            note: note + (bulletNote ? (note ? "\n" : "") + bulletNote : ""),
+            _photos: subj.photos || []
           })
           return
         }
@@ -1906,11 +1907,43 @@ function initApp() {
           end:     dueOf(subj) || subj.taskStart || today,
           send:    sendOf(subj),
           dueAt:   dueAtOf(subj),
-          note:    note + (bulletNote ? (note ? "\n" : "") + bulletNote : "")
+          note:    note + (bulletNote ? (note ? "\n" : "") + bulletNote : ""),
+          _photos: subj.photos || []
         })
       })
     })
     return tasks
+  }
+
+  // A card photo, smaller again for the calendar: tasks keep their photos in
+  // one Firestore doc (no Storage bucket on this plan), which stops at 1 MB.
+  function shrinkPhoto(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => {
+        const k = Math.min(1, 900 / Math.max(img.naturalWidth, img.naturalHeight))
+        const c = document.createElement("canvas")
+        c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k)
+        const ctx = c.getContext("2d")
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height)
+        ctx.drawImage(img, 0, 0, c.width, c.height)
+        resolve({ src: c.toDataURL("image/jpeg", 0.72), w: c.width, h: c.height })
+      }
+      img.onerror = () => reject(new Error("bad photo"))
+      img.src = src
+    })
+  }
+  // Photos onto taskPhotos/{taskId} and the count onto the task. Returns how
+  // many went up (0 on failure — the task itself is already saved).
+  async function savePhotos(taskId, photos, by) {
+    if (!photos.length) return { n: 0, dropped: 0 }
+    const shrunk = []
+    for (const p of photos) { try { shrunk.push(await shrinkPhoto(p.src)) } catch (e) {} }
+    const { kept, dropped } = fitPhotos(shrunk)
+    if (!kept.length) return { n: 0, dropped: photos.length }
+    await setDoc(doc(db, "taskPhotos", taskId), { v: 1, photos: kept, by, at: Date.now() })
+    await updateDoc(doc(db, "tasks", taskId), { photoCount: kept.length })
+    return { n: kept.length, dropped: dropped + (photos.length - shrunk.length) }
   }
 
   async function syncToFirestore(tasks) {
@@ -1921,19 +1954,35 @@ function initApp() {
        the same task; if the read fails the set is empty and nothing is
        skipped, which is the old behaviour rather than a blocked publish. */
     const key = t => [t.name, t.subject, t.end].join("\u0000")
-    const have = new Set()
-    try { (await getDocs(collection(db, "tasks"))).forEach(d => have.add(key(d.data()))) } catch(e) {}
+    const have = new Map()     // key → { id, photoCount }
+    try { (await getDocs(collection(db, "tasks"))).forEach(d => have.set(key(d.data()), { id: d.id, photoCount: d.data().photoCount || 0 })) } catch(e) {}
     const by = auth.currentUser ? (auth.currentUser.displayName || auth.currentUser.email || "") : ""
-    for (const task of tasks) {
-      if (have.has(key(task))) { results.push({ ok: true, name: task.name, skipped: true }); continue }
+    for (const { _photos = [], ...task } of tasks) {
+      const was = have.get(key(task))
+      if (was) {
+        // Already on the calendar — but a retry may carry the photos the
+        // first try couldn't, so a task with none still gets them.
+        const r = { ok: true, name: task.name, skipped: true }
+        if (_photos.length && !was.photoCount) {
+          try { const ph = await savePhotos(was.id, _photos, by); r.photos = ph.n; r.photosDropped = ph.dropped; was.photoCount = ph.n }
+          catch (e) { console.warn("Photos didn't upload:", e); r.photosFailed = true }
+        }
+        results.push(r); continue
+      }
       try {
         const ref = await addDoc(collection(db, "tasks"), { ...task, createdAt: Date.now(), by })
-        have.add(key(task)); results.push({ ok: true, name: task.name })
+        have.set(key(task), { id: ref.id, photoCount: 0 })
+        const r = { ok: true, name: task.name }
+        if (_photos.length) {
+          try { const ph = await savePhotos(ref.id, _photos, by); r.photos = ph.n; r.photosDropped = ph.dropped; have.get(key(task)).photoCount = ph.n }
+          catch (e) { console.warn("Photos didn't upload:", e); r.photosFailed = true }
+        }
+        results.push(r)
         // The moderators' change history (calendar → Settings). Best effort:
         // a log entry that fails must not turn a saved task into an error.
         addDoc(collection(db, "taskHistory"), {
           taskId: ref.id, name: task.name, subject: task.subject || "",
-          action: "added", detail: "from the formatter", by, at: Date.now()
+          action: "added", detail: "from the formatter" + (r.photos ? ` with ${r.photos} photo${r.photos > 1 ? "s" : ""}` : ""), by, at: Date.now()
         }).catch(e => console.warn("Could not log the change:", e))
       }
       catch(e) { results.push({ ok: false, name: task.name, error: e.message }) }
@@ -2121,13 +2170,14 @@ function initApp() {
 
   // Called from updatePreview() too, so the calendar count stays live.
   function syncPublishMenu() {
-    const n = collectCalendarTasks().length
+    const flagged = collectCalendarTasks(), n = flagged.length
+    const ph = flagged.reduce((c, t) => c + Math.min(6, (t._photos || []).length), 0)
     document.querySelectorAll(".pub-opt").forEach(o => {
       const k = o.dataset.act, res = ["busy", "done", "failed"].find(c => o.classList.contains(c))
       o.setAttribute("aria-checked", String(!!actions[k]))
       o.classList.toggle("warn", k === "calendar" && !n && !res)
       o.querySelector(".po-h").textContent = res ? RESULT[res]
-        : k === "calendar" ? (n ? `${n} task${n > 1 ? "s" : ""} flagged` : "nothing flagged yet") : HINT[k]
+        : k === "calendar" ? (n ? `${n} task${n > 1 ? "s" : ""} flagged` + (ph ? ` · ${ph} photo${ph > 1 ? "s" : ""}` : "") : "nothing flagged yet") : HINT[k]
     })
     const on = Object.keys(SHORT).filter(k => actions[k])
     document.getElementById("pubSum").textContent = on.length
@@ -2228,6 +2278,10 @@ function initApp() {
         const results = await syncToFirestore(tasks)
         const okN = results.filter(r => r.ok).length
         const dupN = results.filter(r => r.skipped).length
+        const phN = results.reduce((n, r) => n + (r.photos || 0), 0)
+        if (phN) done.push(`attach ${phN} photo${phN > 1 ? "s" : ""} to the calendar`)
+        if (results.some(r => r.photosFailed)) failed.push("upload the photos (the tasks are saved — publish again to retry)")
+        else if (results.some(r => r.photosDropped)) done.push("leave out photos that didn't fit (6 per task, small enough to store)")
         if (okN === tasks.length && dupN) { markChip("calendar", "done"); done.push(`save the tasks to the calendar (${dupN} already there, skipped)`) }
         else if (okN === tasks.length) record("calendar", true)
         else { markChip("calendar", "failed"); failed.push(`save all tasks (${okN}/${tasks.length} saved)`) }

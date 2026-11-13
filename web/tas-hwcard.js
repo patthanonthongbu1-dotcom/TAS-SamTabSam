@@ -188,3 +188,19 @@ export function reportFor(tasks, date){
     .sort((a, b) => (a.end || "9999").localeCompare(b.end || "9999") || String(a.subject || "").localeCompare(String(b.subject || ""), "th"))
   return { posted, due, upcoming, week }
 }
+
+// Task photos live in Firestore (taskPhotos/{taskId}), whose documents stop
+// at 1 MB — so a task keeps at most this many, under this many characters.
+export const MAX_TASK_PHOTOS = 6
+export const PHOTO_BUDGET = 850_000
+/** The photos (already shrunk) that fit one task's doc, in order, plus how many didn't */
+export function fitPhotos(photos, budget = PHOTO_BUDGET, max = MAX_TASK_PHOTOS){
+  const kept = []
+  let used = 0
+  for(const p of photos || []){
+    const n = String(p?.src || "").length
+    if(!n || kept.length >= max || used + n > budget) continue
+    kept.push(p); used += n
+  }
+  return { kept, dropped: (photos || []).length - kept.length }
+}
