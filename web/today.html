@@ -1,198 +1,25 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <script>
-    // LINE's in-app browser can't sign in or save images: open it outside
-    (function () {
-      if (/Line\//i.test(navigator.userAgent || "")) {
-        var url = location.href
-        if (url.indexOf("openExternalBrowser=1") < 0)
-          location.replace(url + (url.indexOf("?") < 0 ? "?" : "&") + "openExternalBrowser=1")
-      }
-    })()
-  </script>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Today — TAS</title>
   <link rel="icon" type="image/x-icon" href="TASLogo.png">
   <meta name="theme-color" content="#0b1c3d">
-  <link rel="apple-touch-icon" href="TASLogo.png">
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="tas-theme-boot.js"></script>
-  <style>
-    /* The day's homework report: the card itself, drawn live from the
-       calendar, under a small bar to step between days. Read-only. */
-    :root{ --bg:#0b1c3d; --bar:rgba(30,48,84,.82); --brd:rgba(255,255,255,.14); --text:#fff; --muted:rgba(255,255,255,.7); --chip:rgba(255,255,255,.1); --accent:#3b82f6 }
-    html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]){ --bg:#eef2f8; --bar:rgba(255,255,255,.9); --brd:#dbe3ee; --text:#0f1d3a; --muted:#5b6b82; --chip:#eef2f7; --accent:#2563eb }
-    *{box-sizing:border-box}
-    body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:'Kanit',sans-serif;-webkit-font-smoothing:antialiased}
-    .bar{position:sticky;top:0;z-index:10;padding:10px 12px 0}
-    .bar-in{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:18px;background:var(--bar);border:1px solid var(--brd);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 12px 34px -20px rgba(0,0,0,.6)}
-    .ib{flex-shrink:0;width:40px;height:40px;border-radius:12px;border:1px solid var(--brd);background:var(--chip);color:var(--text);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;-webkit-tap-highlight-color:transparent}
-    .ib:active{transform:scale(.95)}
-    .ib svg{width:19px;height:19px}
-    .ib[disabled]{opacity:.35;cursor:default}
-    .day{flex:1;min-width:0;text-align:center;line-height:1.2}
-    .day b{display:block;font-size:15.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .day span{font-size:12px;color:var(--muted)}
-    .day button{font:inherit;font-size:11.5px;color:var(--accent);background:none;border:none;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
-    main{max-width:560px;margin:0 auto;padding:14px 12px 40px}
-    #card .hw{width:100%;box-shadow:0 18px 50px -28px rgba(0,0,0,.55)}
-    .acts{display:flex;gap:8px;margin-top:14px}
-    .btn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:46px;border-radius:14px;border:1px solid var(--brd);background:var(--chip);color:var(--text);font:inherit;font-size:15px;font-weight:500;cursor:pointer}
-    .btn.primary{background:linear-gradient(180deg,#4f8ef7,#2563eb);border-color:transparent;color:#fff}
-    .btn svg{width:17px;height:17px}
-    .note{text-align:center;font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.5}
-    .skel{height:520px;border-radius:26px;background:linear-gradient(90deg,var(--chip),rgba(127,127,127,.12),var(--chip));background-size:200% 100%;animation:sk 1.2s linear infinite}
-    @keyframes sk{to{background-position:-200% 0}}
-    #cardRender{position:fixed;left:-10000px;top:0;width:540px;pointer-events:none}
-  </style>
+  <script>
+    /* The Today report lives inside the calendar now. Card QR codes (and old
+       links) still point here, so pass the day along and step aside. LINE's
+       in-app browser is sent outside first, as on every other page. */
+    (function () {
+      var q = new URLSearchParams(location.search)
+      var d = q.get("date") || ""
+      var to = "calendar.html?view=today" + (/^\d{4}-\d{2}-\d{2}$/.test(d) ? "&date=" + d : "")
+      if (/Line\//i.test(navigator.userAgent || "")) to += "&openExternalBrowser=1"
+      location.replace(to)
+    })()
+  </script>
 </head>
-<body>
-  <div class="bar"><div class="bar-in">
-    <button class="ib" id="close" title="Back to calendar" aria-label="Back to calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-    <button class="ib" id="prev" title="Day before" aria-label="Day before"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button>
-    <div class="day"><b id="dayTitle">Today</b><span id="daySub">Homework report</span></div>
-    <button class="ib" id="next" title="Day after" aria-label="Day after"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
-  </div></div>
-  <main>
-    <div id="card"><div class="skel"></div></div>
-    <div class="acts">
-      <button class="btn" id="save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Save image</button>
-      <button class="btn primary" id="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg> Back to calendar</button>
-    </div>
-    <div class="note" id="note">Straight from the class calendar — it updates by itself.</div>
-  </main>
-  <div id="cardRender" aria-hidden="true"></div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js"
-import { getFirestore, collection, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
-import { cardModel, reportFor, newestStamp, localKey, addDays, weekdayOf } from "./tas-hwcard.js"
-import { mountHwCard, exportHwCard, thaiDate } from "./tas-card.js"
-import * as Subj from "./tas-subjects.js"
-
-const app = initializeApp({
-  apiKey: "AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18",
-  authDomain: "tas-samtabsam.firebaseapp.com",
-  projectId: "tas-samtabsam",
-  storageBucket: "tas-samtabsam.firebasestorage.app",
-  messagingSenderId: "645483732924",
-  appId: "1:645483732924:web:5a1ec2b9f7c58a18c655b9"
-})
-const db = getFirestore(app)
-const $ = id => document.getElementById(id)
-const SEEN_KEY = "tas_today_seen"
-const today = localKey()
-
-// Which day: ?date= from a card's QR, else today. Kept in the address bar
-// so a shared link opens the same report.
-const q = new URLSearchParams(location.search)
-let date = /^\d{4}-\d{2}-\d{2}$/.test(q.get("date") || "") ? q.get("date") : today
-let tasks = null
-let subjects = Subj.listOrTimetable()
-try { subjects = Subj.listOrTimetable(JSON.parse(localStorage.getItem("tas_subject_list") || "[]")) } catch (e) {}
-let shownIds = []
-let lastModel = null     // what's on screen, reused by Save image
-
-// Photos attached on publish (taskPhotos/{id}); fetched once per task, then
-// the report redraws with them
-const photos = new Map()     // id → [{src}] | "loading"
-function photosFor(t) {
-  if (!t.photoCount) return []
-  const got = photos.get(t.id)
-  if (Array.isArray(got)) return got
-  if (!got) {
-    photos.set(t.id, "loading")
-    getDoc(doc(db, "taskPhotos", t.id))
-      .then(s => { photos.set(t.id, s.exists() ? (s.data().photos || []).filter(p => /^data:image\/(jpeg|png|webp);base64,/.test(p?.src || "")) : []); render() })
-      .catch(() => photos.set(t.id, []))
-  }
-  return []
-}
-
-const rowOf = t => {
-  const ph = photosFor(t)
-  const h = Subj.match(t.subject, subjects)
-  return { subject: h ? h.name : (t.subject || "").trim(), code: h ? h.code : "", teacher: h ? h.teacher : "",
-           color: h ? h.color : "#64748b", icon: (h && h.icon) || "📝",
-           kind: t.type === "marker" ? t.markerType : "homework",
-           lines: [t.name || ""], due: t.end || "", dueAt: t.dueAt || "", send: t.send || "",
-           photos: ph.map(p => ({ src: p.src, size: ph.length > 1 ? 50 : 100 })) }
-}
-
-function render() {
-  const isToday = date === today
-  $("dayTitle").textContent = isToday ? "Today" : `วัน${weekdayOf(date)}`
-  $("daySub").textContent = thaiDate(date)
-  $("next").disabled = date >= addDays(today, 7)
-  history.replaceState(null, "", location.pathname + (isToday ? "" : "?date=" + date))
-  if (!tasks) return
-  const r = reportFor(tasks, date)
-  const postedIds = new Set(r.posted.map(t => t.id))
-  const due = r.due.filter(t => !postedIds.has(t.id))
-  const shown = new Set([...r.posted, ...due].map(t => t.id))
-  const upcoming = r.upcoming.filter(t => !shown.has(t.id))
-  shownIds = [...r.posted, ...due, ...upcoming].map(t => t.id)
-  const sections = [
-    { icon: "📢", title: "งานใหม่ · New", rows: r.posted.map(rowOf) },
-    { icon: "📌", title: "ส่งวันนี้ · Due " + (isToday ? "today" : "this day"), rows: due.map(rowOf) },
-  ]
-  const footer = upcoming.length ? {
-    week: r.week, qr: null,
-    reminders: upcoming.map(t => ({ ...rowOf(t), name: t.name || "", due: t.end })),
-  } : null
-  lastModel = cardModel({ date, name: "", sections, footer }, date)
-  mountHwCard($("card"), lastModel)
-}
-
-// Back to the calendar, with this report's tasks lit up there
-const toCalendar = () => {
-  location.href = "calendar.html" + (shownIds.length ? "?hl=" + encodeURIComponent(shownIds.join(",")) : "")
-}
-$("close").onclick = $("back").onclick = toCalendar
-$("prev").onclick = () => { date = addDays(date, -1); render() }
-$("next").onclick = () => { date = addDays(date, 1); render() }
-document.addEventListener("keydown", e => {
-  if (e.key === "ArrowLeft") $("prev").click()
-  else if (e.key === "ArrowRight" && !$("next").disabled) $("next").click()
-  else if (e.key === "Escape") toCalendar()
-})
-
-$("save").onclick = async () => {
-  const btn = $("save")
-  if (!lastModel) return
-  btn.disabled = true
-  try {
-    const { toBlob } = await import("https://esm.sh/html-to-image@1.11.13")
-    const host = $("cardRender")
-    const blob = await exportHwCard(mountHwCard(host, lastModel), toBlob)
-    host.innerHTML = ""
-    const a = document.createElement("a")
-    a.href = URL.createObjectURL(blob); a.download = "tas-today-" + date + ".png"
-    document.body.appendChild(a); a.click(); a.remove()
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000)
-  } catch (e) { console.warn("Save failed:", e); $("note").textContent = "Couldn't save the image — try again." }
-  btn.disabled = false
-}
-// ── Data: the class tasks, live, and the subject list ─────────
-onSnapshot(collection(db, "tasks"), snap => {
-  tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-  // Seen: the calendar only opens this page by itself for newer changes
-  try { localStorage.setItem(SEEN_KEY, String(Math.max(Number(localStorage.getItem(SEEN_KEY)) || 0, newestStamp(tasks)))) } catch (e) {}
-  render()
-}, e => {
-  console.warn("Could not read the calendar:", e)
-  $("card").innerHTML = ""
-  $("note").textContent = "Couldn't reach the class calendar. Check your connection and reload."
-})
-getDoc(doc(db, "subjects", "list")).then(snap => {
-  if (!snap.exists()) return
-  subjects = Subj.listOrTimetable(snap.data()?.items)
-  try { localStorage.setItem("tas_subject_list", JSON.stringify(subjects)) } catch (e) {}
-  render()
-}).catch(() => {})
-render()
-</script>
+<body style="font-family:sans-serif;background:#0b1c3d;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0">
+  <a href="calendar.html?view=today" style="color:#9cc3ff">Open today's homework →</a>
 </body>
 </html>

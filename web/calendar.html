@@ -327,6 +327,21 @@
     @keyframes dropIn{from{opacity:0;transform:translateY(-6px) scale(0.97)}to{opacity:1;transform:none}}
     .user-dropdown.open{display:flex}
     .more-sep{height:1px;background:rgba(127,127,127,.22);margin:4px 6px}
+    .more-menu .nav-pill{flex-direction:row;justify-content:flex-start;gap:9px;width:100%;padding:9px 10px;border-radius:10px;color:var(--text);text-align:left}
+    .more-menu .nav-pill .nav-ic{width:17px;height:17px}
+    .more-menu .nav-pill .nav-lab{font-size:14.5px;font-weight:400}
+    .more-menu .nav-pill .tab-count,.more-menu .nav-pill .today-dot{position:static;margin-left:auto}
+    .more-menu .nav-pill.active{background:var(--accent-soft);color:var(--accent-soft-text);box-shadow:none}
+    .more-menu .nav-pill:hover:not(.active){background:var(--glass)}
+    /* Settings → Nav bar */
+    .nb-row{display:flex;align-items:center;gap:10px}
+    .nb-row .set-row-text{flex:1;min-width:0}
+    .nb-mv{width:32px;height:32px;border-radius:9px;border:1px solid var(--field-brd);background:var(--field-bg);color:var(--text);cursor:pointer;font-size:15px;line-height:1;flex-shrink:0}
+    .nb-mv[disabled]{opacity:.3;cursor:default}
+    .nb-preview{display:flex;gap:4px;padding:10px 12px;flex-wrap:wrap}
+    .nb-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:99px;font-size:13px;background:var(--accent-soft);color:var(--accent-soft-text)}
+    .nb-chip.more{background:var(--field-bg);color:var(--muted)}
+    .nb-chip svg{width:14px;height:14px}
     /* ── Phones: tabs in a bottom bar, More as a bottom sheet ── */
     .bottom-bar{display:none}
     @media(max-width:640px){
@@ -1798,6 +1813,29 @@
       .theme-grid.three .theme-opt{flex-direction:row;justify-content:center;gap:7px;padding:10px 8px}
     }
 
+    /* Settings as a page: the head and a section index stick, the groups scroll with the page */
+    .settings-page{padding:12px 14px var(--nav-clear);animation:fadeIn .2s ease}
+    .settings-page[hidden]{display:none}
+    .set-page{max-width:1040px;margin:0 auto;max-height:none;display:block;background:none;border:none;box-shadow:none}
+    .set-page .set-sheet-head{align-items:center;justify-content:flex-start;gap:14px;border-bottom:none;padding:12px 4px 10px}
+    .set-back{display:inline-flex;align-items:center;gap:4px;height:38px;padding:0 14px 0 10px;border-radius:12px;border:1px solid var(--field-brd);
+      background:var(--field-bg);color:var(--text);font-family:'Kanit',sans-serif;font-size:14.5px;font-weight:500;cursor:pointer;flex-shrink:0}
+    .set-back .ic{width:17px;height:17px}
+    .set-layout{display:grid;grid-template-columns:200px minmax(0,720px);gap:28px;align-items:start;justify-content:center}
+    .set-page .set-scroll{overflow:visible;padding:4px 0 0}
+    .set-index{position:sticky;top:calc(var(--topbar-h) + 16px);display:flex;flex-direction:column;gap:2px;padding-top:10px}
+    .set-index a{display:block;padding:8px 12px;border-radius:10px;font-size:14.5px;color:var(--muted);text-decoration:none;font-weight:500;white-space:nowrap}
+    .set-index a:hover{background:var(--field-bg);color:var(--text)}
+    .set-index a.on{background:var(--accent-soft);color:var(--accent-soft-text)}
+    .set-group-label{scroll-margin-top:calc(var(--topbar-h) + 80px)}
+    @media(max-width:899px){
+      .set-layout{grid-template-columns:minmax(0,1fr);gap:6px}
+      .set-index{top:calc(var(--topbar-h) + 6px);z-index:4;flex-direction:row;overflow-x:auto;gap:6px;padding:7px;margin:0 -2px;
+        background:var(--sheet);border:1px solid var(--glass-brd, rgba(127,127,127,.2));border-radius:16px;
+        box-shadow:0 8px 22px -14px rgba(0,0,0,.4);scrollbar-width:none}
+      .set-index::-webkit-scrollbar{display:none}
+      .set-index a{padding:6px 12px;border:1px solid var(--field-brd);background:var(--field-bg);border-radius:99px;font-size:13.5px}
+    }
     .set-group-label{
       display:flex;align-items:center;gap:8px;
       font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;
@@ -2820,21 +2858,21 @@
     <span class="latest-pill" id="latestPill" style="display:none"></span>
 
     <div class="topnav-tabs" id="mainTabs">
-      <button class="nav-pill active" id="tabCalendar" onclick="switchView('calendar')">
+      <button class="nav-pill active" data-sec="calendar" id="tabCalendar" onclick="switchView('calendar')">
         <svg class="nav-ic"><use href="#ic-calendar"/></svg>
         <span class="nav-lab">Calendar</span>
       </button>
-      <a class="nav-pill" id="tabToday" href="today.html" style="text-decoration:none" title="Today's homework report">
+      <button class="nav-pill" data-sec="today" id="tabToday" onclick="openToday()" title="Today's homework report">
         <svg class="nav-ic"><use href="#ic-today"/></svg>
         <span class="nav-lab">Today</span>
         <span class="today-dot" id="todayDot" style="display:none"></span>
-      </a>
-      <button class="nav-pill" id="tabTodo" onclick="switchView('todo')">
+      </button>
+      <button class="nav-pill" data-sec="todo" id="tabTodo" onclick="switchView('todo')">
         <svg class="nav-ic"><use href="#ic-check-square"/></svg>
         <span class="nav-lab">To Do</span>
         <span class="tab-count" id="todoCount" style="display:none"></span>
       </button>
-      <button class="nav-pill" id="tabTasks" onclick="switchView('tasks')">
+      <button class="nav-pill" data-sec="tasks" id="tabTasks" onclick="switchView('tasks')">
         <svg class="nav-ic"><use href="#ic-mine"/></svg>
         <span class="nav-lab">My Tasks</span>
         <span class="tab-count" id="ptTopCount" style="display:none"></span>
@@ -2856,14 +2894,17 @@
   </nav>
 
   <div class="user-dropdown more-menu" id="moreMenu" role="menu">
-    <button class="user-dropdown-btn menu more-item" id="tabArchive" role="menuitem" onclick="closeMenus();switchView('archive')">
-      <svg class="ic" aria-hidden="true"><use href="#ic-archive"/></svg> Archive
+    <!-- Sections not in the nav bar are moved in here (applyNavBar) -->
+    <button class="nav-pill" data-sec="archive" id="tabArchive" onclick="closeMenus();switchView('archive')">
+      <svg class="nav-ic"><use href="#ic-archive"/></svg>
+      <span class="nav-lab">Archive</span>
       <span class="tab-count" id="archiveCount" style="display:none"></span>
     </button>
-    <button class="user-dropdown-btn menu more-item" id="tabSettings" role="menuitem" onclick="closeMenus();openSettings()">
-      <svg class="ic" aria-hidden="true"><use href="#ic-settings"/></svg> Settings
+    <button class="nav-pill" data-sec="settings" id="tabSettings" onclick="closeMenus();openSettings()">
+      <svg class="nav-ic"><use href="#ic-settings"/></svg>
+      <span class="nav-lab">Settings</span>
     </button>
-    <div class="more-sep" aria-hidden="true"></div>
+    <div class="more-sep" id="moreSep" aria-hidden="true"></div>
     <a class="user-dropdown-btn menu more-item" role="menuitem" href="index.html" style="text-decoration:none"><svg class="ic" aria-hidden="true"><use href="#ic-home"/></svg> Home</a>
     <a class="user-dropdown-btn menu more-item" role="menuitem" href="announce.html" id="morePageFormatter" style="text-decoration:none;display:none"><svg class="ic" aria-hidden="true"><use href="#ic-note"/></svg> Formatter</a>
     <a class="user-dropdown-btn menu more-item" role="menuitem" href="tools.html" style="text-decoration:none"><svg class="ic" aria-hidden="true"><use href="#ic-toolbox"/></svg> Tools</a>
@@ -3165,17 +3206,20 @@
 </div>
 
 <!-- Settings -->
-<div class="modal-overlay" id="settingsOverlay" style="z-index:900">
-  <div class="modal set-sheet">
-    <!-- Sticky head: the list below it is long enough to lose your place in -->
+<!-- SETTINGS — a page of the calendar (switchView("settings")), not a pop-up.
+     Every id inside is unchanged, so the sync*UI() helpers still find them. -->
+<section class="settings-page" id="settingsPage" hidden aria-label="Settings">
+  <div class="set-sheet set-page">
     <div class="set-sheet-head">
+      <button class="set-back" onclick="closeSettings()" aria-label="Back"><svg class="ic" aria-hidden="true"><use href="#ic-back"/></svg><span>Back</span></button>
       <div>
         <div class="set-page-title">Settings</div>
         <div class="set-page-sub">Make TAS work the way you do</div>
       </div>
-      <button class="set-close" onclick="closeSettings()" aria-label="Close settings">✕</button>
     </div>
 
+    <div class="set-layout">
+    <nav class="set-index" id="setIndex" aria-label="Settings sections"></nav>
     <div class="set-scroll">
 
       <div class="set-group-label">Appearance</div>
@@ -3245,6 +3289,10 @@
           <button class="zone-reset" onclick="resetZones()">Reset to defaults (3 / 7 / 14)</button>
         </div>
       </div>
+
+      <div class="set-group-label">Nav bar</div>
+      <div class="set-group" id="navBarSettings"></div>
+      <div class="set-group-note" id="navBarNote">Up to 4 sections in the bar, in your order; the rest wait behind More. Saved to your account.</div>
 
       <div class="set-group-label acct-only">Notifications</div>
       <div class="set-group acct-only">
@@ -3439,12 +3487,9 @@
       </div>
 
     </div>
-
-    <div class="modal-actions">
-      <button class="modal-save" onclick="closeSettings()">Done</button>
     </div>
   </div>
-</div>
+</section>
 
 <!-- Progress setup — opened by holding a checkmark, or from the detail popup -->
 <div class="modal-overlay" id="progressModal" style="z-index:920">
@@ -3581,6 +3626,8 @@ import * as Points from "./tas-points.js"
 import * as Subj from "./tas-subjects.js"
 import { mountSubjectSearch } from "./tas-subject-search.js"
 import { cardModel, fromTasks, SEND, sendLabel, newestStamp } from "./tas-hwcard.js"
+import { mountToday } from "./tas-today.js"
+import { NAV_SECTIONS, NAV_DEFAULT, NAV_MAX, normalizeNavBar, moreSections, toggleInBar, moveInBar } from "./tas-navbar.js"
 import { mountHwCard, exportHwCard, HW_WIDTH } from "./tas-card.js"
 import { icsFor } from "./tas-ics.js"
 import {
@@ -4502,13 +4549,64 @@ window.toggleMoreMenu = e => {
   place()
 }
 
+// ── Customisable nav bar ─────────────────────────────────────
+// Up to 4 sections sit in the bar in the chosen order; the rest move into
+// More. Saved on this device at once and on the account (settings/{uid}).
+const NAV_KEY = "tas_nav_bar"
+const NAV_INFO = {
+  calendar: ["Calendar", "calendar"], today: ["Today", "today"], todo: ["To Do", "check-square"],
+  tasks: ["My Tasks", "mine"], archive: ["Archive", "archive"], settings: ["Settings", "settings"],
+}
+let navBar = NAV_DEFAULT
+try{ navBar = normalizeNavBar(JSON.parse(localStorage.getItem(NAV_KEY) || "null")) }catch(e){}
+function applyNavBar(){
+  const tabs = document.getElementById("mainTabs"), more = document.getElementById("tabMore")
+  const menu = document.getElementById("moreMenu"), sep = document.getElementById("moreSep")
+  if(!tabs || !more || !menu) return
+  const el = k => document.querySelector(`[data-sec="${k}"]`)
+  for(const k of navBar) if(el(k)) tabs.insertBefore(el(k), more)
+  for(const k of moreSections(navBar)) if(el(k)) menu.insertBefore(el(k), sep)
+  setActivePill(currentView); syncMoreDot()
+}
+function saveNavBar(next, toAccount = true){
+  navBar = normalizeNavBar(next)
+  try{ localStorage.setItem(NAV_KEY, JSON.stringify(navBar)) }catch(e){}
+  applyNavBar(); renderNavSettings()
+  if(toAccount && currentUser) setDoc(doc(db, "settings", currentUser.uid), { navBar, updatedAt: Date.now() }, { merge: true })
+    .catch(e => console.warn("Could not save the nav bar:", e))
+}
+function renderNavSettings(){
+  const box = document.getElementById("navBarSettings")
+  if(!box) return
+  const order = [...navBar, ...moreSections(navBar)]
+  box.innerHTML = `<div class="nb-preview" aria-label="Preview">${navBar.map(k => `<span class="nb-chip">${ico(NAV_INFO[k][1])}${NAV_INFO[k][0]}</span>`).join("")}<span class="nb-chip more">${ico("more")}More</span></div>` +
+    order.map(k => { const on = navBar.includes(k), i = navBar.indexOf(k)
+      return `<div class="set-row nb-row">
+        <div class="set-row-icon">${ico(NAV_INFO[k][1])}</div>
+        <div class="set-row-text"><div class="set-row-title">${NAV_INFO[k][0]}</div><div class="set-row-desc">${on ? "In the bar · " + (i + 1) : "In More"}</div></div>
+        ${on ? `<button class="nb-mv" onclick="navMove('${k}',-1)" ${i === 0 ? "disabled" : ""} aria-label="Move ${NAV_INFO[k][0]} left">↑</button>
+               <button class="nb-mv" onclick="navMove('${k}',1)" ${i === navBar.length - 1 ? "disabled" : ""} aria-label="Move ${NAV_INFO[k][0]} right">↓</button>` : ""}
+        <div class="set-switch${on ? " on" : ""}" role="switch" aria-checked="${on}" tabindex="0" onclick="navToggle('${k}')"></div>
+      </div>` }).join("") +
+    `<button class="set-row tap" onclick="navReset()"><div class="set-row-icon">${ico("back")}</div><div class="set-row-text"><div class="set-row-title">Reset to default</div><div class="set-row-desc">Calendar · Today · To Do · My Tasks</div></div></button>`
+}
+window.navToggle = k => {
+  const next = toggleInBar(navBar, k)
+  if(!next){ toast(navBar.includes(k) ? "Keep at least one section in the bar" : `Up to ${NAV_MAX} in the bar — turn one off first`, { error:true }); return }
+  saveNavBar(next)
+}
+window.navMove = (k, d) => saveNavBar(moveInBar(navBar, k, d))
+window.navReset = () => saveNavBar(NAV_DEFAULT)
+applyNavBar()
+
 // More shows a dot while Archive has a count behind it
 function syncMoreDot(){
-  const shown = id => { const b = document.getElementById(id); return b && b.style.display !== "none" && b.textContent.trim() }
-  const dot = document.getElementById("moreDot")
-  if(dot) dot.style.display = shown("archiveCount") ? "block" : "none"
+  const menu = document.getElementById("moreMenu"), dot = document.getElementById("moreDot")
+  if(!dot || !menu) return
+  const any = [...menu.querySelectorAll(".tab-count, .today-dot")].some(b => b.style.display !== "none" && (b.textContent.trim() || b.classList.contains("today-dot")))
+  dot.style.display = any ? "block" : "none"
 }
-;["archiveCount"].forEach(id => {
+;["archiveCount","todoCount","ptTopCount","todayDot"].forEach(id => {
   const b = document.getElementById(id)
   if(b) new MutationObserver(syncMoreDot).observe(b, { attributes:true, childList:true, characterData:true, subtree:true })
 })
@@ -4594,18 +4692,37 @@ function syncProgDefaultUI(){
   document.getElementById("pgDefTotalRow").classList.toggle("hide", !steps)
 }
 
-window.openSettings=function(){
+// Settings is a view now: switchView("settings") shows the page and
+// closeSettings() goes back to wherever you came from.
+let settingsBack = "calendar"
+function syncSettingsUI(){
   syncZoneInputs();updateNotifyUI();syncOverdueUI();syncProgDefaultUI();syncPointTargetUI();syncMuteUI()
+  renderNavSettings?.()
   const wh=document.getElementById("widgetStateHint")
   if(wh) wh.textContent = widgetFeedOn ? "On — tap to get the link or turn it off" : "Works on iPhone and Android"
-  setActivePill("settings")
-  document.getElementById("settingsOverlay").classList.add("open")
+  buildSettingsIndex()
 }
-window.closeSettings=function(){
-  animCloseOverlay(document.getElementById("settingsOverlay"))
-  setActivePill(currentView)
+window.openSettings=function(){ switchView("settings") }
+window.closeSettings=function(){ switchView(settingsBack || "calendar") }
+// The section index: one link per group label, lit as you scroll past it
+function buildSettingsIndex(){
+  const idx=document.getElementById("setIndex"); if(!idx) return
+  const labels=[...document.querySelectorAll("#settingsPage .set-group-label")].filter(l=>getComputedStyle(l).display!=="none")
+  labels.forEach(l=>{ l.id ||= "set-" + l.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g,"-") })
+  idx.innerHTML=labels.map(l=>`<a href="#${l.id}" data-for="${l.id}">${esc(l.textContent.trim())}</a>`).join("")
+  idx.querySelectorAll("a").forEach(a=>a.onclick=e=>{ e.preventDefault(); document.getElementById(a.dataset.for).scrollIntoView({behavior:"smooth",block:"start"}) })
+  syncSettingsIndex()
 }
-document.getElementById("settingsOverlay").addEventListener("click",e=>{if(e.target.id==="settingsOverlay")window.closeSettings()})
+function syncSettingsIndex(){
+  const idx=document.getElementById("setIndex"); if(!idx||document.getElementById("settingsPage").hidden) return
+  const line=(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--topbar-h"))||70)+90
+  let cur=null
+  idx.querySelectorAll("a").forEach(a=>{ const l=document.getElementById(a.dataset.for); if(l&&l.getBoundingClientRect().top<=line) cur=a })
+  cur ||= idx.querySelector("a")
+  idx.querySelectorAll("a").forEach(a=>a.classList.toggle("on",a===cur))
+  if(cur&&idx.scrollWidth>idx.clientWidth) cur.scrollIntoView({block:"nearest",inline:"nearest"})
+}
+window.addEventListener("scroll",()=>syncSettingsIndex(),{passive:true})
 
 // ── Home-screen widget feed ───────────────────────────────────
 // Only republished for students who actually turned the widget on — the
@@ -4994,6 +5111,8 @@ async function loadSettings(uid){
     if(snap.exists() && snap.data().pointTarget !== undefined)
       pointTarget = Points.normTarget(snap.data().pointTarget)
     if(snap.exists() && Number(snap.data().weekendBudget) > 0) weekendBudget = Number(snap.data().weekendBudget)
+    // The nav bar follows the account
+    if(snap.exists() && Array.isArray(snap.data().navBar)) saveNavBar(snap.data().navBar, false)
     // A doc with no target has nothing on the old scale to rescale, and a
     // doc that isn't there at all starts life on the current one.
     pointTargetScale = (snap.exists() && snap.data().pointTarget !== undefined)
@@ -5168,16 +5287,18 @@ function applyStoredRangeToUI(){
 // Which nav pill is lit. Four are real views; "settings" is the last sheet
 // left, and borrows the highlight while it's open, handing it back on close.
 function setActivePill(which){
-  const map = { calendar:"tabCalendar", archive:"tabArchive", todo:"tabTodo", tasks:"tabTasks", settings:"tabSettings" }
+  const map = { calendar:"tabCalendar", today:"tabToday", archive:"tabArchive", todo:"tabTodo", tasks:"tabTasks", settings:"tabSettings" }
+  const menu = document.getElementById("moreMenu")
+  let inMore = false
   for(const [key, id] of Object.entries(map)){
     const el = document.getElementById(id)
     if(!el) continue
     el.classList.toggle("active", key === which)
-    if(el.classList.contains("more-item")) continue   // lives in the menu, not the row
+    if(menu?.contains(el)){ if(key === which) inMore = true; continue }   // in the menu, not the row
     // On a phone the row scrolls; the tab you're on is never left off-screen
     if(key === which) el.scrollIntoView({ block:"nearest", inline:"nearest" })
   }
-  document.getElementById("tabMore")?.classList.toggle("active", ["archive","settings"].includes(which))
+  document.getElementById("tabMore")?.classList.toggle("active", inMore)
   syncTabsEdge()
 }
 // Which edge to fade, if the row scrolls at all (see .topnav-tabs.scrolls)
@@ -5196,6 +5317,18 @@ window.setActivePill = setActivePill
 window.switchView = function(view) {
   // Ideas is a tab of My Tasks now; old callers (share target…) land there
   if(view === "ideas"){ switchView("tasks"); mtTab("ideas"); return }
+  const sp = document.getElementById("settingsPage"), wrap = document.getElementById("calWrap")
+  if(view === "settings"){
+    if(currentView !== "settings") settingsBack = currentView
+    currentView = "settings"
+    closeMenus(); closeFabs()
+    setActivePill("settings")
+    wrap.style.display = "none"; sp.hidden = false
+    syncSettingsUI()
+    window.scrollTo(0, 0)
+    return
+  }
+  if(!sp.hidden){ sp.hidden = true; wrap.style.display = "" }
   currentView = view
   animateRows = true
   setActivePill(view)
@@ -5211,6 +5344,7 @@ window.switchView = function(view) {
   // Arriving is the one time the form is rebuilt and reset — every later
   // repaint leaves what's half-typed alone.
   else if (view==="tasks") renderMyTasks(true)
+  else if (view==="today") renderTodayView(true)
   else renderArchive()
 }
 
@@ -5234,16 +5368,20 @@ function initIdeasView(uid){
   if(shareArrived){ shareArrived = false; switchView("ideas") }
 }
 
-/* Old card links (calendar?date=…) belong to the Today page now. And the
-   Today page sends people back with ?hl=id,id: those tasks get lit up. */
+/* calendar?view=today[&date=…] — a card's QR (via today.html) or an old
+   calendar?date= link — opens the Today view on that day. ?hl=id,id lights
+   those tasks up. All of it is read once and wiped from the address bar. */
 let hlFromToday = []
 let firstTasksSnap = true
+let todayFromLink = null
 {
   const q = new URLSearchParams(location.search)
   const d = q.get("date") || ""
-  if(/^\d{4}-\d{2}-\d{2}$/.test(d)) location.replace("today.html?date=" + d)
+  const okDate = /^\d{4}-\d{2}-\d{2}$/.test(d)
+  if(q.get("view") === "today" || okDate) todayFromLink = okDate ? d : "today"
   hlFromToday = (q.get("hl") || "").split(",").filter(id => SAFE_ID.test(id)).slice(0, 40)
-  if(q.has("hl")){ q.delete("hl"); history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : "")) }
+  ;["hl","view","date","openExternalBrowser"].forEach(k => q.delete(k))
+  if(location.search) history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : ""))
 }
 
 /* Shared in from another app via the manifest's share_target. Read once,
@@ -5391,9 +5529,11 @@ function renderCurrentView(){
   // A tick moves a daily task to the day it was ticked; midnight moves an
   // unticked one to the new today.
   pinDailies(personalTasks, userDoneCache, localToday())
+  if(currentView==="settings") return      // a page of its own, nothing to redraw
   if(currentView==="archive") renderArchive()
   else if(currentView==="todo"){ TodoUI.render(); updateTodoCount() }
   else if(currentView==="tasks") renderMyTasks(false)   // list only — never the form
+  else if(currentView==="today") renderTodayView(false)
   else renderCalendar()
 }
 window.renderCurrentView = renderCurrentView
@@ -7895,15 +8035,37 @@ function syncTodayDot(){
   const dot = document.getElementById("todayDot")
   if(dot) dot.style.display = tasks.length && newestStamp(tasks) > seen ? "block" : "none"
 }
+// ── The Today view: the day's report, drawn as the homework card ──
+let todayView = null, todayDate = null
+window.openToday = function(){ todayDate = null; switchView("today") }
+function renderTodayView(fresh){
+  const wrap = document.getElementById("calWrap")
+  if(fresh || !todayView || !wrap.querySelector("#todayMount")){
+    wrap.innerHTML = `<div id="todayMount"></div>`
+    todayView = mountToday(document.getElementById("todayMount"), {
+      today: localToday(), date: todayDate || localToday(),
+      loadPhotos: loadTaskPhotos,
+      onDate: d => { todayDate = d },
+      onOpenTask: (id, e) => showDetail(e, id),
+      onBack: ids => { switchView("calendar"); if(ids.length) setTimeout(highlightTasks, 450, ids) },
+    })
+  }
+  todayView.render(tasksLoaded ? tasks : null, subjectList.length ? subjectList : null)
+  // Looking at it counts as having seen what's new
+  if(tasksLoaded){ try{ localStorage.setItem(TODAY_SEEN_KEY, String(Math.max(Number(localStorage.getItem(TODAY_SEEN_KEY)) || 0, newestStamp(tasks)))) }catch(e){}; syncTodayDot() }
+}
+
 function afterFirstTasks(){
   if(hlFromToday.length) setTimeout(highlightTasks, 450, hlFromToday)
+  // A card's QR: straight to that day's report
+  if(todayFromLink){ todayDate = todayFromLink === "today" ? null : todayFromLink; todayFromLink = null; switchView("today"); return }
   let seen = null
   try{ seen = localStorage.getItem(TODAY_SEEN_KEY) }catch(e){}
   const newest = newestStamp(tasks)
   // First visit ever: nothing is "new" yet — remember where we are
   if(seen === null){ try{ localStorage.setItem(TODAY_SEEN_KEY, String(newest)) }catch(e){}; return syncTodayDot() }
   // Not straight back from Today, not mid-share, and only for something newer
-  if(todayAuto() && !hlFromToday.length && !shareArrived && newest > Number(seen)){ location.href = "today.html"; return }
+  if(todayAuto() && !hlFromToday.length && !shareArrived && newest > Number(seen)){ todayDate = null; switchView("today"); return }
   syncTodayDot()
 }
 // Lights up these tasks wherever the current view draws them, and brings
@@ -8839,7 +9001,7 @@ document.addEventListener("keydown",e=>{
   if(open("detailPopup")) return closeDetail()
   if(open("taskModal"))   return closeModal()
   if(open("historyModal"))    return closeHistory()
-  if(open("settingsOverlay")) return closeSettings()
+  if(!document.getElementById("settingsPage").hidden) return closeSettings()
   if(open("tourOverlay"))     return closeTour()
   if(open("userDropdown")||open("moreMenu")) return closeMenus()
   if(open("configSheet")) closeFabs()

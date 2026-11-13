@@ -195,7 +195,7 @@ function linesHTML(r, c){
 // One numbered row: the main list and the footer reminders both paint with it
 const pillHTML = p => p ? `<span class="hw-pill" style="background:${PILL[p.tone][0]};color:${PILL[p.tone][1]}">${esc(p.label)}</span>` : ""
 const colorOf = c => /^#[0-9a-f]{6}$/i.test(c || "") ? c : "#64748b"
-function rowHTML(r){ return  `<div class="hw-row">
+function rowHTML(r){ return  `<div class="hw-row"${r.id ? ` data-tid="${esc(r.id)}"` : ""}>
       <div class="hw-strip" style="background:${colorOf(r.color)}"></div>
       <div class="hw-main">
         <div class="hw-head">
