@@ -326,6 +326,38 @@
     }
     @keyframes dropIn{from{opacity:0;transform:translateY(-6px) scale(0.97)}to{opacity:1;transform:none}}
     .user-dropdown.open{display:flex}
+    .more-sep{height:1px;background:rgba(127,127,127,.22);margin:4px 6px}
+    /* ── Phones: tabs in a bottom bar, More as a bottom sheet ── */
+    .bottom-bar{display:none}
+    @media(max-width:640px){
+      .bottom-bar{display:block;position:fixed;left:0;right:0;bottom:0;z-index:520;
+        padding:5px 6px calc(5px + env(safe-area-inset-bottom,0px));
+        background:var(--sheet);border-top:1px solid var(--glass-brd, rgba(127,127,127,.2));
+        backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);
+        box-shadow:0 -10px 30px -18px rgba(0,0,0,.45)}
+      .bottom-bar .topnav-tabs{display:flex;width:100%;margin:0;gap:2px;justify-content:space-between;overflow:visible;-webkit-mask-image:none;mask-image:none;animation:none}
+      .bottom-bar .nav-pill{flex:1;min-width:0;min-height:54px;padding:6px 2px;border-radius:14px;gap:3px}
+      .bottom-bar .nav-ic{width:22px;height:22px}
+      .bottom-bar .nav-lab{font-size:11.5px}
+      .bottom-bar .tab-count{right:calc(50% - 22px)}
+      .bottom-bar .today-dot,.bottom-bar .more-dot{right:calc(50% - 16px)}
+      /* Up top only the mark and the avatar stay */
+      .topnav > .nav-pill.profile{margin-left:auto}
+      .topnav > .nav-pill.profile .nav-lab{display:none}
+      /* Clear the bar */
+      .fab-container{bottom:calc(76px + env(safe-area-inset-bottom,0px))!important}
+      :root{--nav-clear:calc(150px + env(safe-area-inset-bottom,0px))!important}
+      /* The page navigator's pages are in More here */
+      .tasnav{display:none!important}
+      /* More, as a sheet from the bottom with big rows */
+      body > .more-menu{position:fixed;left:0;right:0;bottom:0;top:auto;min-width:0;
+        border-radius:22px 22px 0 0;padding:14px 12px calc(16px + env(safe-area-inset-bottom,0px));z-index:1000;
+        animation:sheetUp .24s cubic-bezier(0.32,0.72,0,1) both}
+      body > .more-menu::before{content:"";display:block;width:38px;height:4px;border-radius:2px;background:rgba(127,127,127,.35);margin:0 auto 10px}
+      body > .more-menu .more-item{min-height:52px;font-size:16px;padding:0 14px;border-radius:14px}
+      body > .more-menu .more-item .ic{width:20px;height:20px}
+      @keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
+    }
     /* More: Archive, Ideas, Settings */
     .more-menu{min-width:180px}
     .more-item{display:flex;align-items:center;gap:9px}
@@ -2831,6 +2863,10 @@
     <button class="user-dropdown-btn menu more-item" id="tabSettings" role="menuitem" onclick="closeMenus();openSettings()">
       <svg class="ic" aria-hidden="true"><use href="#ic-settings"/></svg> Settings
     </button>
+    <div class="more-sep" aria-hidden="true"></div>
+    <a class="user-dropdown-btn menu more-item" role="menuitem" href="index.html" style="text-decoration:none"><svg class="ic" aria-hidden="true"><use href="#ic-home"/></svg> Home</a>
+    <a class="user-dropdown-btn menu more-item" role="menuitem" href="announce.html" id="morePageFormatter" style="text-decoration:none;display:none"><svg class="ic" aria-hidden="true"><use href="#ic-note"/></svg> Formatter</a>
+    <a class="user-dropdown-btn menu more-item" role="menuitem" href="tools.html" style="text-decoration:none"><svg class="ic" aria-hidden="true"><use href="#ic-toolbox"/></svg> Tools</a>
   </div>
 
   <div class="user-dropdown" id="userDropdown">
@@ -2864,6 +2900,9 @@
      board. They are all answers to the same question ("how do I want to look
      at this?"), so they are one sheet now, and the bar carries a single pill
      that says what the board is currently set to. -->
+<!-- Phones: the tabs live here, at the thumb, instead of in the top bar -->
+<nav class="bottom-bar" id="bottomBar" aria-label="Sections"></nav>
+
 <div class="fab-container">
   <div class="cfg-fab">
     <button class="cfg-toggle" id="cfgToggle" onclick="toggleConfig(event)"
@@ -3216,6 +3255,14 @@
             <div class="set-row-desc" id="notifyStateHint">Off</div>
           </div>
           <div class="set-switch" id="notifySwitch"></div>
+        </div>
+        <div class="set-row tap" id="notifyNewHwRow" onclick="toggleNotifyNewHw()">
+          <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-today"/></svg></div>
+          <div class="set-row-text">
+            <div class="set-row-title">New homework posted</div>
+            <div class="set-row-desc">A notification when the class posts homework — tap it to open the Today report</div>
+          </div>
+          <div class="set-switch" id="notifyNewHwSwitch"></div>
         </div>
         <div class="set-row">
           <div class="set-row-icon"><svg class="ic" aria-hidden="true"><use href="#ic-alarm"/></svg></div>
@@ -4431,6 +4478,30 @@ window.toggleMoreMenu = e => {
   closeMenus()
   if(!open){ m.classList.add("open"); document.getElementById("tabMore").setAttribute("aria-expanded","true") }
 }
+// Phones get the tabs in a bottom bar and More as a sheet. The elements
+// move rather than being copied, so every id, count and handler still
+// works; position:fixed can't be done in place because the top bar's
+// blur and slide-in animation make it the containing block.
+{
+  const phone = matchMedia("(max-width:640px)")
+  const tabs = document.getElementById("mainTabs"), more = document.getElementById("moreMenu")
+  const pill = document.getElementById("userPill"), bar = document.getElementById("bottomBar")
+  const home = { tabs: [tabs.parentNode, tabs.nextSibling], more: [more.parentNode, more.nextSibling], pill: [pill.parentNode, pill.nextSibling] }
+  const put = (el, [parent, next]) => parent.insertBefore(el, next && next.parentNode === parent ? next : null)
+  const place = () => {
+    closeMenus()
+    if (phone.matches) {
+      bar.appendChild(tabs); document.body.appendChild(more)
+      document.getElementById("topnav").appendChild(pill)
+    } else {
+      put(pill, home.pill); put(tabs, home.tabs); put(more, home.more)
+    }
+    if (typeof syncTabsEdge === "function") syncTabsEdge()
+  }
+  phone.addEventListener?.("change", place)
+  place()
+}
+
 // More shows a dot while Archive has a count behind it
 function syncMoreDot(){
   const shown = id => { const b = document.getElementById(id); return b && b.style.display !== "none" && b.textContent.trim() }
@@ -4725,6 +4796,15 @@ let notifyTime = "18:00"
 try{ const v=localStorage.getItem(NOTIFY_TIME_KEY); if(/^\d{1,2}:\d{2}$/.test(v||"")) notifyTime=v }catch(e){}
 /* Subjects left out of the daily reminder. Kept per device like the time,
    and published to the account so the scheduled function skips them too. */
+// "New homework posted" pushes (netlify/functions/reminder.js) — on unless turned off
+const NOTIFY_NEWHW_KEY = "tas_notify_newhw"
+let notifyNewHw = true
+try{ notifyNewHw = localStorage.getItem(NOTIFY_NEWHW_KEY)!=="off" }catch(e){}
+window.toggleNotifyNewHw = function(){
+  notifyNewHw = !notifyNewHw
+  try{ localStorage.setItem(NOTIFY_NEWHW_KEY, notifyNewHw?"on":"off") }catch(e){}
+  updateNotifyUI(); publishNotifyPrefs()
+}
 const NOTIFY_MUTED_KEY = "tas_notify_muted"
 let notifyMuted = []
 try{
@@ -4831,6 +4911,10 @@ function updateNotifyUI(){
     : "Not supported in this browser"
   else if(Notification.permission==="denied") hint.textContent="Blocked — allow notifications for this site in your browser settings"
   else hint.textContent = notifyReady() ? "On — you'll be notified on this device" : "Off"
+  // Only meaningful while notifications are on at all
+  const nh=document.getElementById("notifyNewHwRow")
+  if(nh) nh.style.display = notifyReady() ? "" : "none"
+  document.getElementById("notifyNewHwSwitch")?.classList.toggle("on", notifyNewHw)
 }
 
 window.toggleNotify = async function(){
@@ -4879,6 +4963,7 @@ async function publishNotifyPrefs(){
       on: !!notifyPref,
       time: notifyTime,
       muted: notifyMuted,
+      newHw: !!notifyNewHw,
       tz: (Intl.DateTimeFormat().resolvedOptions().timeZone) || "Asia/Bangkok",
       updatedAt: Date.now()
     }, { merge: true })   // merge, or the function's lastSent goes with it
@@ -7867,6 +7952,8 @@ function updateRoleUI(){
   // The navigator signposts the formatter for moderators, so unlocking
   // mod mode has to reach it too — mountNav updates in place.
   mountNav({ active:"calendar", admin:isModerator })
+  const mf=document.getElementById("morePageFormatter")
+  if(mf) mf.style.display=isModerator?"":"none"
   const role=document.getElementById("dropdownRole")
   if(role) role.textContent=isModerator?"Moderator":"Member"
   const fb=document.getElementById("ddFirebase")

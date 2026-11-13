@@ -439,6 +439,7 @@
     .foot-chip .fc-k { font-size: 11px; opacity: .75; }
     .dueat-wrap { display: flex; align-items: center; gap: 6px; min-width: 0; }
     .dueat-wrap input { flex: 1; }
+    .dueat-wrap > .pk { flex: 1; min-width: 0; }
     .dueat-sync { flex-shrink: 0; color: #8fd3ff; display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; opacity: .75; white-space: nowrap; }
     .dueat-sync.saving { color: #fbbf24; } .dueat-sync.saved { color: #4ade80; } .dueat-sync.err { color: #f87171; }
     .preview-box { background: rgba(0,0,0,0.24); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 1rem 1.1rem; font-size: 15px; line-height: 1.9; white-space: pre-wrap; color: rgba(255,255,255,0.9); font-family: 'Kanit', sans-serif; font-weight: 300; min-height: 80px; word-break: break-word; }
@@ -1103,7 +1104,7 @@ function initApp() {
     calTasks = snap.docs.map(d => ({ id: d.id, ...d.data() }))
     // Redrawing the form while someone types in ส่งตอน would steal the
     // caret; the card preview and footer can still refresh.
-    if (document.activeElement?.classList.contains("subj-dueat")) { renderFootChips(); updatePreview() }
+    if (document.activeElement?.matches?.(".subj-dueat, .subj-sendtxt, .cal-end-sync")) { renderFootChips(); updatePreview() }
     else { renderSections(); renderFootChips(); updatePreview() }
   }, e => console.warn("Could not read the calendar:", e))
   // The soonest open calendar task for this subject (one whose name is a
@@ -1129,7 +1130,12 @@ function initApp() {
   const infoShown = (su, k, val) => su.info?.[k] ?? !!val
   const dueOf = su => infoOff(su, "due") ? "" : calendarDue(su) || su.taskEnd || ""
   // Typed here wins; otherwise whatever the calendar task says
-  const sendOf  = su => infoOff(su, "by") ? "" : (su.send || "").trim() || calendarTask(su)?.send || ""
+  // วิธีส่ง is shared with the calendar the same way ส่งตอน is
+  const sendOf  = su => {
+    if (infoOff(su, "by")) return ""
+    const t = calendarTask(su)
+    return t ? String(t.send || "").trim() : (su.send || "").trim()
+  }
   // ส่งตอน is shared with the calendar: when this subject has a calendar
   // task, that task's dueAt IS the value (edits here are written to it).
   const dueAtOf = su => {
@@ -1447,46 +1453,51 @@ function initApp() {
     const cd = calendarDue(subj)
     if (infoShown(subj, "due", cd || subj.taskEnd)) rows.push(`<div class="info-row">
         ${pick("kind", kindOf(subj), KIND_OPTS, { si, sj }, { title: "What it's due for" })}
-        ${cd ? `<span class="cal-due" title="From this subject's ${esc(DUE_KINDS[kindOf(subj)].label.toLowerCase())} on the calendar">${IC.cal} จากปฏิทิน · ${esc(shortThai(cd))}</span>`
+        ${cd ? `<div class="dueat-wrap"><input type="date" value="${esc(cd)}" class="cal-end-sync" ${d} aria-label="Due date (synced with the calendar)" />${syncBadge(calendarTask(subj), "Due date")}</div>`
              : `<input type="date" value="${esc(subj.taskEnd)}" class="cal-end" ${d} aria-label="Due date" />`}
         ${x("due")}</div>`)
     const ct = calendarTask(subj)
     if (infoShown(subj, "at", ct ? ct.dueAt : (subj.dueAt || "").trim())) rows.push(`<div class="info-row">
         <span class="info-l">${IC.clock} ส่งตอน</span>
         <div class="dueat-wrap"><input type="text" class="subj-dueat" maxlength="16" placeholder="คาบ 3 · 08:00" value="${esc(ct ? ct.dueAt || "" : subj.dueAt || "")}" ${d} aria-label="Send on: period or time" />
-        ${ct ? `<span class="dueat-sync" data-tid="${esc(ct.id)}" title="Synced with “${esc(ct.name || "")}” on the calendar">${IC.cal}</span>` : ""}</div>
+        ${ct ? syncBadge(ct, "ส่งตอน") : ""}</div>
         ${x("at")}</div>`)
-    const typed = subj.sendText || (subj.send && !SEND[subj.send])
-    if (infoShown(subj, "by", subj.send || subj.sendText)) rows.push(`<div class="info-row">
+    const sendVal = ct ? String(ct.send || "") : (subj.send || "")
+    const typed = subj.sendText || (sendVal && !SEND[sendVal])
+    if (infoShown(subj, "by", sendVal || subj.sendText)) rows.push(`<div class="info-row">
         ${typed
           ? `${pick("send", "__type", SEND_OPTS, { si, sj }, { title: "Send by" })}
-             <input type="text" class="subj-sendtxt" maxlength="40" placeholder="ส่งใน LINE, หน้าห้อง…" value="${esc(subj.send || "")}" ${d} aria-label="Send by" />`
-          : `<div class="span2">${pick("send", subj.send || calendarTask(subj)?.send || "", SEND_OPTS, { si, sj }, { title: "Send by" })}</div>`}
+             <div class="dueat-wrap"><input type="text" class="subj-sendtxt" maxlength="40" placeholder="ส่งใน LINE, หน้าห้อง…" value="${esc(SEND[sendVal] ? "" : sendVal)}" ${d} aria-label="Send by" />${ct ? syncBadge(ct, "วิธีส่ง") : ""}</div>`
+          : `<div class="span2 dueat-wrap">${pick("send", sendVal, SEND_OPTS, { si, sj }, { title: "Send by" })}${ct ? syncBadge(ct, "วิธีส่ง") : ""}</div>`}
         ${x("by")}</div>`)
     return rows.length ? `<div class="info-rows">${rows.join("")}</div>` : ""
   }
 
-  // ส่งตอน → the calendar task, debounced per task. The snapshot then
-  // echoes it back, so every open formatter and calendar agrees.
-  const dueAtTimers = {}
-  function pushDueAt(t, badge) {
+  // Formatter edits → the linked calendar task, debounced per task and
+  // field. The live snapshot echoes them back, so every open formatter and
+  // calendar agrees. `label` names the change in the moderators' history.
+  const syncTimers = {}
+  function pushTaskField(t, fields, label, badge) {
     if (!db || !t.id) return
     const mark = cls => { if (badge) badge.className = "dueat-sync " + cls }
     mark("saving")
-    clearTimeout(dueAtTimers[t.id])
-    dueAtTimers[t.id] = setTimeout(async () => {
-      const value = t.dueAt || ""
+    const k = t.id + "\u0000" + label
+    clearTimeout(syncTimers[k])
+    syncTimers[k] = setTimeout(async () => {
       try {
-        await updateDoc(doc(db, "tasks", t.id), { dueAt: value })
+        await updateDoc(doc(db, "tasks", t.id), fields)
         mark("saved")
         const by = auth.currentUser ? (auth.currentUser.displayName || auth.currentUser.email || "") : ""
+        const shown = label === "ส่งตอน" ? fields.dueAt : label === "วิธีส่ง" ? fields.send : fields.end
         addDoc(collection(db, "taskHistory"), {
           taskId: t.id, name: t.name || "", subject: t.subject || "",
-          action: "edited", detail: "ส่งตอน → " + (value || "(blank)") + " from the formatter", by, at: Date.now()
+          action: "edited", detail: label + " → " + (shown || "(blank)") + " from the formatter", by, at: Date.now()
         }).catch(e => console.warn("Could not log the change:", e))
-      } catch(e) { console.warn("Could not sync ส่งตอน:", e); mark("err") }
+      } catch(e) { console.warn("Could not sync " + label + ":", e); mark("err") }
     }, 700)
   }
+  const pushDueAt = (t, badge) => pushTaskField(t, { dueAt: t.dueAt || "" }, "ส่งตอน", badge)
+  const syncBadge = (t, what) => `<span class="dueat-sync" title="${esc(what)} synced with “${esc(t.name || "")}” on the calendar">${IC.cal}</span>`
 
   // ── Card footer: "due tomorrow" reminder + TAS QR ─────────────
   // Suggestions are the calendar's tasks/quizzes ending the day after the
@@ -1711,7 +1722,26 @@ function initApp() {
       if (t) { t.dueAt = el.value.trim(); pushDueAt(t, el.closest(".info-row")?.querySelector(".dueat-sync")) }
       updatePreview(); scheduleSave()
     } })
-    list.querySelectorAll(".subj-sendtxt").forEach(el => { el.oninput = () => { sections[+el.dataset.si].subjects[+el.dataset.sj].send = el.value; updatePreview(); scheduleSave() } })
+    list.querySelectorAll(".subj-sendtxt").forEach(el => { el.oninput = () => {
+      const su = sections[+el.dataset.si].subjects[+el.dataset.sj]
+      su.send = el.value
+      const t = calendarTask(su)
+      if (t) { t.send = el.value.trim(); pushTaskField(t, { send: t.send }, "วิธีส่ง", el.parentElement.querySelector(".dueat-sync")) }
+      updatePreview(); scheduleSave()
+    } })
+    // A linked due date: moves the calendar task (its start too, if the new
+    // end would come before it; a quiz/exam marker is a single date)
+    list.querySelectorAll(".cal-end-sync").forEach(el => { el.onchange = () => {
+      const su = sections[+el.dataset.si].subjects[+el.dataset.sj]
+      const t = calendarTask(su), v = el.value
+      if (!t || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return
+      const fields = { end: v }
+      if (t.type === "marker") { fields.start = v; fields.date = v }
+      else if (t.start && t.start > v) fields.start = v
+      Object.assign(t, fields); su.taskEnd = v
+      pushTaskField(t, fields, "Due date", el.parentElement.querySelector(".dueat-sync"))
+      updatePreview(); scheduleSave()
+    } })
     list.querySelectorAll(".toggle-info").forEach(el => { el.onclick = () => setInfo(+el.dataset.si, +el.dataset.sj, el.dataset.k, !el.classList.contains("active")) })
     list.querySelectorAll(".info-x").forEach(el => { el.onclick = () => setInfo(+el.dataset.si, +el.dataset.sj, el.dataset.k, false) })
     list.querySelectorAll(".crop-photo").forEach(el => { el.onclick = () => cropPhoto(+el.dataset.si, +el.dataset.sj, +el.dataset.pk) })
@@ -1779,7 +1809,12 @@ function initApp() {
       case "mtype":    b.markerType = v; break
       case "style":    b.style = v; break
       case "size":     b.size = v; break
-      case "send":     su.sendText = v === "__type"; su.send = su.sendText ? (SEND[su.send] ? "" : su.send) : v; break
+      case "send": {
+        su.sendText = v === "__type"; su.send = su.sendText ? (SEND[su.send] ? "" : su.send) : v
+        const t = calendarTask(su)
+        if (t && !su.sendText) { t.send = v; pushTaskField(t, { send: v }, "วิธีส่ง", null) }
+        break
+      }
       default: return
     }
     renderSections(); scheduleSave()
@@ -2101,12 +2136,31 @@ function initApp() {
   // What the channel was last sent, so publishing again to retry some
   // other step doesn't post the same announcement a second time.
   let lastDiscordSent = null
+  let discordCardMissing = false
+  // The rendered card as base64 JPEG: the Discord server labels every file
+  // .jpg, and a 1620px card is a few hundred KB this way rather than ~2 MB.
+  async function cardJpegBase64() {
+    const blob = await renderCardBlob()
+    const bmp = await createImageBitmap(blob)
+    const c = document.createElement("canvas")
+    c.width = bmp.width; c.height = bmp.height
+    const ctx = c.getContext("2d")
+    ctx.fillStyle = "#f6f8fb"; ctx.fillRect(0, 0, c.width, c.height)
+    ctx.drawImage(bmp, 0, 0)
+    return c.toDataURL("image/jpeg", 0.9).split(",")[1]
+  }
   async function sendToDiscord() {
     const embed = buildDiscordEmbed()
     if (!embed) return false
-    // Discord takes at most 10 files per message; the card still shows them all.
-    const photos = sections.flatMap(sec => sec.subjects.flatMap(s => s.photos || [])).slice(0, 10)
-      .map((p, i) => ({ name: `photo${i + 1}.jpg`, data: p.src.split(",")[1] }))
+    // The card itself goes first, so the channel sees the same image as
+    // LINE; then the subject photos. Discord takes at most 10 files.
+    const card = await cardJpegBase64().catch(e => { console.warn("Card image for Discord failed:", e); return null })
+    discordCardMissing = !card
+    const photos = [
+      ...(card ? [{ name: "card.jpg", data: card }] : []),
+      ...sections.flatMap(sec => sec.subjects.flatMap(s => s.photos || []))
+        .map((p, i) => ({ name: `photo${i + 1}.jpg`, data: p.src.split(",")[1] })),
+    ].slice(0, 10)
     const sentKey = embed.description + "\u0000" + photos.map(p => p.data.length).join(",")
     if (sentKey === lastDiscordSent) return true
     try {
@@ -2271,7 +2325,11 @@ function initApp() {
       if (good !== null) record("copyImage", good)
     }
     if (actions.saveImage) record("saveImage", await downloadCardImage())
-    if (actions.discord)   record("discord", await sendToDiscord())
+    if (actions.discord) {
+      const ok = await sendToDiscord()
+      record("discord", ok)
+      if (ok && discordCardMissing) done.push("leave the card image off Discord (it couldn't be drawn — the text and photos went)")
+    }
 
     if (actions.calendar && !skipCal) {
       try {

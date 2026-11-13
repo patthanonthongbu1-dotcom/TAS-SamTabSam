@@ -201,7 +201,7 @@ const THAI_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.
    "multicast" is a loop like this one. A token the server reports as
    dead is deleted, so the list stays clean. */
 
-async function pushTo(token, fcmToken, title, body, tag) {
+async function pushTo(token, fcmToken, title, body, tag, link = "/calendar.html") {
   const res = await fetch(FCM, {
     method: "POST",
     headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
@@ -210,7 +210,7 @@ async function pushTo(token, fcmToken, title, body, tag) {
         token: fcmToken,
         webpush: {
           notification: { title, body, icon: "TASLogo.png", tag },
-          fcm_options: { link: "/calendar.html" },
+          fcm_options: { link },
         },
       },
     }),
@@ -221,6 +221,57 @@ async function pushTo(token, fcmToken, title, body, tag) {
   if (res.status === 404 || res.status === 400) return "dead"
   console.warn("FCM send failed:", res.status, err)
   return false
+}
+
+/* ── New homework ─────────────────────────────────────────────
+   Besides the daily reminder, each run looks for class tasks posted since
+   the last one it announced (notifyState/newHomework.lastStamp). A Publish
+   from the formatter writes several tasks a few seconds apart, so the push
+   waits until the newest is SETTLE_MS old: one Publish, one notification.
+   The very first run only records where things stand, so turning this on
+   doesn't announce every task ever posted. */
+const SETTLE_MS = 3 * 60 * 1000
+
+function pickNewHomework(tasks, lastStamp, now, settle = SETTLE_MS) {
+  const counts = t => t && !t.daily && t.type !== "prediction" &&
+    (t.type !== "marker" || t.markerType === "quiz" || t.markerType === "exam")
+  const stamp = t => Number(t.createdAt) || 0
+  if (lastStamp === null || lastStamp === undefined || !Number.isFinite(Number(lastStamp))) {
+    return { seed: true, ready: false, list: [], newest: (tasks || []).reduce((m, t) => Math.max(m, stamp(t)), 0) }
+  }
+  const list = (tasks || []).filter(t => counts(t) && stamp(t) > Number(lastStamp))
+    .sort((a, b) => stamp(a) - stamp(b))
+  const newest = list.reduce((m, t) => Math.max(m, stamp(t)), Number(lastStamp))
+  return { seed: false, list, newest, ready: list.length > 0 && now - newest >= settle }
+}
+
+function newHomeworkMessage(list) {
+  const title = `📚 ${list.length} new homework`
+  const lines = list.slice(0, 3).map(t => `${t.subject ? t.subject + ": " : ""}${t.name || ""}`.slice(0, 80))
+  return { title, body: lines.join("\n") + (list.length > 3 ? "\n…" : "") }
+}
+
+async function announceNewHomework(token, shared, prefs, now) {
+  const state = await api(token, "/notifyState/newHomework")
+  const last = state ? plain(state.fields).lastStamp : null
+  const pick = pickNewHomework(shared, last, now.getTime())
+  if (!pick.seed && !pick.ready) return 0
+  let sent = 0
+  if (pick.ready) {
+    const { title, body } = newHomeworkMessage(pick.list)
+    for (const pref of prefs) {
+      if (pref.newHw === false) continue
+      const tokens = (await queryEq(token, "fcmTokens", "uid", pref.id)).map(t => t.id)
+      for (const fcmToken of tokens) {
+        const r = await pushTo(token, fcmToken, title, body, "tas-new-" + pick.newest, "/today.html")
+        if (r === "dead") await api(token, `/fcmTokens/${encodeURIComponent(fcmToken)}`, { method: "DELETE" }).catch(() => {})
+        else if (r) sent++
+      }
+    }
+  }
+  await api(token, "/notifyState/newHomework?updateMask.fieldPaths=lastStamp", {
+    method: "PATCH", body: JSON.stringify({ fields: { lastStamp: { integerValue: String(pick.newest) } } }) })
+  return sent
 }
 
 /* ── The run ─────────────────────────────────────────────────── */
@@ -235,13 +286,19 @@ exports.handler = async () => {
     return { statusCode: 500, body: "auth failed" }
   }
 
-  let notified = 0, skipped = 0
+  let notified = 0, skipped = 0, newPushes = 0
   try {
     const prefs = await queryEq(token, "notifyPrefs", "on", true)
-    if (!prefs.length) return { statusCode: 200, body: "nobody has reminders on" }
 
     // The shared board is the same for everyone — read it once.
     const shared = await listAll(token, "tasks")
+
+    // New homework first: its own push, its own bookkeeping. A failure here
+    // must not cost anyone their daily reminder.
+    try { newPushes = await announceNewHomework(token, shared, prefs, now) }
+    catch (e) { console.error("New-homework push failed:", e) }
+
+    if (!prefs.length) return { statusCode: 200, body: "nobody has reminders on" }
 
     for (const pref of prefs) {
       const uid = pref.id
@@ -317,10 +374,10 @@ exports.handler = async () => {
     return { statusCode: 500, body: String(e.message || e) }
   }
 
-  const msg = `notified ${notified}, skipped ${skipped}`
+  const msg = `notified ${notified}, skipped ${skipped}, new-homework pushes ${newPushes}`
   console.log("Daily reminder:", msg)
   return { statusCode: 200, body: msg }
 }
 
 // Exported for the offline test of the date/window helpers.
-exports._internals = { minutesInZone, dateInZone, daysUntil, reminderDay, plain, value, THAI_MONTHS }
+exports._internals = { minutesInZone, dateInZone, daysUntil, reminderDay, plain, value, THAI_MONTHS, pickNewHomework, newHomeworkMessage }
