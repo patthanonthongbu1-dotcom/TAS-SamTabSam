@@ -101,7 +101,8 @@ const HW_CSS = `
 .hw{width:${HW_WIDTH}px;font-family:'Kanit',sans-serif;background:#f6f8fb;color:#0f1d3a;line-height:1.35;overflow:hidden;border-radius:26px}
 .hw *{box-sizing:border-box}
 .hw-banner{display:block;width:100%;height:auto}
-.hw-date{padding:18px 24px 16px;background:#fff;border-bottom:1px solid #e6ebf2}
+.hw-date{position:relative;padding:18px 24px 16px;background:#fff;border-bottom:1px solid #e6ebf2}
+.hw-pg{position:absolute;top:18px;right:20px;font-size:12.5px;font-weight:600;line-height:1.35;padding:3px 11px;border-radius:99px;background:#e8edf6;color:#16305e;font-variant-numeric:tabular-nums}
 .hw-wd{font-size:14px;font-weight:500;color:#db2777;line-height:1.4}
 .hw-big{font-size:30px;font-weight:600;line-height:1.3;letter-spacing:-0.3px}
 .hw-name{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:16px;color:#4a5568;line-height:1.4}
@@ -217,6 +218,7 @@ export function hwCardHTML(m){
   return `<div class="hw">
     <img class="hw-banner" src="img/hw-banner.png" alt="การบ้านประจำวัน HOMEWORK">
     <div class="hw-date">
+      ${m.page ? `<span class="hw-pg">${m.page.n}/${m.page.of}</span>` : ""}
       <div class="hw-wd">วัน${esc(m.weekday)}</div>
       <div class="hw-big">${esc(thaiDate(m.date))}</div>
       ${m.name ? `<div class="hw-name">${ICO.user}<span>${esc(m.name)}</span></div>` : ""}

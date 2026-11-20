@@ -407,6 +407,18 @@
       animation: fadeSwap 0.22s ease both;
     }
     .preview-card-stage.show { display: flex; }
+    /* Past SPLIT_ROWS the card becomes two, stacked here with a label each */
+    .preview-card-stage { flex-direction: column; align-items: center; gap: 18px; }
+    .pv-card { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
+    .pv-card-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; max-width: 540px; font-size: 12.5px; color: var(--muted); }
+    .pv-card-h b { color: #fff; font-weight: 500; }
+    .pv-copy { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 99px; border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.06); color: #fff; font-family: 'Kanit', sans-serif; font-size: 12.5px; cursor: pointer; transition: background .15s, transform .15s; }
+    .pv-copy:hover { background: rgba(255,255,255,0.12); }
+    .pv-copy:active { transform: scale(0.96); }
+    .pv-copy.done { color: var(--green); border-color: rgba(111,227,189,0.4); }
+    .pv-copy.fail { color: var(--red); }
+    .pv-copy svg { width: 13px; height: 13px; }
     @keyframes fadeSwap { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
     .pv-note { display: none; font-size: 12.5px; font-weight: 300; color: var(--label); text-align: center; margin-top: 9px; line-height: 1.6; }
     .pv-note.show { display: block; }
@@ -733,8 +745,8 @@
       <div class="foot-chips" id="footChips"></div>
     </div>
     <div class="preview-box" id="preview">Fill in the form to see preview...</div>
-    <div class="preview-card-stage" id="previewCardStage"><div id="previewCardHost"></div></div>
-    <div class="pv-note" id="pvNote">This is exactly what “Save image” downloads (1620px wide, sharp in LINE and Discord). Sections become headings and each subject a numbered row. Each bullet picks its own look and size from the button beside it, and the due date and its type (homework, quiz, exam…) set the pill. Notes and links go into the text and Discord message only.</div>
+    <div class="preview-card-stage" id="previewCardStage"></div>
+    <div class="pv-note" id="pvNote">This is exactly what “Save image” downloads (1620px wide, sharp in LINE and Discord). When there's too much for one card it splits in two: card 1 is what you announced, card 2 what's due tomorrow (next week on Fridays), each with the same header and QR. Sections become headings and each subject a numbered row. Each bullet picks its own look and size from the button beside it, and the due date and its type (homework, quiz, exam…) set the pill. Notes and links go into the text and Discord message only.</div>
 
     <div class="divider"></div>
 
@@ -820,7 +832,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/fireba
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
 import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
 import { mountHwCard, exportHwCard, HW_WIDTH, iconSVG } from "./tas-card.js"
-import { cardModel, shortThai, addDays, reminderWindow, fitPhotos, weekdayOf, SEND, DUE_KINDS, LINE_STYLES } from "./tas-hwcard.js"
+import { cardModels, shortThai, addDays, reminderWindow, fitPhotos, weekdayOf, SEND, DUE_KINDS, LINE_STYLES } from "./tas-hwcard.js"
 import * as Subj from "./tas-subjects.js"
 import { mountSubjectSearch } from "./tas-subject-search.js"
 // The page navigator — the glass dot bottom-right, shared with the
@@ -1919,8 +1931,28 @@ function initApp() {
   // where re-encoding an image (and re-embedding the Thai font) would not.
   function renderPreviewCard() {
     const stage = document.getElementById("previewCardStage")
-    const card = mountHwCard(document.getElementById("previewCardHost"), currentCardModel())
-    if (stage.clientWidth) card.style.zoom = Math.min(1, (stage.clientWidth - 28) / HW_WIDTH)
+    const models = currentCardModels(), split = models.length > 1
+    // Keep the hosts when the count hasn't changed, so typing doesn't flash
+    if (stage.children.length !== models.length) {
+      stage.innerHTML = models.map((_, i) => `<div class="pv-card">
+          ${split ? `<div class="pv-card-h"><span><b>Card ${i + 1}</b> · <span class="pv-card-t"></span></span>
+            <button type="button" class="pv-copy" data-card="${i}" title="Copy this card's image">${IC.copy}<span>Copy</span></button></div>` : ""}
+          <div class="pv-card-host"></div></div>`).join("")
+      stage.querySelectorAll(".pv-copy").forEach(b => b.onclick = async () => {
+        const lab = b.querySelector("span")
+        b.classList.remove("done", "fail")
+        const good = await copyCardImage(+b.dataset.card)
+        b.classList.add(good ? "done" : "fail"); lab.textContent = good ? "Copied" : "Didn't work"
+        clearTimeout(b._t); b._t = setTimeout(() => { b.classList.remove("done", "fail"); lab.textContent = "Copy" }, 2000)
+      })
+    }
+    models.forEach((m, i) => {
+      const box = stage.children[i]
+      const t = box.querySelector(".pv-card-t")
+      if (t) t.textContent = i === 0 ? "Announced" : (m.sections[0]?.title || "Due next")
+      const card = mountHwCard(box.querySelector(".pv-card-host"), m)
+      if (stage.clientWidth) card.style.zoom = Math.min(1, (stage.clientWidth - 28) / HW_WIDTH)
+    })
   }
 
   function setPreviewMode(mode) {
@@ -2086,7 +2118,7 @@ function initApp() {
   // what's on screen by a debounce.
   // Each formatter section is a heading on the card, each subject a
   // numbered row under it: bullets are the chips, the due date sets the pill.
-  function currentCardModel() {
+  function currentCardModels() {
     const date = document.getElementById("fmtDate").value || localToday()
     const cardSections = sections.map(sec => ({
       icon: sec.icon, title: sec.title,
@@ -2099,29 +2131,43 @@ function initApp() {
                  due: dueOf(su), photos: (su.photos || []).map(({ src, size }) => ({ src, size })) }
       })
     }))
-    return cardModel({ date, name: document.getElementById("fmtReporter").value, sections: cardSections, footer: footerModel() }, localToday())
+    return cardModels({ date, name: document.getElementById("fmtReporter").value, sections: cardSections, footer: footerModel() }, localToday())
   }
 
-  // Rasterise the card once; both "Copy image" and "Save image" reuse this.
-  async function renderCardBlob() {
-    const host = document.getElementById("cardRenderHost")
-    try { return await exportHwCard(mountHwCard(host, currentCardModel()), toBlob) }
-    finally { host_cleanup() }
+  // Rasterise card i (0, or 1 when the card has split); "Copy image",
+  // "Save image" and Discord all reuse this. One at a time — they share
+  // the off-screen host.
+  let renderQueue = Promise.resolve()
+  function renderCardBlob(i = 0) {
+    const p = renderQueue.then(async () => {
+      const m = currentCardModels()[i]
+      if (!m) throw new Error("no card " + (i + 1))
+      const host = document.getElementById("cardRenderHost")
+      try { return await exportHwCard(mountHwCard(host, m), toBlob) }
+      finally { host_cleanup() }
+    })
+    renderQueue = p.catch(() => {})
+    return p
+  }
+  const cardCount = () => currentCardModels().length
+
+  function cardFilename(i = 0, of = 1) {
+    return "tas-homework-" + (document.getElementById("fmtDate").value || "card") + (of > 1 ? "-" + (i + 1) : "") + ".png"
   }
 
-  function cardFilename() {
-    return "tas-homework-" + (document.getElementById("fmtDate").value || "card") + ".png"
-  }
-
+  // Every card, one file each (-1, -2 when it split)
   async function downloadCardImage() {
+    const of = cardCount()
     try {
-      const blob = await renderCardBlob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = cardFilename()
-      document.body.appendChild(a); a.click(); a.remove()
-      setTimeout(() => URL.revokeObjectURL(url), 4000)
+      for (let i = 0; i < of; i++) {
+        const blob = await renderCardBlob(i)
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = cardFilename(i, of)
+        document.body.appendChild(a); a.click(); a.remove()
+        setTimeout(() => URL.revokeObjectURL(url), 4000)
+      }
       return true
     } catch(e) {
       console.warn("Card image failed:", e)
@@ -2136,11 +2182,11 @@ function initApp() {
   // the card takes a second (it embeds ~430KB of Thai font), and by the time
   // it resolved the browser would no longer count this as a user gesture and
   // would reject the write. Passing the promise keeps the gesture alive.
-  async function copyCardImage() {
+  async function copyCardImage(i = 0) {
     if (!navigator.clipboard || typeof ClipboardItem === "undefined") return false
     try {
       await navigator.clipboard.write([
-        new ClipboardItem({ "image/png": renderCardBlob() })
+        new ClipboardItem({ "image/png": renderCardBlob(i) })
       ])
       return true
     } catch(e) {
@@ -2179,8 +2225,8 @@ function initApp() {
   let discordCardMissing = false
   // The rendered card as base64 JPEG: the Discord server labels every file
   // .jpg, and a 1620px card is a few hundred KB this way rather than ~2 MB.
-  async function cardJpegBase64() {
-    const blob = await renderCardBlob()
+  async function cardJpegBase64(i = 0) {
+    const blob = await renderCardBlob(i)
     const bmp = await createImageBitmap(blob)
     const c = document.createElement("canvas")
     c.width = bmp.width; c.height = bmp.height
@@ -2194,10 +2240,15 @@ function initApp() {
     if (!embed) return false
     // The card itself goes first, so the channel sees the same image as
     // LINE; then the subject photos. Discord takes at most 10 files.
-    const card = await cardJpegBase64().catch(e => { console.warn("Card image for Discord failed:", e); return null })
-    discordCardMissing = !card
+    const of = cardCount()
+    const cards = []
+    for (let i = 0; i < of; i++) {
+      const data = await cardJpegBase64(i).catch(e => { console.warn("Card image for Discord failed:", e); return null })
+      if (data) cards.push({ name: of > 1 ? `card${i + 1}.jpg` : "card.jpg", data })
+    }
+    discordCardMissing = cards.length < of
     const photos = [
-      ...(card ? [{ name: "card.jpg", data: card }] : []),
+      ...cards,
       ...sections.flatMap(sec => sec.subjects.flatMap(s => s.photos || []))
         .map((p, i) => ({ name: `photo${i + 1}.jpg`, data: p.src.split(",")[1] })),
     ].slice(0, 10)
@@ -2222,6 +2273,7 @@ function initApp() {
   }
 
   // ── Share: quick actions — run now, no confirm, nothing published ─
+  let copyTurn = 0     // which card the Copy image tile copies next
   async function quickAction(btn) {
     const k = btn.dataset.qa, sub = btn.querySelector(".qa-s")
     sub.dataset.v ??= sub.textContent
@@ -2234,7 +2286,10 @@ function initApp() {
       if (k === "copyText") good = await Promise.race([copyFormatted(), new Promise(r => setTimeout(() => r(false), 1500))])
       else if (k === "saveImage") good = await downloadCardImage()
       else {
-        good = await copyCardImage()
+        // Split card: the clipboard holds one image, so each tap copies the next
+        const of = cardCount(), i = of > 1 ? (copyTurn % of) : 0
+        good = await copyCardImage(i)
+        if (good && of > 1) { note = `card ${i + 1} of ${of} copied`; copyTurn = i + 1 }
         // a browser that won't put images on the clipboard still gets the file
         if (!good && await downloadCardImage()) { good = true; note = "saved instead" }
       }
@@ -2363,6 +2418,7 @@ function initApp() {
         good = null
       }
       if (good !== null) record("copyImage", good)
+      if (good && cardCount() > 1) done.push("copy card 1 — card 2 has its own Copy button in the Card preview")
     }
     if (actions.saveImage) record("saveImage", await downloadCardImage())
     if (actions.discord) {

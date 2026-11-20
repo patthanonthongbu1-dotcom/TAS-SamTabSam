@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { duePill, cardModel, fromTasks, MAX_ROWS, sendLabel, lineOf, footerModel, addDays, MAX_REMINDERS, reminderWindow, dayTasks, reportFor, newestStamp, fitPhotos } from "./tas-hwcard.js"
+import { duePill, cardModel, fromTasks, MAX_ROWS, sendLabel, lineOf, footerModel, addDays, MAX_REMINDERS, reminderWindow, dayTasks, reportFor, newestStamp, fitPhotos, cardModels, SPLIT_ROWS } from "./tas-hwcard.js"
 
 const T = "2026-11-10"   // a Tuesday
 
@@ -159,4 +159,42 @@ test("fitPhotos: keeps what fits, in order, at most max", () => {
   assert.equal(r.dropped, 2)
   assert.equal(fitPhotos(Array.from({ length: 9 }, () => ph(10)), 1e6, 6).kept.length, 6)
   assert.deepEqual(fitPhotos(null).kept, [])
+})
+
+const QR = { svg: "<svg/>", url: "u" }
+const rem = (n, extra = {}) => Array.from({ length: n }, (_, i) => ({ subject: "R" + i, name: "w" + i, due: "2026-11-11", ...extra }))
+const rows = n => Array.from({ length: n }, (_, i) => row("S" + i))
+
+test("cardModels: a short card stays one, footer reminders kept", () => {
+  const ms = cardModels({ date: T, sections: [{ title: "a", rows: rows(3) }], footer: { reminders: rem(2), qr: QR } })
+  assert.equal(ms.length, 1)
+  assert.equal(ms[0].page, undefined)
+  assert.equal(ms[0].footer.reminders.length, 2)
+})
+
+test("cardModels: too long → two cards, same header/QR, only the list moves", () => {
+  const ms = cardModels({ date: T, name: "Non", sections: [{ title: "การบ้าน", rows: rows(SPLIT_ROWS - 1) }],
+    footer: { reminders: rem(3, { dueAt: "คาบ 2", kind: "quiz" }), qr: QR } })
+  assert.equal(ms.length, 2)
+  const [a, b] = ms
+  assert.deepEqual([a.page, b.page], [{ n: 1, of: 2 }, { n: 2, of: 2 }])
+  for (const m of ms) { assert.equal(m.date, T); assert.equal(m.name, "Non"); assert.deepEqual(m.footer.qr, QR); assert.deepEqual(m.footer.reminders, []) }
+  assert.equal(a.sections[0].rows.length, SPLIT_ROWS - 1)
+  assert.equal(b.sections[0].title, "Due tomorrow")
+  assert.deepEqual(b.sections[0].rows.map(r => r.n), [1, 2, 3])
+  assert.deepEqual(b.sections[0].rows[0].lines.map(l => l.text), ["w0"])
+  assert.equal(b.sections[0].rows[0].pill.label, "ควิซพรุ่งนี้ · คาบ 2")
+})
+
+test("cardModels: more reminders than the footer holds forces a split", () => {
+  const ms = cardModels({ date: T, sections: [{ title: "a", rows: rows(1) }], footer: { reminders: rem(MAX_REMINDERS + 1), qr: QR } })
+  assert.equal(ms.length, 2)
+  assert.equal(ms[1].sections[0].rows.length, MAX_REMINDERS + 1)   // nothing hidden behind "+N more"
+})
+
+test("cardModels: Friday split titles card 2 'Due next week'; no reminders never splits", () => {
+  const fri = "2026-11-13"
+  const ms = cardModels({ date: fri, sections: [{ title: "a", rows: rows(SPLIT_ROWS) }], footer: { week: true, reminders: rem(1, { due: "2026-11-16" }), qr: QR } }, fri)
+  assert.equal(ms[1].sections[0].title, "Due next week")
+  assert.equal(cardModels({ date: T, sections: [{ title: "a", rows: rows(20) }], footer: { qr: QR } }).length, 1)
 })

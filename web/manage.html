@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TAS · Manage tasks</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="tas-nav.css">
+  <script>
+    // Force external browser if opened in LINE
+    (function() {
+      if (/Line\//i.test(navigator.userAgent || '')) {
+        const url = location.href;
+        if (!url.includes('openExternalBrowser=1')) {
+          location.replace(url + (url.includes('?') ? '&' : '?') + 'openExternalBrowser=1');
+        }
+      }
+    })();
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    * { scrollbar-width: none; -ms-overflow-style: none; }
+    *::-webkit-scrollbar { display: none; }
+    /* The Formatter's palette, so the two mod pages feel like siblings */
+    :root {
+      --navy: #182848; --navy-dark: #0d1526;
+      --pink: #ff4fa3;
+      --glass: rgba(255,255,255,0.06); --glass-brd: rgba(255,255,255,0.12);
+      --field-bg: rgba(255,255,255,0.07); --field-brd: rgba(255,255,255,0.16);
+      --panel: #16213d;
+      --text: #ffffff; --muted: rgba(255,255,255,0.62); --label: rgba(255,255,255,0.45);
+      --red: #ff9b8a; --amber: #fde68a; --orange: #fdba74; --green: #6fe3bd; --violet: #c4b5fd;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    html { min-height: 100%; background: var(--navy-dark); }
+    body {
+      font-family: 'Kanit', sans-serif; color: var(--text);
+      min-height: 100vh; min-height: 100dvh;
+      background: linear-gradient(160deg, #1c2f56 0%, var(--navy) 40%, var(--navy-dark) 100%) fixed;
+      display: flex; justify-content: center;
+      padding: 2.5rem 1rem calc(var(--tasnav-bottom, 1.25rem) + 92px);
+      overflow-x: hidden;
+    }
+    .bg-orbs { position: fixed; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; }
+    .orb { position: absolute; border-radius: 50%; filter: blur(70px); }
+    .orb-1 { width: 380px; height: 380px; top: -100px; left: -80px; background: radial-gradient(circle, rgba(47,111,237,0.5), transparent 70%); }
+    .orb-2 { width: 320px; height: 320px; bottom: -120px; right: -90px; background: radial-gradient(circle, rgba(255,79,163,0.4), transparent 70%); }
+
+    /* ── Gate ───────────────────────────────────────────────────── */
+    #authGate { position: fixed; inset: 0; z-index: 50; display: flex; justify-content: center; padding: 2.5rem 1rem; overflow: auto;
+      background: linear-gradient(160deg, #1c2f56 0%, var(--navy) 40%, var(--navy-dark) 100%); }
+    .skeleton-wrap { width: 100%; max-width: 600px; position: relative; z-index: 1; }
+    .skel { position: relative; overflow: hidden; border-radius: 10px; background: rgba(255,255,255,0.07); }
+    .skel::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent); animation: skelSweep 1.5s ease-in-out infinite; }
+    @keyframes skelSweep { 100% { transform: translateX(100%); } }
+    .gate-note { text-align: center; color: rgba(255,255,255,0.5); font-size: 14px; margin-top: 1.5rem; }
+
+    /* ── Layout ─────────────────────────────────────────────────── */
+    .container { width: 100%; max-width: 600px; position: relative; z-index: 1; }
+    .header { margin-bottom: 1.25rem; padding: 0 0.25rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .brand-mini { width: 46px; height: 46px; object-fit: contain; display: block; margin-bottom: 10px; }
+    h1 { font-size: 27px; font-weight: 700; letter-spacing: -0.3px; }
+    .header p { font-size: 15px; color: var(--muted); margin-top: 4px; font-weight: 300; }
+    .who { display: none; align-items: center; gap: 8px; background: rgba(255,255,255,0.08); border: 1px solid var(--field-brd);
+      border-radius: 22px; padding: 5px 12px 5px 5px; font-size: 14px; font-weight: 500; flex-shrink: 0; }
+    .who.visible { display: flex; }
+    .who img, .who .fb { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .who .fb { background: var(--pink); display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 600; }
+
+    .mode { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-bottom: 10px; border-radius: 999px;
+      background: var(--field-bg); border: 1px solid var(--field-brd); }
+    .mode button { padding: 9px; border: none; border-radius: 999px; background: transparent; color: var(--muted); font-family: inherit;
+      font-size: 15px; cursor: pointer; transition: background .2s var(--ease), color .2s; }
+    .mode button.on { background: rgba(255,255,255,0.92); color: #16213d; font-weight: 500; }
+    .search { position: sticky; top: 10px; z-index: 5; display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;
+      padding: 0 14px; border-radius: 999px; border: 1px solid var(--field-brd);
+      background: rgba(22,33,61,0.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+    .search svg { flex-shrink: 0; color: var(--label); }
+    .search input { flex: 1; min-width: 0; border: none; background: transparent; color: #fff; font-family: inherit; font-size: 16px; padding: 12px 0; outline: none; }
+    .search input::placeholder { color: var(--label); }
+
+    .group { margin-bottom: 1.4rem; }
+    .group-h { display: flex; align-items: center; gap: 8px; padding: 0 4px 8px; font-size: 13px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--label); }
+    .group-h .n { margin-left: auto; font-weight: 400; letter-spacing: 0; text-transform: none; }
+    .group.next .group-h { color: #ffc2e0; }
+    .list { display: flex; flex-direction: column; gap: 8px; }
+    .row { display: flex; align-items: stretch; gap: 0; width: 100%; text-align: left; font-family: inherit; color: inherit; cursor: pointer;
+      background: var(--glass); border: 1px solid var(--glass-brd); border-radius: 16px; overflow: hidden;
+      transition: background .15s, transform .18s var(--ease); animation: rowIn .28s var(--ease) both; }
+    .row:hover { background: rgba(255,255,255,0.1); }
+    .row:active { transform: scale(0.985); }
+    .row:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
+    @keyframes rowIn { from { opacity: 0; transform: translateY(4px); } }
+    .strip { width: 5px; flex-shrink: 0; }
+    .row-main { flex: 1; min-width: 0; padding: 11px 14px 12px; }
+    .row-top { display: flex; align-items: flex-start; gap: 10px; }
+    .row-name { flex: 1; min-width: 0; font-size: 16px; font-weight: 500; line-height: 1.35; overflow-wrap: anywhere; }
+    .pill { flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; white-space: nowrap; }
+    .pill.red { background: rgba(255,155,138,0.16); color: var(--red); }
+    .pill.orange { background: rgba(253,186,116,0.16); color: var(--orange); }
+    .pill.grey { background: rgba(255,255,255,0.08); color: var(--muted); }
+    .pill.violet { background: rgba(196,181,253,0.16); color: var(--violet); }
+    .row-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; font-size: 13px; color: var(--muted); }
+    .row-meta .code { font-weight: 600; }
+    .row-edit { display: flex; align-items: center; padding: 0 14px; color: var(--label); }
+    .empty { text-align: center; padding: 2.5rem 1rem; color: var(--muted); font-size: 15px; }
+    .empty b { display: block; color: #fff; font-size: 18px; font-weight: 500; margin-bottom: 4px; }
+
+    /* ── Edit sheet ─────────────────────────────────────────────── */
+    .sheet-bg { position: fixed; inset: 0; z-index: 900; display: none; align-items: flex-end; justify-content: center;
+      background: rgba(5,10,22,0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+    .sheet-bg.open { display: flex; animation: fade .2s ease both; }
+    @keyframes fade { from { opacity: 0; } }
+    .sheet { width: 100%; max-width: 560px; max-height: 92dvh; overflow: auto; background: var(--panel);
+      border: 1px solid var(--glass-brd); border-bottom: none; border-radius: 24px 24px 0 0; padding: 20px 18px calc(18px + env(safe-area-inset-bottom));
+      animation: up .32s var(--ease) both; }
+    @media (min-width: 640px) { .sheet-bg { align-items: center; } .sheet { border-radius: 24px; border-bottom: 1px solid var(--glass-brd); } }
+    @keyframes up { from { transform: translateY(28px); opacity: 0; } }
+    .sheet h2 { font-size: 20px; font-weight: 600; margin-bottom: 14px; }
+    .f { margin-bottom: 12px; }
+    .f > label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; }
+    .f input, .f select, .f textarea { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--field-brd);
+      background: var(--field-bg); color: #fff; font-family: inherit; font-size: 16px; outline: none; }
+    .f input:focus, .f select:focus, .f textarea:focus { border-color: rgba(255,79,163,0.6); }
+    .f select option { background: var(--panel); }
+    .f textarea { min-height: 70px; resize: vertical; }
+    .f input[type=date] { color-scheme: dark; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: var(--field-bg); border: 1px solid var(--field-brd); }
+    .seg button { padding: 8px 4px; border: none; border-radius: 10px; background: transparent; color: var(--muted); font-family: inherit; font-size: 14px; cursor: pointer; transition: background .15s, color .15s; }
+    .seg button.on { background: rgba(255,79,163,0.2); color: #ffc2e0; font-weight: 500; }
+    .err { min-height: 18px; font-size: 13px; color: var(--red); margin: 2px 0 8px; }
+    .acts { display: flex; gap: 8px; }
+    .btn { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(--field-brd); background: transparent; color: #fff;
+      font-family: inherit; font-size: 15px; font-weight: 500; cursor: pointer; transition: background .15s, transform .12s; }
+    .btn:active { transform: scale(0.97); }
+    .btn.go { background: linear-gradient(180deg, #ff5fac, #c02e7e); border-color: transparent; }
+    .btn.del { flex: 0 0 auto; padding: 12px 14px; color: var(--red); }
+    .btn:disabled { opacity: .55; cursor: default; }
+
+    .toast { position: fixed; left: 50%; bottom: calc(var(--tasnav-bottom, 1.25rem) + 70px); z-index: 1000; transform: translateX(-50%);
+      display: none; align-items: center; gap: 12px; max-width: calc(100% - 32px); padding: 10px 14px 10px 16px; border-radius: 14px;
+      background: rgba(18,27,48,0.97); border: 1px solid var(--glass-brd); font-size: 14.5px; box-shadow: 0 18px 40px -14px rgba(0,0,0,0.7); }
+    .toast.show { display: flex; animation: up .25s var(--ease) both; }
+    .toast.error { color: var(--red); }
+    .toast button { border: none; background: none; color: var(--pink); font-family: inherit; font-size: 14.5px; font-weight: 600; cursor: pointer; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-orbs" aria-hidden="true"><span class="orb orb-1"></span><span class="orb orb-2"></span></div>
+
+<div id="authGate">
+  <div class="skeleton-wrap">
+    <div class="skel" style="width:62px;height:62px;border-radius:16px"></div>
+    <div class="skel" style="width:190px;height:22px;margin-top:12px"></div>
+    <div class="skel" style="width:100%;height:46px;border-radius:99px;margin-top:22px"></div>
+    <div class="skel" style="width:100%;height:300px;border-radius:20px;margin-top:16px"></div>
+    <div class="gate-note">Checking access…</div>
+  </div>
+</div>
+
+<div class="container" id="mainContent" style="display:none">
+  <div class="header">
+    <div>
+      <img class="brand-mini" src="TASLogoLIGHT.png" alt="3/3 Academic System">
+      <h1>Manage</h1>
+      <p>Fix or re-date tasks that are still active</p>
+    </div>
+    <div class="who" id="who"></div>
+  </div>
+
+  <div class="mode" role="tablist" aria-label="Whose tasks">
+    <button type="button" role="tab" data-mode="class" class="on" aria-selected="true">Class tasks</button>
+    <button type="button" role="tab" data-mode="mine" aria-selected="false">My tasks</button>
+  </div>
+
+  <label class="search">
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+    <input id="q" type="search" placeholder="Search tasks, subjects, notes" autocomplete="off" aria-label="Search tasks">
+  </label>
+
+  <div id="groups"><div class="empty">Loading tasks…</div></div>
+</div>
+
+<!-- Edit sheet -->
+<div class="sheet-bg" id="sheetBg">
+  <form class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT" novalidate>
+    <h2 id="sheetT">Edit task</h2>
+    <div class="f"><label for="eName">Task</label><input id="eName" type="text" maxlength="200"></div>
+    <div class="f"><label>Subject</label><div id="eSubject"></div></div>
+    <div class="f"><label>Type</label>
+      <div class="seg" id="eKind">
+        <button type="button" data-k="homework">Homework</button><button type="button" data-k="quiz">Quiz</button><button type="button" data-k="exam">Exam</button>
+      </div>
+    </div>
+    <div class="two">
+      <div class="f"><label for="eEnd">Due date</label><input id="eEnd" type="date"></div>
+      <div class="f"><label for="eDueAt">ส่งตอน</label><input id="eDueAt" type="text" maxlength="16" placeholder="คาบ 3 / 08:00"></div>
+    </div>
+    <div class="f"><label for="eSend">How to send</label><select id="eSend"></select></div>
+    <div class="f"><label for="eNote">Note</label><textarea id="eNote" maxlength="1000"></textarea></div>
+    <div class="err" id="eErr" role="alert"></div>
+    <div class="acts">
+      <button type="button" class="btn del" id="eDel" title="Delete for the whole class" aria-label="Delete task">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+      </button>
+      <button type="button" class="btn" id="eCancel">Cancel</button>
+      <button type="submit" class="btn go" id="eSave">Save</button>
+    </div>
+  </form>
+</div>
+
+<div class="toast" id="toast" role="status"><span id="toastT"></span><button type="button" id="toastA"></button></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js"
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
+import { getFirestore, collection, addDoc, doc, getDoc, setDoc, deleteDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
+import { duePill, sendLabel, SEND, localKey } from "./tas-hwcard.js"
+import { activeGroups, editPatch, kindOf } from "./tas-manage.js"
+import * as Subj from "./tas-subjects.js"
+import { mountSubjectSearch } from "./tas-subject-search.js"
+import { mountNav } from "./tas-nav.js"
+import { promptSignIn } from "./tas-signin.js"
+import { startTimeTracking } from "./tas-time.js"
+
+const app = initializeApp({
+  apiKey: "AIzaSyA7jTnrA4qvIyqJRec3LYRgkIpJ4lKqX18",
+  authDomain: "tas-samtabsam.firebaseapp.com",
+  projectId: "tas-samtabsam",
+  storageBucket: "tas-samtabsam.firebasestorage.app",
+  messagingSenderId: "645483732924",
+  appId: "1:645483732924:web:5a1ec2b9f7c58a18c655b9"
+})
+const auth = getAuth(app)
+const db = getFirestore(app)
+
+const $ = id => document.getElementById(id)
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]))
+const HEX = c => /^#[0-9a-f]{6}$/i.test(c || "") ? c : "#64748b"
+const who = () => auth.currentUser ? (auth.currentUser.displayName || auth.currentUser.email || "") : ""
+
+// Two lists: the class's (tasks/*, every moderator edits them) and your
+// own (userTasks/{uid}/tasks/*, only you see them). The switch picks one.
+let tasks = [], loaded = false, mine = [], mineDone = {}, mineLoaded = false, mode = "class"
+try { if (localStorage.getItem("tas_manage_mode") === "mine") mode = "mine" } catch(e) {}
+const list = () => mode === "mine" ? mine : tasks
+const colRef = id => mode === "mine" ? doc(db, "userTasks", auth.currentUser.uid, "tasks", id) : doc(db, "tasks", id)
+let subjectList = Subj.listOrTimetable()
+try { subjectList = Subj.listOrTimetable(JSON.parse(localStorage.getItem("tas_subject_list") || "[]")) } catch(e) {}
+
+// ── Gate: the same whitelist as the Formatter (firestore.rules checks it too) ──
+async function isModerator(user) {
+  try {
+    const snap = await getDoc(doc(db, "config", "modWhitelist"))
+    return (snap.exists() ? snap.data().emails || [] : []).map(e => e.toLowerCase()).includes((user.email || "").toLowerCase())
+  } catch(e) { return false }
+}
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    promptSignIn(auth, { reason: "manage class tasks", cancelLabel: "Back to the calendar",
+      onCancel: () => { location.href = "calendar.html" } })
+    return
+  }
+  if (!(await isModerator(user))) {
+    $("authGate").innerHTML = `<div style="margin:auto;max-width:300px;text-align:center;position:relative;z-index:1">
+      <div style="font-size:19.5px;font-weight:600;margin-bottom:6px">Moderators only</div>
+      <div style="font-size:15px;color:var(--muted);margin-bottom:18px;line-height:1.5"><span id="gateEmail"></span> isn't on the moderator list.</div>
+      <a href="calendar.html" class="btn go" style="display:block;text-decoration:none">Back to the calendar</a></div>`
+    $("gateEmail").textContent = user.email
+    return
+  }
+  $("authGate").style.display = "none"
+  $("mainContent").style.display = "block"
+  mountNav({ active: "manage", admin: true })
+  startTimeTracking(db, user.uid)
+  const name = user.displayName || user.email
+  $("who").innerHTML = (user.photoURL ? `<img src="${esc(user.photoURL)}" alt="">` : `<span class="fb">${esc(name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase())}</span>`) + `<span></span>`
+  $("who").lastElementChild.textContent = name.split(" ")[0]
+  $("who").classList.add("visible")
+  start(user.uid)
+})
+
+function start(uid) {
+  onSnapshot(collection(db, "userTasks", uid, "tasks"), snap => {
+    mine = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    mineLoaded = true
+    render()
+  }, e => console.warn("Could not load your tasks:", e))
+  // What you've ticked off stays off your list here too
+  onSnapshot(doc(db, "userDone", uid), snap => { mineDone = snap.exists() ? snap.data().done || {} : {}; render() },
+    e => console.warn("Could not load what you've done:", e))
+  onSnapshot(collection(db, "tasks"), snap => {
+    tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    loaded = true
+    render()
+  }, e => { console.warn("Could not load tasks:", e); $("groups").innerHTML = `<div class="empty"><b>Couldn't load tasks</b>Check your connection and refresh.</div>` })
+  getDoc(doc(db, "subjects", "list")).then(snap => {
+    if (!snap.exists()) return
+    subjectList = Subj.listOrTimetable(snap.data()?.items)
+    try { localStorage.setItem("tas_subject_list", JSON.stringify(subjectList)) } catch(e) {}
+    render()
+  }).catch(e => console.warn("Could not load the subject list:", e))
+}
+
+// ── List ──────────────────────────────────────────────────────
+const SECTIONS = [
+  ["next",    g => g.week ? "Due next week" : "Due tomorrow"],
+  ["today",   () => "Due today"],
+  ["overdue", () => "Overdue · last 7 days"],
+  ["later",   () => "Later"],
+]
+function rowHTML(t, today) {
+  const s = Subj.match(t.subject, subjectList)
+  const color = HEX(s?.color)
+  const kind = kindOf(t)
+  const pill = duePill(t.end, today, t.dueAt, kind)
+  const send = sendLabel(t.send)
+  return `<button type="button" class="row" data-id="${esc(t.id)}" aria-label="Edit ${esc(t.name)}">
+    <span class="strip" style="background:${color}"></span>
+    <span class="row-main">
+      <span class="row-top"><span class="row-name">${esc(t.name)}</span>${pill ? `<span class="pill ${pill.tone}">${esc(pill.label)}</span>` : ""}</span>
+      <span class="row-meta">${s?.code ? `<span class="code" style="color:${color}">${esc(s.code)}</span>` : ""}<span>${esc(s ? s.name : t.subject || "No subject")}</span>${send ? `<span>${esc(send)}</span>` : ""}${t.note ? `<span>📝 note</span>` : ""}</span>
+    </span>
+    <span class="row-edit" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg></span>
+  </button>`
+}
+function render() {
+  if (!(mode === "mine" ? mineLoaded : loaded)) { $("groups").innerHTML = `<div class="empty">Loading tasks…</div>`; return }
+  const today = localKey()
+  const q = $("q").value
+  const g = activeGroups(mode === "mine" ? mine.filter(t => !mineDone[t.id]) : tasks, today, q)
+  const html = SECTIONS.filter(([k]) => g[k].length).map(([k, title]) => `<section class="group ${k}">
+      <div class="group-h">${esc(title(g))}<span class="n">${g[k].length}</span></div>
+      <div class="list">${g[k].map(t => rowHTML(t, today)).join("")}</div></section>`).join("")
+  $("groups").innerHTML = html || (q.trim()
+    ? `<div class="empty"><b>No matches</b>Nothing active matches “${esc(q.trim())}”.</div>`
+    : `<div class="empty"><b>All clear</b>${mode === "mine" ? "None of your own tasks are active right now." : "No active class tasks right now."}</div>`)
+}
+function setMode(m) {
+  mode = m
+  document.querySelectorAll(".mode button").forEach(b => { const on = b.dataset.mode === m; b.classList.toggle("on", on); b.setAttribute("aria-selected", on) })
+  try { localStorage.setItem("tas_manage_mode", m) } catch(e) {}
+  render()
+}
+document.querySelectorAll(".mode button").forEach(b => b.onclick = () => setMode(b.dataset.mode))
+setMode(mode)
+$("q").addEventListener("input", render)
+$("groups").addEventListener("click", e => {
+  const r = e.target.closest(".row")
+  if (r) openSheet(r.dataset.id)
+})
+// Past midnight "tomorrow" means something else
+setInterval(() => { if (document.visibilityState === "visible") render() }, 60_000)
+
+// ── Edit sheet ────────────────────────────────────────────────
+let editing = null, kind = "homework", subject = "", saving = false
+$("eSend").innerHTML = `<option value="">—</option>` + Object.entries(SEND).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("")
+const subjectBox = mountSubjectSearch($("eSubject"), { items: () => subjectList, value: "", onPick: it => { subject = it.name } })
+function setKind(k) {
+  kind = k
+  document.querySelectorAll("#eKind button").forEach(b => b.classList.toggle("on", b.dataset.k === k))
+  // ส่งตอน and how to send are class-homework things; your own tasks don't have them
+  const show = k === "homework" && mode === "class"
+  $("eDueAt").parentElement.style.display = $("eSend").parentElement.style.display = show ? "" : "none"
+}
+document.querySelectorAll("#eKind button").forEach(b => b.onclick = () => setKind(b.dataset.k))
+
+function openSheet(id) {
+  const t = list().find(x => x.id === id)
+  if (!t) return
+  editing = t
+  $("sheetT").textContent = mode === "mine" ? "Edit my task" : "Edit class task"
+  $("eDel").title = mode === "mine" ? "Delete this task" : "Delete for the whole class"
+  $("eName").value = t.name || ""
+  subject = t.subject || ""
+  subjectBox.set(subject)
+  setKind(kindOf(t))
+  $("eEnd").value = t.end || ""
+  $("eDueAt").value = t.dueAt || ""
+  const send = t.send || ""
+  if (send && !SEND[send] && ![...$("eSend").options].some(o => o.value === send))
+    $("eSend").insertAdjacentHTML("beforeend", `<option value="${esc(send)}" data-custom>${esc(send)}</option>`)
+  $("eSend").value = send
+  $("eNote").value = t.note || ""
+  $("eErr").textContent = ""
+  $("sheetBg").classList.add("open")
+  setTimeout(() => $("eName").focus({ preventScroll: true }), 50)
+}
+function closeSheet() {
+  $("sheetBg").classList.remove("open")
+  $("eSend").querySelectorAll("[data-custom]").forEach(o => o.remove())
+  document.querySelectorAll(".ss-pop").forEach(p => p.remove())
+  editing = null
+}
+$("eCancel").onclick = closeSheet
+$("sheetBg").addEventListener("click", e => { if (e.target.id === "sheetBg") closeSheet() })
+document.addEventListener("keydown", e => { if (e.key === "Escape" && editing) closeSheet() })
+
+function logHistory(action, t, detail) {
+  addDoc(collection(db, "taskHistory"), { taskId: t.id, name: t.name || "", subject: t.subject || "", action, detail, by: who(), at: Date.now() })
+    .catch(e => console.warn("Could not log the change:", e))
+}
+
+$("sheet").addEventListener("submit", async e => {
+  e.preventDefault()
+  if (!editing || saving) return
+  const err = msg => { $("eErr").textContent = msg }
+  const own = mode === "mine"
+  const form = { name: $("eName").value, subject, end: $("eEnd").value, note: $("eNote").value, kind,
+                 dueAt: kind === "homework" && !own ? $("eDueAt").value : editing.dueAt || "",
+                 send: kind === "homework" && !own ? $("eSend").value : editing.send || "" }
+  if (!form.name.trim()) return err("Give the task a name.")
+  if (!form.end) return err("Pick a due date.")
+  // Class tasks take their subject from the shared list, like the calendar
+  const hit = Subj.match(form.subject, subjectList)
+  if (subjectList.length && !hit && !own) return err("Pick a subject from the list.")
+  if (hit) form.subject = hit.name
+  const p = editPatch(editing, form)
+  if (!p) return closeSheet()
+  saving = true; $("eSave").disabled = true; $("eSave").textContent = "Saving…"
+  try {
+    const t = editing
+    await updateDoc(colRef(t.id), { ...p.fields, updatedAt: Date.now(), ...(own ? {} : { editedBy: who() }) })
+    // The history is the class's log; your own list stays out of it
+    if (!own) logHistory("edited", { ...t, ...p.fields }, p.detail + " from Manage")
+    closeSheet()
+    toast(own ? "Saved" : "Saved — everyone sees the change")
+  } catch(e) {
+    console.warn("Could not save:", e)
+    err("Couldn't save — check your connection and try again.")
+  } finally { saving = false; $("eSave").disabled = false; $("eSave").textContent = "Save" }
+})
+
+// Delete: confirm, then a 7s Undo — the photos only go once Undo has passed
+$("eDel").onclick = async () => {
+  const t = editing
+  const own = mode === "mine"
+  if (!t || !confirm(own ? `Delete “${t.name}” from your tasks?` : `Delete “${t.name}” for the whole class?`)) return
+  const ref = colRef(t.id)
+  try {
+    await deleteDoc(ref)
+    closeSheet()
+    if (!own) logHistory("deleted", t, "from Manage")
+    const { id, ...data } = t
+    let undone = false
+    if (t.photoCount && !own) setTimeout(() => { if (!undone) deleteDoc(doc(db, "taskPhotos", id)).catch(e => console.warn("Could not remove the photos:", e)) }, 7600)
+    toast("Task deleted", { action: "Undo", duration: 7000, onAction: async () => {
+      undone = true
+      try { await setDoc(ref, data); if (!own) logHistory("restored", t, "from Manage") }
+      catch(e) { console.warn("Could not restore:", e); toast("Couldn't undo — add it again", { error: true }) }
+    } })
+  } catch(e) {
+    console.warn("Could not delete:", e)
+    $("eErr").textContent = "Couldn't delete — try again."
+  }
+}
+
+let toastTimer = 0
+function toast(text, { action = "", onAction = null, duration = 2600, error = false } = {}) {
+  const el = $("toast"), a = $("toastA")
+  $("toastT").textContent = text
+  a.textContent = action; a.style.display = action ? "" : "none"
+  a.onclick = () => { el.classList.remove("show"); onAction?.() }
+  el.classList.toggle("error", error)
+  el.classList.remove("show"); void el.offsetWidth; el.classList.add("show")
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), duration)
+}
+</script>
+</body>
+</html>
