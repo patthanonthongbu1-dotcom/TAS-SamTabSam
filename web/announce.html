@@ -1184,6 +1184,7 @@ function initApp() {
   // Declared up here because updatePreview() reads it, and that runs during
   // draft restore — before the toggle further down would have initialised it.
   let previewMode = "text"
+  let previewTimer = 0      // the card preview waits for a pause in typing (updatePreview)
   // What Publish does, remembered per device. Also read by updatePreview().
   const ACTIONS_KEY = "tas_fmt_actions"
   let actions = { copyText: true, copyImage: false, saveImage: false, discord: true, calendar: true }
@@ -1924,9 +1925,11 @@ function initApp() {
     syncPublishMenu()
     // The card is redrawn once typing pauses, not on every key: with a long
     // day split into two cards, two full repaints per keystroke made typing lag
-    if (previewMode === "card") { clearTimeout(previewTimer); previewTimer = setTimeout(renderPreviewCard, 150) }
+    if (previewMode === "card") {
+      clearTimeout(previewTimer)
+      previewTimer = setTimeout(() => { if (previewMode === "card") renderPreviewCard() }, 150)
+    }
   }
-  let previewTimer = 0
 
   // ── Preview mode ──────────────────────────────────────────────
   // The card preview is the live DOM the exporter rasterises, not a PNG:
@@ -1953,12 +1956,11 @@ function initApp() {
       const box = stage.children[i]
       const t = box.querySelector(".pv-card-t")
       if (t) t.textContent = m.page?.tabs[i].label || ""
-      // Only a card whose content changed is repainted (photos make a repaint costly)
+      // Only a card whose content changed is repainted (photos make a repaint
+      // costly) — but every card is fitted to the stage as it is now
       const host = box.querySelector(".pv-card-host"), key = JSON.stringify(m)
-      if (host._key === key && host.firstElementChild) return
-      host._key = key
-      const card = mountHwCard(host, m)
-      if (stage.clientWidth) card.style.zoom = Math.min(1, (stage.clientWidth - 28) / HW_WIDTH)
+      if (host._key !== key || !host.firstElementChild) { host._key = key; mountHwCard(host, m) }
+      if (stage.clientWidth) host.firstElementChild.style.zoom = Math.min(1, (stage.clientWidth - 28) / HW_WIDTH)
     })
   }
 

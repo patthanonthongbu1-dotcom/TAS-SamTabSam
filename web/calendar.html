@@ -6536,6 +6536,7 @@ window.handleTickClick=function(p){
     const ep=parseFloat(el.dataset.pct)
     el.classList.toggle("hl-tick",hlPct!==null&&Math.abs(ep-hlPct)<0.01&&!el.classList.contains("today-tick")&&!el.classList.contains("marker-tick"))
   })
+  declutterTickLabels()   // a highlighted date's label outranks its neighbours
   document.querySelectorAll(".hl-vline").forEach(el=>{
     const ep=parseFloat(el.dataset.pct)
     el.classList.toggle("active",hlPct!==null&&Math.abs(ep-hlPct)<0.01)
@@ -7023,6 +7024,10 @@ function declutterTickLabels(){
     else kept.push(r)
   }
 }
+// Kanit is wider than the fallback face, so labels that fitted before the
+// font arrived can overlap after: measure again once it has loaded
+document.fonts?.ready?.then(declutterTickLabels)
+document.fonts?.addEventListener?.("loadingdone", declutterTickLabels)
 
 const CHIP_PAD = 10   // matches .gantt-pct { right: 10px }
 
