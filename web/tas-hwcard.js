@@ -120,6 +120,43 @@ export function footerModel(f){
   return { title: week ? "Due next week" : "Due tomorrow", reminders, moreReminders: all.length - reminders.length, qr }
 }
 
+/* Too much for one card? Past SPLIT_ROWS rows in all (the list plus the
+   due-tomorrow box), or more reminders than the footer box holds, the card
+   becomes two. Each keeps the banner, date and QR footer — only the list
+   in the middle moves: card 1 is what was announced, card 2 what's due
+   next, as full rows. */
+export const SPLIT_ROWS = 8
+
+export function cardModels(input, today = input.date){
+  const one = cardModel(input, today)
+  const f = one.footer
+  const reminders = f ? f.reminders.length + f.moreReminders : 0
+  const listRows = one.sections.reduce((n, s) => n + s.rows.length, 0) + one.more
+  if(!reminders || (listRows + reminders <= SPLIT_ROWS && reminders <= MAX_REMINDERS)) return [one]
+
+  const footer = input.footer || {}
+  const qrOnly = { ...footer, reminders: [] }
+  const first = cardModel({ ...input, footer: qrOnly }, today)
+  const rows = (footer.reminders || []).map(r => ({
+    subject: r.subject, code: r.code, teacher: r.teacher, color: r.color, icon: r.icon,
+    send: r.send, dueAt: r.dueAt, kind: r.kind, due: r.due, lines: r.name ? [r.name] : [],
+  }))
+  const second = cardModel({ date: input.date, name: input.name,
+    sections: [{ icon: "🗓", title: "", rows }], footer: qrOnly }, today)
+  // The two lists as a toggle across the top of each card: the side you're
+  // on is lit, the other dimmed. It stands in for the section heading —
+  // card 2's always, card 1's when it has just the one section (several
+  // keep their own headings under the toggle).
+  const single = first.sections.length === 1 ? first.sections[0] : null
+  const tabs = [
+    { icon: single?.icon || "📢", label: single?.title || "Announced", count: listRows },
+    { icon: "🗓", label: f.title, count: reminders },
+  ]
+  if(single) single.title = ""
+  // Nothing announced but a long due list: card 1 says "no homework today"
+  return [{ ...first, page: { n: 1, of: 2, tabs } }, { ...second, page: { n: 2, of: 2, tabs } }]
+}
+
 /** YYYY-MM-DD plus n days (calendar dates, no time zone involved). */
 export const addDays = (s, n) => {
   const t = ymd(s)

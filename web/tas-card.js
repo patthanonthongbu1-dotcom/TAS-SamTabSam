@@ -101,7 +101,15 @@ const HW_CSS = `
 .hw{width:${HW_WIDTH}px;font-family:'Kanit',sans-serif;background:#f6f8fb;color:#0f1d3a;line-height:1.35;overflow:hidden;border-radius:26px}
 .hw *{box-sizing:border-box}
 .hw-banner{display:block;width:100%;height:auto}
-.hw-date{padding:18px 24px 16px;background:#fff;border-bottom:1px solid #e6ebf2}
+.hw-date{position:relative;padding:18px 24px 16px;background:#fff;border-bottom:1px solid #e6ebf2}
+.hw-tabs{display:flex;gap:4px;margin:12px 0 0;padding:4px;border-radius:99px;background:#e8edf6;border:1px solid #dce3ee}
+.hw-tab{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:7px;padding:8px 12px;border-radius:99px;font-size:15px;font-weight:600;line-height:1.3;color:#7a879b}
+.hw-tab.on{background:#16305e;color:#fff}
+.hw-tab .hw-ico{width:17px;height:17px;margin-top:0}
+.hw-tab .hw-ico svg{width:100%;height:100%}
+.hw-tab-l{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hw-tab-n{flex-shrink:0;min-width:21px;padding:0 6px;border-radius:99px;font-size:12px;line-height:21px;text-align:center;background:#d5dde9;color:#475569;font-variant-numeric:tabular-nums}
+.hw-tab.on .hw-tab-n{background:#db2777;color:#fff}
 .hw-wd{font-size:14px;font-weight:500;color:#db2777;line-height:1.4}
 .hw-big{font-size:30px;font-weight:600;line-height:1.3;letter-spacing:-0.3px}
 .hw-name{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:16px;color:#4a5568;line-height:1.4}
@@ -209,6 +217,14 @@ function rowHTML(r){ return  `<div class="hw-row"${r.id ? ` data-tid="${esc(r.id
       </div>
     </div>` }
 
+// A split card's two lists as a toggle; the side this card shows is lit.
+// It's a picture of a toggle — the card is an image, nothing to tap.
+function tabsHTML(p){
+  if(!p?.tabs) return ""
+  return `<div class="hw-tabs">${p.tabs.map((t, i) => `<div class="hw-tab${i === p.n - 1 ? " on" : ""}">
+      ${iconHTML(t.icon)}<span class="hw-tab-l">${esc(t.label)}</span><span class="hw-tab-n">${t.count}</span></div>`).join("")}</div>`
+}
+
 export function hwCardHTML(m){
   const sections = m.sections.map(s => `<div class="hw-sec">
       ${s.title ? `<div class="hw-sec-head">${iconHTML(s.icon)}<span>${esc(s.title)}</span></div>` : ""}
@@ -222,6 +238,7 @@ export function hwCardHTML(m){
       ${m.name ? `<div class="hw-name">${ICO.user}<span>${esc(m.name)}</span></div>` : ""}
     </div>
     <div class="hw-list">
+      ${tabsHTML(m.page)}
       ${sections || `<div class="hw-empty"><span class="hw-ico">${svg(`<circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16.5 9.5"/>`)}</span>ไม่มีการบ้านวันนี้</div>`}
       ${m.more > 0 ? `<div class="hw-more">+${m.more} รายการ</div>` : ""}
     </div>

@@ -33,6 +33,24 @@ async function isModerator(idToken) {
   return !!claims.email && claims.email_verified === true && emails.includes(claims.email.toLowerCase())
 }
 
+// A free Render service sleeps when idle and takes up to a minute to wake.
+// The Formatter pings this when it opens, so the server is up by the time
+// someone publishes — a big upload kept waiting on a cold start tends to
+// get cut off (the phone backgrounds the tab, and the request dies).
+app.get("/health", (req, res) => res.json({ ok: true }))
+
+/* Each publish carries a nonce. If the page loses the connection after
+   Discord already has the post (the phone backgrounds the tab while it
+   waits for the answer), it retries — and that retry must not post again. */
+const sentNonces = new Map()   // nonce → when it was posted
+const pending = new Map()      // nonce → the post still on its way to Discord
+const NONCE_TTL = 10 * 60_000
+function seen(nonce) {
+  const now = Date.now()
+  for (const [k, t] of sentNonces) if (now - t > NONCE_TTL) sentNonces.delete(k)
+  return !!nonce && sentNonces.has(nonce)
+}
+
 app.post("/send", async (req, res) => {
   // message  -> plain text (Discord "content")
   // embed    -> rich card   (Discord "embed", the analog of LINE flexMessage)
@@ -47,11 +65,22 @@ app.post("/send", async (req, res) => {
     return res.status(500).json({ ok: false, error: "No Discord webhook URL configured" })
   }
 
+  const nonce = typeof req.body?.nonce === "string" ? req.body.nonce.slice(0, 64) : ""
+  let settle = null       // set once this request owns the nonce's post
   try {
     const idToken = (req.headers.authorization || "").replace(/^Bearer /, "")
     if (!(await isModerator(idToken))) {
       return res.status(403).json({ ok: false, error: "Only moderators can post to Discord" })
     }
+
+    if (seen(nonce)) return res.json({ ok: true, duplicate: true })
+    // The retry can arrive while the first try is still talking to Discord:
+    // wait for that one and answer with its result rather than posting again
+    if (nonce && pending.has(nonce)) {
+      const ok = await pending.get(nonce)
+      return ok ? res.json({ ok: true, duplicate: true }) : res.status(502).json({ ok: false, error: "The first try didn't go through — publish again" })
+    }
+    if (nonce) pending.set(nonce, new Promise(r => { settle = r }))
 
     const payload = embed
       ? { embeds: [embed] }
@@ -64,10 +93,12 @@ app.post("/send", async (req, res) => {
       // Files need multipart. Node's own fetch/FormData — node-fetch v3
       // can't serialise the global FormData.
       const form = new FormData()
-      payload.attachments = photos.map((p, i) => ({ id: i, filename: `photo${i + 1}.jpg` }))
+      // The page names its files (card1.jpg, photo2.jpg…); keep that, cleaned
+      payload.attachments = photos.map((p, i) => ({ id: i,
+        filename: (String(p.name || "").replace(/[^\w.-]/g, "").replace(/\.jpe?g$/i, "") || `photo${i + 1}`) + ".jpg" }))
       form.append("payload_json", JSON.stringify(payload))
       photos.forEach((p, i) =>
-        form.append(`files[${i}]`, new Blob([Buffer.from(p.data, "base64")], { type: "image/jpeg" }), `photo${i + 1}.jpg`))
+        form.append(`files[${i}]`, new Blob([Buffer.from(p.data, "base64")], { type: "image/jpeg" }), payload.attachments[i].filename))
       response = await globalThis.fetch(DISCORD_WEBHOOK + "?wait=true", { method: "POST", body: form })
     } else {
       response = await fetch(DISCORD_WEBHOOK + "?wait=true", {
@@ -82,9 +113,14 @@ app.post("/send", async (req, res) => {
     let result
     try { result = text ? JSON.parse(text) : { status: response.status } }
     catch (e) { result = { status: response.status } }
-    console.log("Discord response:", JSON.stringify(result))
-    res.json({ ok: response.ok, discordResult: result })
+    if (response.ok && nonce) sentNonces.set(nonce, Date.now())
+    console.log("Discord response:", response.status, JSON.stringify(result))
+    // Discord's own reason (too big, bad attachment…) goes back to the page
+    res.json({ ok: response.ok, discordResult: result,
+               ...(response.ok ? {} : { error: `Discord ${response.status}: ${result.message || "rejected the post"}` }) })
+    if (settle) { settle(response.ok); pending.delete(nonce) }
   } catch (e) {
+    if (settle) { settle(false); pending.delete(nonce) }
     console.error("Send failed:", e)
     res.status(502).json({ ok: false, error: "Could not reach Discord" })
   }
@@ -99,4 +135,4 @@ app.post("/webhook", (req, res) => {
 })
 
 const PORT = process.env.PORT || 3001
-app.listen(PORT, () => console.log(`Discord server running on port ${PORT}`))
+app.listen(PORT, () => console.log(`Discord server running on port ${PORT} (Node ${process.version})`))

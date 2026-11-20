@@ -8,8 +8,8 @@
    an app's tab bar rather than a thing you re-open constantly.
 
    How many pages it offers depends on who is looking. Everyone
-   gets Calendar and Tools. The task formatter is the whitelisted
-   page, so it only appears for people on `config/modWhitelist` —
+   gets Calendar and Tools. The task formatter and Manage are the whitelisted
+   pages, so they only appear for people on `config/modWhitelist` —
    which is a courtesy, not a lock: announce.html still gates
    itself, and this only decides whether the door is signposted.
 
@@ -33,12 +33,13 @@
    ───────────────────────────────────────────────────────────── */
 
 /* `admin` marks a page that only shows for someone on the
-   whitelist. Order is deliberate: the formatter sits between the
-   two so the pill does not reshuffle when it appears. */
+   whitelist. Order is deliberate: the formatter and Manage sit
+   between the others so the pill does not reshuffle when they appear. */
 const PAGES = [
   { key:"home",     href:"index.html",     icon:"home",     label:"Home" },
   { key:"calendar", href:"calendar.html",  icon:"calendar", label:"Calendar" },
   { key:"announce", href:"announce.html",  icon:"note",     label:"Formatter", admin:true },
+  { key:"manage",   href:"calendar.html?view=manage", icon:"edit", label:"Manage", admin:true },
   { key:"hub",      href:"tools.html",     icon:"tools",    label:"Tools" },
 ]
 
@@ -53,6 +54,7 @@ const PATHS = {
   home:     `<path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.5V19a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V9.5"/><path d="M9.5 20v-6h5v6"/>`,
   calendar: `<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v4M16 3v4"/>`,
   note:     `<path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M8 13h8M8 17h5"/>`,
+  edit:     `<path d="M4 20h4L19 9a2.1 2.1 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>`,
   tools:    `<path d="M4 9h16a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9a1 1 0 0 1 1-1Z"/><path d="M9 9V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v3"/><path d="M3 14h18"/>`,
 }
 
