@@ -7,19 +7,19 @@
   <link rel="icon" type="image/x-icon" href="TASLogo.png">
   <meta name="theme-color" content="#0b1c3d">
   <script>
-    /* The Today report lives inside the calendar now. Card QR codes (and old
-       links) still point here, so pass the day along and step aside. LINE's
+    /* Old Today links and QR codes still point here: open the calendar with
+       the small Today popup. LINE's
        in-app browser is sent outside first, as on every other page. */
     (function () {
       var q = new URLSearchParams(location.search)
-      var d = q.get("date") || ""
-      var to = "calendar.html?view=today" + (/^\d{4}-\d{2}-\d{2}$/.test(d) ? "&date=" + d : "")
+      // Old links open the calendar with the small Today popup
+      var to = "calendar.html?today=popup"
       if (/Line\//i.test(navigator.userAgent || "")) to += "&openExternalBrowser=1"
       location.replace(to)
     })()
   </script>
 </head>
 <body style="font-family:sans-serif;background:#0b1c3d;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0">
-  <a href="calendar.html?view=today" style="color:#9cc3ff">Open today's homework →</a>
+  <a href="calendar.html?today=popup" style="color:#9cc3ff">Open today's homework →</a>
 </body>
 </html>
