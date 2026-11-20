@@ -1949,7 +1949,7 @@ function initApp() {
     models.forEach((m, i) => {
       const box = stage.children[i]
       const t = box.querySelector(".pv-card-t")
-      if (t) t.textContent = i === 0 ? "Announced" : (m.sections[0]?.title || "Due next")
+      if (t) t.textContent = m.page?.tabs[i].label || ""
       const card = mountHwCard(box.querySelector(".pv-card-host"), m)
       if (stage.clientWidth) card.style.zoom = Math.min(1, (stage.clientWidth - 28) / HW_WIDTH)
     })

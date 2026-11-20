@@ -142,9 +142,19 @@ export function cardModels(input, today = input.date){
     send: r.send, dueAt: r.dueAt, kind: r.kind, due: r.due, lines: r.name ? [r.name] : [],
   }))
   const second = cardModel({ date: input.date, name: input.name,
-    sections: [{ icon: "🗓", title: f.title, rows }], footer: qrOnly }, today)
+    sections: [{ icon: "🗓", title: "", rows }], footer: qrOnly }, today)
+  // The two lists as a toggle across the top of each card: the side you're
+  // on is lit, the other dimmed. It stands in for the section heading —
+  // card 2's always, card 1's when it has just the one section (several
+  // keep their own headings under the toggle).
+  const single = first.sections.length === 1 ? first.sections[0] : null
+  const tabs = [
+    { icon: single?.icon || "📢", label: single?.title || "Announced", count: listRows },
+    { icon: "🗓", label: f.title, count: reminders },
+  ]
+  if(single) single.title = ""
   // Nothing announced but a long due list: card 1 says "no homework today"
-  return [{ ...first, page: { n: 1, of: 2 } }, { ...second, page: { n: 2, of: 2 } }]
+  return [{ ...first, page: { n: 1, of: 2, tabs } }, { ...second, page: { n: 2, of: 2, tabs } }]
 }
 
 /** YYYY-MM-DD plus n days (calendar dates, no time zone involved). */

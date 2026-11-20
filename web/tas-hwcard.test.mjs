@@ -177,10 +177,13 @@ test("cardModels: too long → two cards, same header/QR, only the list moves", 
     footer: { reminders: rem(3, { dueAt: "คาบ 2", kind: "quiz" }), qr: QR } })
   assert.equal(ms.length, 2)
   const [a, b] = ms
-  assert.deepEqual([a.page, b.page], [{ n: 1, of: 2 }, { n: 2, of: 2 }])
+  assert.deepEqual([a.page.n, a.page.of, b.page.n], [1, 2, 2])
   for (const m of ms) { assert.equal(m.date, T); assert.equal(m.name, "Non"); assert.deepEqual(m.footer.qr, QR); assert.deepEqual(m.footer.reminders, []) }
   assert.equal(a.sections[0].rows.length, SPLIT_ROWS - 1)
-  assert.equal(b.sections[0].title, "Due tomorrow")
+  // The headings become the toggle: card 1's lone section and card 2's lose theirs
+  assert.deepEqual(a.page.tabs, [{ icon: "📢", label: "การบ้าน", count: SPLIT_ROWS - 1 }, { icon: "🗓", label: "Due tomorrow", count: 3 }])
+  assert.deepEqual(b.page.tabs, a.page.tabs)
+  assert.deepEqual([a.sections[0].title, b.sections[0].title], ["", ""])
   assert.deepEqual(b.sections[0].rows.map(r => r.n), [1, 2, 3])
   assert.deepEqual(b.sections[0].rows[0].lines.map(l => l.text), ["w0"])
   assert.equal(b.sections[0].rows[0].pill.label, "ควิซพรุ่งนี้ · คาบ 2")
@@ -195,6 +198,13 @@ test("cardModels: more reminders than the footer holds forces a split", () => {
 test("cardModels: Friday split titles card 2 'Due next week'; no reminders never splits", () => {
   const fri = "2026-11-13"
   const ms = cardModels({ date: fri, sections: [{ title: "a", rows: rows(SPLIT_ROWS) }], footer: { week: true, reminders: rem(1, { due: "2026-11-16" }), qr: QR } }, fri)
-  assert.equal(ms[1].sections[0].title, "Due next week")
+  assert.equal(ms[1].page.tabs[1].label, "Due next week")
   assert.equal(cardModels({ date: T, sections: [{ title: "a", rows: rows(20) }], footer: { qr: QR } }).length, 1)
+})
+
+test("cardModels: several sections keep their headings; the tab says Announced", () => {
+  const ms = cardModels({ date: T, sections: [{ icon: "📢", title: "การบ้าน", rows: rows(4) }, { icon: "📌", title: "งานกลุ่ม", rows: rows(4) }],
+    footer: { reminders: rem(2), qr: QR } })
+  assert.deepEqual(ms[0].page.tabs[0], { icon: "📢", label: "Announced", count: 8 })
+  assert.deepEqual(ms[0].sections.map(s => s.title), ["การบ้าน", "งานกลุ่ม"])
 })
