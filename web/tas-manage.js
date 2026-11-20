@@ -1,7 +1,8 @@
 /* ─────────────────────────────────────────────────────────────
-   Manage (manage.html): the moderators' list of class tasks still in
-   play, so one posted wrong can be fixed without hunting for it on
-   the calendar. Pure — node tests it; manage.html does the DOM.
+   Manage (a calendar section): tasks still in play, grouped by when
+   they're due, so one posted wrong can be fixed without hunting for it.
+   Pure — node tests it; calendar.html draws it and edits with its
+   usual task form.
    ───────────────────────────────────────────────────────────── */
 import { reminderWindow, addDays } from "./tas-hwcard.js"
 
@@ -33,37 +34,4 @@ export function activeGroups(tasks, today, query = ""){
     overdue: list.filter(t => t.end < today && t.end >= oldest),
     later: list.filter(t => t.end > win.to),
   }
-}
-
-/** The kind a task is edited as: "homework", or the marker's quiz/exam */
-export const kindOf = t => t?.type === "marker" ? (t.markerType === "exam" ? "exam" : "quiz") : "homework"
-
-const FIELDS = { name: "name", subject: "subject", end: "due", dueAt: "ส่งตอน", send: "send", note: "note", kind: "type" }
-
-/**
- * What the edit sheet changed → the Firestore update and a line for the
- * history log. `form` = { name, subject, end, dueAt, send, note, kind }.
- * Returns null when nothing changed.
- */
-export function editPatch(task, form){
-  const before = { name: task.name || "", subject: task.subject || "", end: task.end || "", dueAt: task.dueAt || "",
-                   send: task.send || "", note: task.note || "", kind: kindOf(task) }
-  const after = {}
-  for (const k of Object.keys(FIELDS)) after[k] = String(form[k] ?? "").trim()
-  const changed = Object.keys(FIELDS).filter(k => before[k] !== after[k])
-  if (!changed.length) return null
-
-  const fields = {}
-  for (const k of changed) if (k !== "kind") fields[k] = after[k]
-  if (after.kind === "homework") {
-    if (before.kind !== "homework") { fields.type = "normal"; fields.markerType = null; fields.date = null }
-    // A task's start can't sit after its due date
-    if (changed.includes("end") && task.start && task.start > after.end) fields.start = after.end
-  } else {
-    // Markers keep date/start/end together, the way the calendar saves them
-    Object.assign(fields, { type: "marker", markerType: after.kind, date: after.end, start: after.end, end: after.end })
-  }
-  const detail = changed.map(k => k === "note" ? "note changed"
-    : `${FIELDS[k]} ${before[k] || "—"} → ${after[k] || "—"}`).join(", ")
-  return { fields, detail }
 }

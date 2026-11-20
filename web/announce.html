@@ -2138,9 +2138,11 @@ function initApp() {
   // "Save image" and Discord all reuse this. One at a time — they share
   // the off-screen host.
   let renderQueue = Promise.resolve()
-  function renderCardBlob(i = 0) {
+  // `models` pins what's rendered to one moment, so an export of both cards
+  // can't be split up by an edit made while it runs
+  function renderCardBlob(i = 0, models = null) {
     const p = renderQueue.then(async () => {
-      const m = currentCardModels()[i]
+      const m = (models || currentCardModels())[i]
       if (!m) throw new Error("no card " + (i + 1))
       const host = document.getElementById("cardRenderHost")
       try { return await exportHwCard(mountHwCard(host, m), toBlob) }
@@ -2157,10 +2159,10 @@ function initApp() {
 
   // Every card, one file each (-1, -2 when it split)
   async function downloadCardImage() {
-    const of = cardCount()
+    const models = currentCardModels(), of = models.length
     try {
       for (let i = 0; i < of; i++) {
-        const blob = await renderCardBlob(i)
+        const blob = await renderCardBlob(i, models)
         const url = URL.createObjectURL(blob)
         const a = document.createElement("a")
         a.href = url
@@ -2229,8 +2231,8 @@ function initApp() {
   // Drawn at 1080px wide: Discord shows it far smaller than that, and a
   // smaller upload is one a phone finishes before the tab gets backgrounded.
   const DISCORD_CARD_W = 1080
-  async function cardJpegBase64(i = 0) {
-    const blob = await renderCardBlob(i)
+  async function cardJpegBase64(i = 0, models = null) {
+    const blob = await renderCardBlob(i, models)
     const bmp = await createImageBitmap(blob)
     const k = Math.min(1, DISCORD_CARD_W / bmp.width)
     const c = document.createElement("canvas")
@@ -2260,10 +2262,10 @@ function initApp() {
     if (!embed) return false
     // The card itself goes first, so the channel sees the same image as
     // LINE; then the subject photos. Discord takes at most 10 files.
-    const of = cardCount()
+    const models = currentCardModels(), of = models.length
     const cards = []
     for (let i = 0; i < of; i++) {
-      const data = await cardJpegBase64(i).catch(e => { console.warn("Card image for Discord failed:", e); return null })
+      const data = await cardJpegBase64(i, models).catch(e => { console.warn("Card image for Discord failed:", e); return null })
       if (data) cards.push({ name: of > 1 ? `card${i + 1}.jpg` : "card.jpg", data })
     }
     discordCardMissing = cards.length < of
@@ -2275,7 +2277,10 @@ function initApp() {
     discordError = ""
     const sentKey = embed.description + "\u0000" + photos.map(p => p.data.length).join(",")
     if (sentKey === lastDiscordSent) return true
-    const body = JSON.stringify({ embed, photos })
+    // One nonce per publish: if a retry follows a post that did land, the
+    // server answers "already sent" instead of posting it a second time
+    const nonce = Date.now().toString(36) + Math.random().toString(36).slice(2)
+    const body = JSON.stringify({ embed, photos, nonce })
     const post = async () => {
       // The server checks this token against the moderator whitelist.
       const idToken = await auth.currentUser.getIdToken()

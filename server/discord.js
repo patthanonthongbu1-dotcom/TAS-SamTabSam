@@ -39,6 +39,18 @@ async function isModerator(idToken) {
 // get cut off (the phone backgrounds the tab, and the request dies).
 app.get("/health", (req, res) => res.json({ ok: true }))
 
+/* Each publish carries a nonce. If the page loses the connection after
+   Discord already has the post (the phone backgrounds the tab while it
+   waits for the answer), it retries — and that retry must not post again. */
+const sentNonces = new Map()   // nonce → when it was posted
+const pending = new Map()      // nonce → the post still on its way to Discord
+const NONCE_TTL = 10 * 60_000
+function seen(nonce) {
+  const now = Date.now()
+  for (const [k, t] of sentNonces) if (now - t > NONCE_TTL) sentNonces.delete(k)
+  return !!nonce && sentNonces.has(nonce)
+}
+
 app.post("/send", async (req, res) => {
   // message  -> plain text (Discord "content")
   // embed    -> rich card   (Discord "embed", the analog of LINE flexMessage)
@@ -53,11 +65,22 @@ app.post("/send", async (req, res) => {
     return res.status(500).json({ ok: false, error: "No Discord webhook URL configured" })
   }
 
+  const nonce = typeof req.body?.nonce === "string" ? req.body.nonce.slice(0, 64) : ""
+  let settle = null       // set once this request owns the nonce's post
   try {
     const idToken = (req.headers.authorization || "").replace(/^Bearer /, "")
     if (!(await isModerator(idToken))) {
       return res.status(403).json({ ok: false, error: "Only moderators can post to Discord" })
     }
+
+    if (seen(nonce)) return res.json({ ok: true, duplicate: true })
+    // The retry can arrive while the first try is still talking to Discord:
+    // wait for that one and answer with its result rather than posting again
+    if (nonce && pending.has(nonce)) {
+      const ok = await pending.get(nonce)
+      return ok ? res.json({ ok: true, duplicate: true }) : res.status(502).json({ ok: false, error: "The first try didn't go through — publish again" })
+    }
+    if (nonce) pending.set(nonce, new Promise(r => { settle = r }))
 
     const payload = embed
       ? { embeds: [embed] }
@@ -90,11 +113,14 @@ app.post("/send", async (req, res) => {
     let result
     try { result = text ? JSON.parse(text) : { status: response.status } }
     catch (e) { result = { status: response.status } }
+    if (response.ok && nonce) sentNonces.set(nonce, Date.now())
     console.log("Discord response:", response.status, JSON.stringify(result))
     // Discord's own reason (too big, bad attachment…) goes back to the page
     res.json({ ok: response.ok, discordResult: result,
                ...(response.ok ? {} : { error: `Discord ${response.status}: ${result.message || "rejected the post"}` }) })
+    if (settle) { settle(response.ok); pending.delete(nonce) }
   } catch (e) {
+    if (settle) { settle(false); pending.delete(nonce) }
     console.error("Send failed:", e)
     res.status(502).json({ ok: false, error: "Could not reach Discord" })
   }

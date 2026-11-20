@@ -1346,6 +1346,22 @@
       .archive-row .archive-acts{opacity:0;transform:translateX(4px);transition:opacity 0.15s,transform 0.15s}
       .archive-row:hover .archive-acts,.archive-row.selected .archive-acts{opacity:1;transform:none}
     }
+    /* Manage: active tasks, grouped by when they're due; tap one to edit */
+    .manage-search{flex:1;min-width:140px;background:var(--field-bg);border:1px solid var(--glass-brd);color:var(--text);font-family:'Kanit',sans-serif;font-size:14px;border-radius:20px;padding:6px 14px;outline:none;transition:border-color 0.15s}
+    .manage-search:focus{border-color:var(--accent-brd)}
+    .manage-search::placeholder{color:var(--label)}
+    .manage-h{display:flex;align-items:center;gap:8px;padding:10px 18px 6px;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--label);border-bottom:1px solid var(--glass-brd)}
+    .manage-h.next{color:var(--pink)}
+    .manage-h .n{margin-left:auto;font-weight:400;letter-spacing:0;text-transform:none}
+    .manage-row .archive-name{max-width:none;flex:1 1 auto}
+    .manage-pill{font-size:11.5px;font-weight:600;border-radius:10px;padding:2px 9px;white-space:nowrap;flex-shrink:0}
+    .manage-pill.red{background:var(--red-light);color:var(--red-text)}
+    .manage-pill.orange{background:var(--amber-light);color:var(--amber);border:1px solid var(--amber-mid)}
+    .manage-pill.grey{background:rgba(127,127,127,0.12);color:var(--muted)}
+    .manage-pill.violet{background:rgba(139,92,246,0.14);color:#a78bfa}
+    html:is([data-theme="light"],[data-theme="paper"],[data-theme="sky"]) .manage-pill.violet{color:#6d28d9}
+    .manage-edit{color:var(--label);display:grid;place-items:center;width:28px;height:28px;flex-shrink:0}
+    @media(max-width:640px){ .manage-row .archive-subj{display:none} }
     .archive-empty{text-align:center;padding:3.5rem 2rem;color:var(--label);font-size:15.5px;line-height:1.7}
     .archive-empty .big{font-size:39px;display:block;margin-bottom:10px}
     .archive-hint{font-size:12px;color:var(--label);margin-top:12px;text-align:center;line-height:1.6}
@@ -2900,6 +2916,10 @@
       <span class="nav-lab">Archive</span>
       <span class="tab-count" id="archiveCount" style="display:none"></span>
     </button>
+    <button class="nav-pill" data-sec="manage" id="tabManage" onclick="closeMenus();switchView('manage')" style="display:none">
+      <svg class="nav-ic"><use href="#ic-pencil"/></svg>
+      <span class="nav-lab">Manage</span>
+    </button>
     <button class="nav-pill" data-sec="settings" id="tabSettings" onclick="closeMenus();openSettings()">
       <svg class="nav-ic"><use href="#ic-settings"/></svg>
       <span class="nav-lab">Settings</span>
@@ -3625,7 +3645,8 @@ import { loadIdeas, saveIdeas, adoptGuestIdeas } from "./tas-blocks-store.js"
 import * as Points from "./tas-points.js"
 import * as Subj from "./tas-subjects.js"
 import { mountSubjectSearch } from "./tas-subject-search.js"
-import { cardModel, fromTasks, SEND, sendLabel, newestStamp } from "./tas-hwcard.js"
+import { cardModel, fromTasks, SEND, sendLabel, newestStamp, duePill } from "./tas-hwcard.js"
+import { activeGroups } from "./tas-manage.js"
 import { mountToday } from "./tas-today.js"
 import { NAV_SECTIONS, NAV_DEFAULT, NAV_MAX, normalizeNavBar, moreSections, toggleInBar, moveInBar } from "./tas-navbar.js"
 import { mountHwCard, exportHwCard, HW_WIDTH } from "./tas-card.js"
@@ -5287,7 +5308,7 @@ function applyStoredRangeToUI(){
 // Which nav pill is lit. Four are real views; "settings" is the last sheet
 // left, and borrows the highlight while it's open, handing it back on close.
 function setActivePill(which){
-  const map = { calendar:"tabCalendar", today:"tabToday", archive:"tabArchive", todo:"tabTodo", tasks:"tabTasks", settings:"tabSettings" }
+  const map = { calendar:"tabCalendar", today:"tabToday", archive:"tabArchive", todo:"tabTodo", tasks:"tabTasks", settings:"tabSettings", manage:"tabManage" }
   const menu = document.getElementById("moreMenu")
   let inMore = false
   for(const [key, id] of Object.entries(map)){
@@ -5314,6 +5335,10 @@ window.addEventListener("resize", syncTabsEdge)
 syncTabsEdge()
 window.setActivePill = setActivePill
 
+document.addEventListener("click", e => {
+  const a = e.target.closest?.('a[href="calendar.html?view=manage"]')
+  if(a){ e.preventDefault(); switchView("manage") }
+})
 window.switchView = function(view) {
   // Ideas is a tab of My Tasks now; old callers (share target…) land there
   if(view === "ideas"){ switchView("tasks"); mtTab("ideas"); return }
@@ -5345,6 +5370,7 @@ window.switchView = function(view) {
   // repaint leaves what's half-typed alone.
   else if (view==="tasks") renderMyTasks(true)
   else if (view==="today") renderTodayView(true)
+  else if (view==="manage") renderManageView(true)
   else renderArchive()
 }
 
@@ -5374,11 +5400,13 @@ function initIdeasView(uid){
 let hlFromToday = []
 let firstTasksSnap = true
 let todayFromLink = null
+let manageFromLink = false   // calendar?view=manage — the navigator's Manage item
 {
   const q = new URLSearchParams(location.search)
   const d = q.get("date") || ""
   const okDate = /^\d{4}-\d{2}-\d{2}$/.test(d)
   if(q.get("view") === "today" || okDate) todayFromLink = okDate ? d : "today"
+  manageFromLink = q.get("view") === "manage"
   hlFromToday = (q.get("hl") || "").split(",").filter(id => SAFE_ID.test(id)).slice(0, 40)
   ;["hl","view","date","openExternalBrowser"].forEach(k => q.delete(k))
   if(location.search) history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : ""))
@@ -5534,6 +5562,7 @@ function renderCurrentView(){
   else if(currentView==="todo"){ TodoUI.render(); updateTodoCount() }
   else if(currentView==="tasks") renderMyTasks(false)   // list only — never the form
   else if(currentView==="today") renderTodayView(false)
+  else if(currentView==="manage") renderManageView(false)
   else renderCalendar()
 }
 window.renderCurrentView = renderCurrentView
@@ -5567,6 +5596,71 @@ function getVisibleArchived(){
   if (archiveFilterSubject) list = list.filter(t => t.subject === archiveFilterSubject)
   if (archiveFilterType)    list = list.filter(t => t.type === archiveFilterType)
   return list
+}
+
+// ── Manage — active tasks, ready to fix ───────────────────────
+// The class's tasks still in play (moderators), or your own, grouped by
+// when they're due: tomorrow (the week ahead on Fridays, like the card's
+// footer), today, overdue, later. A row opens the same edit form as
+// everywhere else, so there's one form to keep right.
+let manageMine = false, manageQuery = ""
+function renderManageView(fresh){
+  const wrap = document.getElementById("calWrap")
+  if(!tasksLoaded){
+    if(!wrap.querySelector('.cal-skeleton[data-skel="archive"]')) wrap.innerHTML=archiveSkeletonHTML()
+    return
+  }
+  // Class tasks are for moderators — whitelisted is enough, no need to find
+  // the mod-mode switch first (firestore.rules checks the same list). Until
+  // the role is known it's your own list, without forgetting the choice.
+  const canClass = isMod || isWhitelisted
+  const box = wrap.querySelector("#manageList")
+  // The toolbar is built once per visit so the search box keeps focus while
+  // typing — again only when the role changes what it offers
+  if(fresh || !box || box.dataset.cls !== String(canClass)){
+    const seg = (mine, label) => `<button class="archive-fchip${manageShowsMine()===mine?" active":""}" onclick="setManageMine(${mine})">${label}</button>`
+    wrap.innerHTML = `<div class="archive-wrap"><div class="archive-toolbar">
+        ${canClass ? `<div class="archive-fchips">${seg(false, ico("user")+" Class tasks")}${seg(true, ico("mine")+" My tasks")}</div>` : ""}
+        <input class="manage-search" id="manageQ" type="search" placeholder="Search tasks, subjects, notes" value="${esc(manageQuery)}" aria-label="Search tasks">
+      </div><div class="archive-list" id="manageList" data-cls="${canClass}"></div></div>`
+    document.getElementById("manageQ").oninput = e => { manageQuery = e.target.value; renderManageList() }
+  }
+  renderManageList()
+}
+window.setManageMine = mine => { manageMine = mine; renderManageView(true) }
+const manageShowsMine = () => manageMine || !(isMod || isWhitelisted)
+function renderManageList(){
+  const list = document.getElementById("manageList")
+  if(!list) return
+  const today = localToday()
+  const mine = manageShowsMine()
+  const src = mine ? personalTasks.filter(t => !userDoneCache[t.id]) : tasks
+  const g = activeGroups(src, today, manageQuery)
+  const groups = [["next", g.week ? "Due next week" : "Due tomorrow"], ["today", "Due today"], ["overdue", "Overdue · last 7 days"], ["later", "Later"]]
+  const row = (t, i) => {
+    const kind = t.type === "marker" ? t.markerType : "homework"
+    const p = duePill(t.end, today, t.dueAt, kind)
+    return `<div class="archive-row manage-row" tabindex="0" role="button" style="animation-delay:${(0.03 + i * 0.02).toFixed(3)}s" onclick="manageEdit('${t.id}')" onkeydown="if(event.key==='Enter')manageEdit('${t.id}')">
+      <span class="archive-strip" style="background:${subjectColor(t.subject)}"></span>
+      <div class="archive-main">
+        <span class="archive-name">${esc(t.name)}</span>
+        <span class="archive-subj">${esc(t.subject || "")}${t.send ? " · " + esc(sendLabel(t.send)) : ""}</span>
+        ${p ? `<span class="manage-pill ${p.tone}">${esc(p.label)}</span>` : ""}
+      </div>
+      <span class="manage-edit" aria-hidden="true">${ico("pencil")}</span>
+    </div>`
+  }
+  let i = 0
+  const html = groups.filter(([k]) => g[k].length).map(([k, title]) =>
+    `<div class="manage-h ${k}">${esc(title)}<span class="n">${g[k].length}</span></div>${g[k].map(t => row(t, i++)).join("")}`).join("")
+  list.innerHTML = html || `<div class="archive-empty"><span class="big">${ico("check-circle")}</span>${manageQuery.trim()
+    ? `Nothing active matches “${esc(manageQuery.trim())}”`
+    : mine ? "None of your own tasks are active right now" : "No active class tasks right now"}</div>`
+}
+window.manageEdit = id => {
+  const mine = manageShowsMine()
+  const t = (mine ? personalTasks : tasks).find(x => x.id === id)
+  if(t) openEditModal(mine ? { ...t, _personal: true } : t)
 }
 
 function renderArchive() {
@@ -7935,9 +8029,9 @@ window.showDetail=function(e,id){
     delBtn.className="detail-delete-btn"+(isMod?" visible":"")
     delBtn.innerHTML=ico("trash")+" Delete task"
 
-    // The modal writes to the class board, so only a class marker opens it
+    // Class markers are the moderators'; your own are yours to edit
     const eb=document.getElementById("dp-edit-btn")
-    eb.className="detail-edit-btn"+(isMod&&!detailTaskIsPersonal?" visible":"")
+    eb.className="detail-edit-btn"+(isMod||detailTaskIsPersonal?" visible":"")
     eb.style.display=""
     eb.onclick=()=>{closeDetail();openEditModal(t)}
 
@@ -7986,9 +8080,9 @@ window.showDetail=function(e,id){
   delBtn.className="detail-delete-btn"+((isOverdue||isMod||detailTaskIsPersonal)?" visible":"")
   delBtn.innerHTML=ico("trash")+(isMod||detailTaskIsPersonal?" Delete task":" Remove from my list")
 
-  // The modal writes to the class board — a personal task has its own form
+  // Class tasks are the moderators' to edit; your own are yours
   const eb=document.getElementById("dp-edit-btn")
-  eb.className="detail-edit-btn"+(isMod&&!detailTaskIsPersonal?" visible":"")
+  eb.className="detail-edit-btn"+(isMod||detailTaskIsPersonal?" visible":"")
   eb.style.display=""
   eb.onclick=()=>{closeDetail();openEditModal(t)}
 
@@ -8059,6 +8153,7 @@ function afterFirstTasks(){
   if(hlFromToday.length) setTimeout(highlightTasks, 450, hlFromToday)
   // A card's QR: straight to that day's report
   if(todayFromLink){ todayDate = todayFromLink === "today" ? null : todayFromLink; todayFromLink = null; switchView("today"); return }
+  if(manageFromLink){ manageFromLink = false; switchView("manage"); return }
   let seen = null
   try{ seen = localStorage.getItem(TODAY_SEEN_KEY) }catch(e){}
   const newest = newestStamp(tasks)
@@ -8116,6 +8211,8 @@ function updateRoleUI(){
   mountNav({ active:"calendar", admin:isModerator })
   const mf=document.getElementById("morePageFormatter")
   if(mf) mf.style.display=isModerator?"":"none"
+  const mg=document.getElementById("tabManage")
+  if(mg) mg.style.display=isModerator?"":"none"
   const role=document.getElementById("dropdownRole")
   if(role) role.textContent=isModerator?"Moderator":"Member"
   const fb=document.getElementById("ddFirebase")
@@ -8184,13 +8281,17 @@ function syncModDiff(){
    It is an option in the Type list, so posting a quiz date is the same
    two taps as posting homework — no trip through the formatter. */
 let editingMarker=false
+// One of your own tasks (userTasks/…) rather than the class's: same form,
+// minus how-to-send, saved to your list and kept out of the class history
+let editingPersonal=false
 window.setModalMarker=function(on){
   editingMarker=on
   for(const id of ["t-start-field","t-diff-field","t-send-row"])
     document.getElementById(id).style.display=on?"none":""
+  if(editingPersonal) document.getElementById("t-send-row").style.display="none"
   document.getElementById("t-mkind-field").style.display=on?"":"none"
   document.getElementById("t-end-label").textContent=on?"Date":"End / Due date"
-  document.getElementById("modal-title").textContent=(editingId?"Edit ":"Add ")+(on?"marker":"task")
+  document.getElementById("modal-title").textContent=(editingId?"Edit ":"Add ")+(editingPersonal?"my ":"")+(on?"marker":"task")
   // A hidden start date would otherwise still put a floor under the date
   if(on){document.getElementById("t-start").value="";syncDateMins()}
   else if(!document.getElementById("t-start").value){document.getElementById("t-start").value=localToday();syncDateMins()}
@@ -8198,6 +8299,7 @@ window.setModalMarker=function(on){
 
 window.openAddModal=function(kind){
   editingId=null
+  editingPersonal=false
   document.getElementById("t-name").value=""
   document.getElementById("t-subject").value=""
   syncSubjectPick()
@@ -8217,6 +8319,7 @@ window.openAddModal=function(kind){
 }
 function openEditModal(t){
   editingId=t.id
+  editingPersonal=!!t._personal
   const marker=t.type==="marker"
   document.getElementById("t-name").value=t.name
   document.getElementById("t-subject").value=t.subject||""
@@ -8252,10 +8355,11 @@ window.saveTask=async function(){
   const start=document.getElementById("t-start").value
   const end=document.getElementById("t-end").value
   const note=document.getElementById("t-note").value.trim()
-  if(!name||!subject||!end||(!editingMarker&&!start)){toast("Fill in the name, subject and dates first",{error:true});return}
+  // Your own markers may have no subject (My Tasks never asked for one)
+  if(!name||(!subject&&!(editingPersonal&&editingMarker))||!end||(!editingMarker&&!start)){toast("Fill in the name, subject and dates first",{error:true});return}
   if(!editingMarker&&new Date(start)>new Date(end)){toast("The start date has to be before the due date",{error:true});return}
   // Class tasks take their subject from the shared list, so it can't drift
-  if(!editingMarker&&subjectList.length&&!Subj.match(subject,subjectList)){
+  if(!editingPersonal&&!editingMarker&&subjectList.length&&!Subj.match(subject,subjectList)){
     const c=Subj.candidates(subject,subjectList)
     toast(c.length>1?`"${subject}" could be ${c.map(Subj.label).join(" / ")} — pick one`:`"${subject}" isn't on the subject list — pick one, or add it in Settings → Subjects`,{error:true,duration:7000});return}
   // Left unset, it stays unset — the reader's own estimate is a better
@@ -8265,6 +8369,17 @@ window.saveTask=async function(){
     : {name,subject:canonSubject(subject),type,start,end,note,difficulty:modDiff||null,
        send:document.getElementById("t-send").value,dueAt:document.getElementById("t-dueat").value.trim()}
   const who=currentUser?(currentUser.displayName||currentUser.email||""):""
+  if(editingPersonal&&editingId){
+    // Your own task: no how-to-send, no class history, nobody else sees it
+    if(!editingMarker){ delete data.send; delete data.dueAt; data.subject=canonSubject(subject) }
+    taskSaving=true
+    try{
+      await updateDoc(doc(db,"userTasks",currentUser.uid,"tasks",editingId),{...data,updatedAt:Date.now()})
+      closeModal(); toast("Saved")
+    }catch(e){ console.warn("Could not save your task:",e); saveFailToast() }
+    finally{ taskSaving=false }
+    return
+  }
   taskSaving=true
   try{
     // updatedAt keeps the "Latest update" pill honest for edits, not just new tasks
@@ -8284,6 +8399,13 @@ window.saveTask=async function(){
 }
 window.deleteTask=async function(){
   if(!editingId)return
+  if(editingPersonal){
+    const t=personalTasks.find(x=>x.id===editingId)
+    if(!await confirmDialog({message:`"${t?t.name:"This task"}" will be removed from your tasks.`}))return
+    try{await deleteDoc(doc(db,"userTasks",currentUser.uid,"tasks",editingId));closeModal();toast("Task deleted")}
+    catch(e){console.warn("Could not delete task:",e);toast("Couldn't delete the task — try again",{error:true})}
+    return
+  }
   const t=tasks.find(x=>x.id===editingId)
   const ok=await confirmDialog({message:`"${t?t.name:"This task"}" will be removed for the whole class.`})
   if(!ok)return

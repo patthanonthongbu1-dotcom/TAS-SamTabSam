@@ -39,7 +39,7 @@ const PAGES = [
   { key:"home",     href:"index.html",     icon:"home",     label:"Home" },
   { key:"calendar", href:"calendar.html",  icon:"calendar", label:"Calendar" },
   { key:"announce", href:"announce.html",  icon:"note",     label:"Formatter", admin:true },
-  { key:"manage",   href:"manage.html",    icon:"edit",     label:"Manage",    admin:true },
+  { key:"manage",   href:"calendar.html?view=manage", icon:"edit", label:"Manage", admin:true },
   { key:"hub",      href:"tools.html",     icon:"tools",    label:"Tools" },
 ]
 
