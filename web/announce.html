@@ -2226,16 +2226,35 @@ function initApp() {
   let discordError = ""     // why the last post failed, shown in the status line
   // The rendered card as base64 JPEG: the Discord server labels every file
   // .jpg, and a 1620px card is a few hundred KB this way rather than ~2 MB.
+  // Drawn at 1080px wide: Discord shows it far smaller than that, and a
+  // smaller upload is one a phone finishes before the tab gets backgrounded.
+  const DISCORD_CARD_W = 1080
   async function cardJpegBase64(i = 0) {
     const blob = await renderCardBlob(i)
     const bmp = await createImageBitmap(blob)
+    const k = Math.min(1, DISCORD_CARD_W / bmp.width)
     const c = document.createElement("canvas")
-    c.width = bmp.width; c.height = bmp.height
+    c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k)
     const ctx = c.getContext("2d")
     ctx.fillStyle = "#f6f8fb"; ctx.fillRect(0, 0, c.width, c.height)
-    ctx.drawImage(bmp, 0, 0)
-    return c.toDataURL("image/jpeg", 0.9).split(",")[1]
+    ctx.imageSmoothingQuality = "high"
+    ctx.drawImage(bmp, 0, 0, c.width, c.height)
+    return c.toDataURL("image/jpeg", 0.86).split(",")[1]
   }
+
+  /* The Discord server is a free Render service: it sleeps when idle and
+     takes up to a minute to wake. A post that waited on that while its
+     upload ran got cut off (the logs show "request aborted"), so the page
+     wakes it on open, keeps it up while you work, and retries once. */
+  let lastWake = 0
+  function wakeDiscord(force = false) {
+    if (!force && Date.now() - lastWake < 8 * 60_000) return Promise.resolve(true)
+    lastWake = Date.now()
+    return fetch(`${DISCORD_SERVER_URL}/health`, { cache: "no-store" }).then(r => r.ok).catch(() => false)
+  }
+  wakeDiscord()
+  setInterval(() => { if (document.visibilityState === "visible") wakeDiscord() }, 60_000)
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") wakeDiscord() })
   async function sendToDiscord() {
     const embed = buildDiscordEmbed()
     if (!embed) return false
@@ -2256,22 +2275,36 @@ function initApp() {
     discordError = ""
     const sentKey = embed.description + "\u0000" + photos.map(p => p.data.length).join(",")
     if (sentKey === lastDiscordSent) return true
-    try {
+    const body = JSON.stringify({ embed, photos })
+    const post = async () => {
       // The server checks this token against the moderator whitelist.
       const idToken = await auth.currentUser.getIdToken()
       const res  = await fetch(`${DISCORD_SERVER_URL}/send`, {
         method:  "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + idToken },
-        body:    JSON.stringify({ embed, photos }),
+        body,
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok || data.ok === false) throw new Error(data.error || `Server responded ${res.status}`)
+    }
+    // What a browser says when the connection itself failed (Chrome / Firefox / Safari)
+    const dropped = e => /failed to fetch|networkerror|load failed|network connection was lost/i.test(e?.message || "")
+    try {
+      try { await post() }
+      catch(e) {
+        // The connection dropped (a cold start, a flaky network): make sure
+        // the server is up, then one more go. Discord's own refusals aren't retried.
+        if (!dropped(e)) throw e
+        console.warn("Discord post dropped, retrying:", e)
+        await wakeDiscord(true)
+        await post()
+      }
       lastDiscordSent = sentKey
       return true
     } catch(e) {
       console.warn("Discord send failed:", e)
-      discordError = /failed to fetch|networkerror|load failed/i.test(e.message)
-        ? "the Discord server didn't answer — it may be waking up, try again in a minute" : e.message
+      discordError = dropped(e)
+        ? "the connection dropped — keep this page open while it posts, and try again" : e.message
       return false
     }
   }
@@ -2413,8 +2446,14 @@ function initApp() {
     if (actions.copyText) {
       record("copyText", await Promise.race([copyFormatted(), new Promise(r => setTimeout(() => r(false), 1500))]))
     }
-    if (actions.copyImage) {
-      let good = await copyCardImage()
+    // The clipboard image is queued first (it has to run inside the tap),
+    // then the Discord upload starts right away rather than last: the
+    // sooner it's going, the sooner it's done — before anyone switches apps.
+    const copyP = actions.copyImage ? copyCardImage() : null
+    const discordP = actions.discord ? sendToDiscord() : null
+    if (discordP) setStatus("s-info", "Posting to Discord — keep this page open…")
+    if (copyP) {
+      let good = await copyP
       // Falling back to a download beats losing the card entirely on a
       // browser that won't write images to the clipboard.
       if (!good && await downloadCardImage()) {
@@ -2425,8 +2464,8 @@ function initApp() {
       if (good && cardCount() > 1) done.push("copy card 1 — card 2 has its own Copy button in the Card preview")
     }
     if (actions.saveImage) record("saveImage", await downloadCardImage())
-    if (actions.discord) {
-      const ok = await sendToDiscord()
+    if (discordP) {
+      const ok = await discordP
       record("discord", ok)
       if (!ok && discordError) failed[failed.length - 1] += ` (${discordError})`
       if (ok && discordCardMissing) done.push("leave the card image off Discord (it couldn't be drawn — the text and photos went)")

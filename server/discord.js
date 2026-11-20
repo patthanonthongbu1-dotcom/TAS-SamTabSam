@@ -33,22 +33,11 @@ async function isModerator(idToken) {
   return !!claims.email && claims.email_verified === true && emails.includes(claims.email.toLowerCase())
 }
 
-/* A multipart/form-data body for a webhook post with files: payload_json,
-   then files[0..n]. Names come from the page ("card1.jpg", "photo2.jpg"),
-   cleaned to something Discord accepts. */
-const fileName = (p, i) => (String(p.name || "").replace(/[^\w.-]/g, "").replace(/\.jpe?g$/i, "") || `photo${i + 1}`) + ".jpg"
-function multipartBody(payload, photos) {
-  const boundary = "----tas" + Date.now().toString(16) + Math.random().toString(16).slice(2)
-  const names = photos.map(fileName)
-  const json = JSON.stringify({ ...payload, attachments: names.map((filename, id) => ({ id, filename })) })
-  const parts = [Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="payload_json"\r\nContent-Type: application/json\r\n\r\n${json}\r\n`)]
-  photos.forEach((p, i) => {
-    parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="files[${i}]"; filename="${names[i]}"\r\nContent-Type: image/jpeg\r\n\r\n`))
-    parts.push(Buffer.from(p.data, "base64"), Buffer.from("\r\n"))
-  })
-  parts.push(Buffer.from(`--${boundary}--\r\n`))
-  return { type: `multipart/form-data; boundary=${boundary}`, data: Buffer.concat(parts) }
-}
+// A free Render service sleeps when idle and takes up to a minute to wake.
+// The Formatter pings this when it opens, so the server is up by the time
+// someone publishes — a big upload kept waiting on a cold start tends to
+// get cut off (the phone backgrounds the tab, and the request dies).
+app.get("/health", (req, res) => res.json({ ok: true }))
 
 app.post("/send", async (req, res) => {
   // message  -> plain text (Discord "content")
@@ -76,14 +65,25 @@ app.post("/send", async (req, res) => {
 
     // ?wait=true makes Discord return the created message JSON (like LINE's response),
     // otherwise a successful post is a bare 204 No Content.
-    // Files need multipart. It's built by hand rather than with FormData/Blob:
-    // those only exist as globals on Node 18+, and on an older runtime every
-    // post with a picture (which is every post, now the card goes along)
-    // threw before reaching Discord, while text-only posts still worked.
-    const body = photos.length ? multipartBody(payload, photos) : null
-    const response = await fetch(DISCORD_WEBHOOK + "?wait=true", body
-      ? { method: "POST", headers: { "Content-Type": body.type }, body: body.data }
-      : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+    let response
+    if (photos.length) {
+      // Files need multipart. Node's own fetch/FormData — node-fetch v3
+      // can't serialise the global FormData.
+      const form = new FormData()
+      // The page names its files (card1.jpg, photo2.jpg…); keep that, cleaned
+      payload.attachments = photos.map((p, i) => ({ id: i,
+        filename: (String(p.name || "").replace(/[^\w.-]/g, "").replace(/\.jpe?g$/i, "") || `photo${i + 1}`) + ".jpg" }))
+      form.append("payload_json", JSON.stringify(payload))
+      photos.forEach((p, i) =>
+        form.append(`files[${i}]`, new Blob([Buffer.from(p.data, "base64")], { type: "image/jpeg" }), payload.attachments[i].filename))
+      response = await globalThis.fetch(DISCORD_WEBHOOK + "?wait=true", { method: "POST", body: form })
+    } else {
+      response = await fetch(DISCORD_WEBHOOK + "?wait=true", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+    }
 
     // An error page from Discord (or a proxy in front of it) isn't JSON.
     const text = await response.text()
@@ -109,6 +109,4 @@ app.post("/webhook", (req, res) => {
 })
 
 const PORT = process.env.PORT || 3001
-if (require.main === module)
-  app.listen(PORT, () => console.log(`Discord server running on port ${PORT} (Node ${process.version})`))
-module.exports = { app, multipartBody }
+app.listen(PORT, () => console.log(`Discord server running on port ${PORT} (Node ${process.version})`))
