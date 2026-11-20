@@ -2223,6 +2223,7 @@ function initApp() {
   // other step doesn't post the same announcement a second time.
   let lastDiscordSent = null
   let discordCardMissing = false
+  let discordError = ""     // why the last post failed, shown in the status line
   // The rendered card as base64 JPEG: the Discord server labels every file
   // .jpg, and a 1620px card is a few hundred KB this way rather than ~2 MB.
   async function cardJpegBase64(i = 0) {
@@ -2252,6 +2253,7 @@ function initApp() {
       ...sections.flatMap(sec => sec.subjects.flatMap(s => s.photos || []))
         .map((p, i) => ({ name: `photo${i + 1}.jpg`, data: p.src.split(",")[1] })),
     ].slice(0, 10)
+    discordError = ""
     const sentKey = embed.description + "\u0000" + photos.map(p => p.data.length).join(",")
     if (sentKey === lastDiscordSent) return true
     try {
@@ -2268,6 +2270,8 @@ function initApp() {
       return true
     } catch(e) {
       console.warn("Discord send failed:", e)
+      discordError = /failed to fetch|networkerror|load failed/i.test(e.message)
+        ? "the Discord server didn't answer — it may be waking up, try again in a minute" : e.message
       return false
     }
   }
@@ -2424,6 +2428,7 @@ function initApp() {
     if (actions.discord) {
       const ok = await sendToDiscord()
       record("discord", ok)
+      if (!ok && discordError) failed[failed.length - 1] += ` (${discordError})`
       if (ok && discordCardMissing) done.push("leave the card image off Discord (it couldn't be drawn — the text and photos went)")
     }
 

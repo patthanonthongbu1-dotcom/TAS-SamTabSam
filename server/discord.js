@@ -33,6 +33,23 @@ async function isModerator(idToken) {
   return !!claims.email && claims.email_verified === true && emails.includes(claims.email.toLowerCase())
 }
 
+/* A multipart/form-data body for a webhook post with files: payload_json,
+   then files[0..n]. Names come from the page ("card1.jpg", "photo2.jpg"),
+   cleaned to something Discord accepts. */
+const fileName = (p, i) => (String(p.name || "").replace(/[^\w.-]/g, "").replace(/\.jpe?g$/i, "") || `photo${i + 1}`) + ".jpg"
+function multipartBody(payload, photos) {
+  const boundary = "----tas" + Date.now().toString(16) + Math.random().toString(16).slice(2)
+  const names = photos.map(fileName)
+  const json = JSON.stringify({ ...payload, attachments: names.map((filename, id) => ({ id, filename })) })
+  const parts = [Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="payload_json"\r\nContent-Type: application/json\r\n\r\n${json}\r\n`)]
+  photos.forEach((p, i) => {
+    parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="files[${i}]"; filename="${names[i]}"\r\nContent-Type: image/jpeg\r\n\r\n`))
+    parts.push(Buffer.from(p.data, "base64"), Buffer.from("\r\n"))
+  })
+  parts.push(Buffer.from(`--${boundary}--\r\n`))
+  return { type: `multipart/form-data; boundary=${boundary}`, data: Buffer.concat(parts) }
+}
+
 app.post("/send", async (req, res) => {
   // message  -> plain text (Discord "content")
   // embed    -> rich card   (Discord "embed", the analog of LINE flexMessage)
@@ -59,31 +76,24 @@ app.post("/send", async (req, res) => {
 
     // ?wait=true makes Discord return the created message JSON (like LINE's response),
     // otherwise a successful post is a bare 204 No Content.
-    let response
-    if (photos.length) {
-      // Files need multipart. Node's own fetch/FormData — node-fetch v3
-      // can't serialise the global FormData.
-      const form = new FormData()
-      payload.attachments = photos.map((p, i) => ({ id: i, filename: `photo${i + 1}.jpg` }))
-      form.append("payload_json", JSON.stringify(payload))
-      photos.forEach((p, i) =>
-        form.append(`files[${i}]`, new Blob([Buffer.from(p.data, "base64")], { type: "image/jpeg" }), `photo${i + 1}.jpg`))
-      response = await globalThis.fetch(DISCORD_WEBHOOK + "?wait=true", { method: "POST", body: form })
-    } else {
-      response = await fetch(DISCORD_WEBHOOK + "?wait=true", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      })
-    }
+    // Files need multipart. It's built by hand rather than with FormData/Blob:
+    // those only exist as globals on Node 18+, and on an older runtime every
+    // post with a picture (which is every post, now the card goes along)
+    // threw before reaching Discord, while text-only posts still worked.
+    const body = photos.length ? multipartBody(payload, photos) : null
+    const response = await fetch(DISCORD_WEBHOOK + "?wait=true", body
+      ? { method: "POST", headers: { "Content-Type": body.type }, body: body.data }
+      : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
 
     // An error page from Discord (or a proxy in front of it) isn't JSON.
     const text = await response.text()
     let result
     try { result = text ? JSON.parse(text) : { status: response.status } }
     catch (e) { result = { status: response.status } }
-    console.log("Discord response:", JSON.stringify(result))
-    res.json({ ok: response.ok, discordResult: result })
+    console.log("Discord response:", response.status, JSON.stringify(result))
+    // Discord's own reason (too big, bad attachment…) goes back to the page
+    res.json({ ok: response.ok, discordResult: result,
+               ...(response.ok ? {} : { error: `Discord ${response.status}: ${result.message || "rejected the post"}` }) })
   } catch (e) {
     console.error("Send failed:", e)
     res.status(502).json({ ok: false, error: "Could not reach Discord" })
@@ -99,4 +109,6 @@ app.post("/webhook", (req, res) => {
 })
 
 const PORT = process.env.PORT || 3001
-app.listen(PORT, () => console.log(`Discord server running on port ${PORT}`))
+if (require.main === module)
+  app.listen(PORT, () => console.log(`Discord server running on port ${PORT} (Node ${process.version})`))
+module.exports = { app, multipartBody }
